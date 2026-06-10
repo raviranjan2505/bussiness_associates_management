@@ -7,6 +7,6 @@ const router = express.Router()
 // User mangement route
 router.get("/get-users", verifyToken, adminOnly, getUsers)
 
-router.get("/:id", verifyToken, getUserById)
+router.get("/:id", verifyToken, adminOnly, getUserById)
 
 export default router

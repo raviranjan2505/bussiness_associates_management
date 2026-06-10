@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import Login from "./pages/auth/Login";
 import SignUp from "./pages/auth/SignUp";
 import ManageUsers from "./pages/admin/ManageUsers";
+import AssociateWorks from "./pages/admin/AssociateWorks";
 import BusinessDashboard from "./pages/admin/BusinessDashboard";
 import ManageDivisionsServices from "./pages/admin/ManageDivisionsServices";
 import ReviewWorks from "./pages/admin/ReviewWorks";
@@ -29,6 +30,7 @@ const App = () => {
             <Route path="/admin/works" element={<ReviewWorks />} />
             <Route path="/admin/work/:id" element={<WorkDetails />} />
             <Route path="/admin/users" element={<ManageUsers />} />
+            <Route path="/admin/users/:id" element={<AssociateWorks />} />
             <Route path="/admin/notifications" element={<Notifications />} />
           </Route>
 
