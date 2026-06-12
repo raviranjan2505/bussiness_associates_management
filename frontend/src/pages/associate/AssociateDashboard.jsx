@@ -25,12 +25,18 @@ const AssociateDashboard = () => {
           <Link to="/associate/submit-work" className="bg-gray-900 text-white rounded-lg px-4 py-2 text-center">Submit Work</Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
           <Stat title="My Submitted Work" value={stats.mySubmittedWork || 0} />
           <Stat title="Pending Work" value={stats.Pending || 0} />
           <Stat title="In Process Work" value={stats["In Process"] || 0} />
           <Stat title="Completed Work" value={stats.Completed || 0} />
           <Stat title="Requested Documents" value={stats.requestedDocuments || 0} />
+          <Stat
+            title="My Income"
+            value={`₹${Number(
+              stats.totalIncome || 0
+            ).toLocaleString("en-IN")}`}
+          />
         </div>
 
         <section className="bg-white border border-gray-100 rounded-lg overflow-hidden">

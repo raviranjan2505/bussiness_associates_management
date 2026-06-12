@@ -397,6 +397,27 @@ export const uploadAdditionalDocuments = async (req, res, next) => {
 export const adminDashboard = async (req, res, next) => {
   try {
     const statusCounts = await WorkSubmission.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]);
+    const incomeResult = await WorkSubmission.aggregate([
+      {
+        $match: {
+          status: "Completed",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalIncome: {
+            $sum: "$associateEarningAmount",
+          },
+        },
+      },
+    ]);
+
+    const totalIncome =
+      incomeResult.length > 0
+        ? incomeResult[0].totalIncome
+        : 0;
+
     const byDivision = await WorkSubmission.aggregate([
       { $group: { _id: "$division", count: { $sum: 1 } } },
       { $lookup: { from: "divisions", localField: "_id", foreignField: "_id", as: "division" } },
@@ -420,6 +441,7 @@ export const adminDashboard = async (req, res, next) => {
     const statistics = {
       totalAssociates,
       totalWorkRequests: await WorkSubmission.countDocuments(),
+      totalIncome,
       Pending: 0,
       "Under Review": 0,
       "Documents Required": 0,
@@ -444,8 +466,32 @@ export const associateDashboard = async (req, res, next) => {
       { $match: { associate: userId } },
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ]);
+        // Total Income of Current Associate
+    const incomeResult = await WorkSubmission.aggregate([
+      {
+        $match: {
+          associate: userId,
+          status: "Completed", // sirf completed works ki earning
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalIncome: {
+            $sum: "$associateEarningAmount",
+          },
+        },
+      },
+    ]);
+
+    const totalIncome =
+      incomeResult.length > 0
+        ? incomeResult[0].totalIncome
+        : 0;
+
     const statistics = {
       mySubmittedWork: await WorkSubmission.countDocuments({ associate: req.user.id }),
+      totalIncome,
       Pending: 0,
       "In Process": 0,
       Completed: 0,

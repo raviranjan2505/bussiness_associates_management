@@ -26,11 +26,15 @@ const BusinessDashboard = () => {
           <p className="text-sm text-gray-500">{moment().format("dddd, DD MMMM YYYY")}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
           <Stat title="Total Associates" value={stats.totalAssociates || 0} />
           <Stat title="Total Work Requests" value={stats.totalWorkRequests || 0} />
           <Stat title="Pending Works" value={stats.Pending || 0} />
           <Stat title="Completed Works" value={stats.Completed || 0} />
+          <Stat
+            title="Total Income"
+            value={`₹${(stats.totalIncome || 0).toLocaleString()}`}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
