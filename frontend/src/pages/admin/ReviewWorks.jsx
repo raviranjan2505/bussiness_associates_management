@@ -1,62 +1,111 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import moment from "moment";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import axiosInstance from "../../utils/axioInstance";
+import { buildClientRoute } from "../../utils/clientWork";
 
-const ReviewWorks = () => {
-  const [works, setWorks] = useState([]);
-  const [filters, setFilters] = useState({ search: "", status: "", from: "", to: "" });
+const ReviewWorks = ({ activeMenu = "Client List" }) => {
+  const [clients, setClients] = useState([]);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
-    const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
-    const res = await axiosInstance.get("/business/works", { params });
-    setWorks(res.data.works || []);
+    const res = await axiosInstance.get("/business/clients");
+    setClients(res.data.clients || []);
   };
 
-  useEffect(() => { load().catch(console.error); }, []);
+  useEffect(() => {
+    load().catch(console.error);
+  }, []);
+
+  const filteredClients = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return clients;
+    return clients.filter((client) => {
+      const haystack = `${client.clientName || ""} ${client.mobileNumber || ""} ${client.email || ""} ${client.associateName || ""} ${client.workIds?.join(" ") || ""}`.toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [clients, search]);
 
   return (
-    <DashboardLayout activeMenu="Review Work">
+    <DashboardLayout activeMenu={activeMenu}>
       <div className="p-6 space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Review Submitted Work</h1>
-            <p className="text-sm text-gray-500">Search, filter, review documents, and update status.</p>
+            <h1 className="text-2xl font-bold text-gray-900">Client List</h1>
+            <p className="text-sm text-gray-500">
+              View clients from every associate and open the full work history from All Services.
+            </p>
           </div>
-          <button onClick={load} className="bg-gray-900 text-white rounded-lg px-4 py-2">Apply Filters</button>
+          <button onClick={load} className="rounded-lg bg-gray-900 px-4 py-2 text-white">
+            Refresh
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 rounded-lg border border-gray-100 bg-white p-4 md:grid-cols-4">
-          <input className="border rounded-lg p-2" placeholder="Work ID, client, mobile" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
-          <select className="border rounded-lg p-2" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
-            <option value="">All statuses</option>
-            {["Pending", "Under Review", "Documents Required", "In Process", "Completed", "Rejected"].map((status) => <option key={status}>{status}</option>)}
-          </select>
-          <input type="date" className="border rounded-lg p-2" value={filters.from} onChange={(e) => setFilters({ ...filters, from: e.target.value })} />
-          <input type="date" className="border rounded-lg p-2" value={filters.to} onChange={(e) => setFilters({ ...filters, to: e.target.value })} />
+        <div className="rounded-lg border border-gray-100 bg-white p-4">
+          <input
+            className="w-full rounded-lg border p-3"
+            placeholder="Search by client name, mobile, email, associate, or work id"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
 
-        <section className="bg-white border border-gray-100 rounded-lg overflow-hidden">
+        <section className="overflow-hidden rounded-lg border border-gray-100 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-left text-gray-500">
-                <tr><th className="p-3">Work ID</th><th className="p-3">Client</th><th className="p-3">Division</th><th className="p-3">Service</th><th className="p-3">Associate</th><th className="p-3">Status</th><th className="p-3">Submitted</th><th className="p-3"></th></tr>
+                <tr>
+                  <th className="p-3">Client</th>
+                  <th className="p-3">Associate</th>
+                  <th className="p-3">Works</th>
+                  <th className="p-3">All Services</th>
+                  <th className="p-3">Latest Status</th>
+                  <th className="p-3">Updated</th>
+                  <th className="p-3"></th>
+                </tr>
               </thead>
               <tbody>
-                {works.map((work) => (
-                  <tr key={work._id} className="border-t">
-                    <td className="p-3 font-medium">{work.workId}</td>
-                    <td className="p-3">{work.clientDetails?.clientName}</td>
-                    <td className="p-3">{work.division?.name}</td>
-                    <td className="p-3">{work.service?.name}</td>
-                    <td className="p-3">{work.associate?.name}</td>
-                    <td className="p-3"><StatusBadge status={work.status} /></td>
-                    <td className="p-3">{moment(work.createdAt).format("DD MMM YYYY")}</td>
-                    <td className="p-3"><Link className="text-blue-700 font-medium" to={`/admin/work/${work._id}`}>Open</Link></td>
+                {filteredClients.map((client) => (
+                  <tr key={client.clientKey} className="border-t hover:bg-gray-50">
+                    <td className="p-3">
+                      <p className="font-medium text-gray-900">{client.clientName}</p>
+                      <p className="text-xs text-gray-500">
+                        {client.mobileNumber || "-"}
+                        {client.email ? ` | ${client.email}` : ""}
+                      </p>
+                    </td>
+                    <td className="p-3">
+                      <p className="text-gray-900">{client.associateName || "-"}</p>
+                      <p className="text-xs text-gray-500">{client.associateEmail || ""}</p>
+                    </td>
+                    <td className="p-3 font-medium text-gray-900">{client.worksCount || 0}</td>
+                    <td className="p-3">
+                      <Link className="font-medium text-blue-700" to={buildClientRoute("admin", client.clientKey)}>
+                        All Services ({client.services?.length || 0})
+                      </Link>
+                    </td>
+                    <td className="p-3">
+                      <StatusBadge status={client.latestStatus || "Pending"} />
+                    </td>
+                    <td className="p-3 text-gray-600">
+                      {client.latestUpdatedAt ? moment(client.latestUpdatedAt).format("DD MMM YYYY hh:mm A") : "-"}
+                    </td>
+                    <td className="p-3">
+                      <Link className="font-medium text-blue-700" to={buildClientRoute("admin", client.clientKey)}>
+                        Open
+                      </Link>
+                    </td>
                   </tr>
                 ))}
+                {!filteredClients.length && (
+                  <tr>
+                    <td className="p-4 text-gray-500" colSpan={7}>
+                      No clients found.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

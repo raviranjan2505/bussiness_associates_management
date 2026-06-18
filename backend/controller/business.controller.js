@@ -1,17 +1,55 @@
 import mongoose from "mongoose";
 import Division from "../models/division.model.js";
 import Service from "../models/service.model.js";
+import Client from "../models/client.model.js";
 import User from "../models/user.model.js";
 import WorkSubmission, { WORK_STATUSES } from "../models/workSubmission.model.js";
 import Notification from "../models/notification.model.js";
+import Quotation from "../models/quotation.model.js";
+import Invoice from "../models/invoice.model.js";
+import Complaint from "../models/complaint.model.js";
 import { errorHandler } from "../utils/error.js";
+import { toMoney } from "../utils/money.js";
+import { notify, notifyAdmins } from "../utils/notify.js";
 
 const associateRoles = ["associate"];
 const SERVICE_EARNING_PERCENT = 20;
 
-const toFileUrl = (req, file) => `${req.protocol}://${req.get("host")}/uploads/documents/${file.filename}`;
+const normalizeClientPart = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
 
-const toMoney = (value) => Number(Number(value || 0).toFixed(2));
+const upsertClientRecord = async (associateId, clientInput) => {
+  const existingCandidates = await Client.find({
+    associate: associateId,
+    clientName: new RegExp(`^${String(clientInput.clientName || "").trim()}$`, "i"),
+  });
+  const existing = existingCandidates.find((client) =>
+    normalizeClientPart(client.mobileNumber) === normalizeClientPart(clientInput.mobileNumber) &&
+    normalizeClientPart(client.email) === normalizeClientPart(clientInput.email) &&
+    normalizeClientPart(client.address) === normalizeClientPart(clientInput.address)
+  );
+  if (existing) {
+    existing.clientName = clientInput.clientName?.trim() || existing.clientName;
+    existing.mobileNumber = clientInput.mobileNumber?.trim() || existing.mobileNumber;
+    existing.email = clientInput.email?.trim() || existing.email;
+    existing.address = clientInput.address?.trim() || existing.address;
+    await existing.save();
+    return existing;
+  }
+
+  return Client.create({
+    associate: associateId,
+    clientName: clientInput.clientName?.trim(),
+    mobileNumber: clientInput.mobileNumber?.trim(),
+    email: clientInput.email?.trim(),
+    address: clientInput.address?.trim(),
+  });
+};
+
+const toFileUrl = (req, file) => `${req.protocol}://${req.get("host")}/uploads/documents/${file.filename}`;
 
 const buildServicePricing = (body, existingService = null) => {
   const rawPrice = body.price;
@@ -42,18 +80,6 @@ const addAudit = (work, actionType, description, user) => {
     userName: user.name,
     userRole: user.role,
   });
-};
-
-const notify = async ({ user, title, message, type, workSubmission }) => {
-  if (!user) return;
-  await Notification.create({ user, title, message, type, workSubmission });
-};
-
-const notifyAdmins = async ({ title, message, type, workSubmission }) => {
-  const admins = await User.find({ role: "admin" }).select("_id");
-  await Notification.insertMany(
-    admins.map((admin) => ({ user: admin._id, title, message, type, workSubmission }))
-  );
 };
 
 const ensureWorkAccess = (work, user) => {
@@ -164,17 +190,41 @@ export const deleteService = async (req, res, next) => {
 
 export const submitWork = async (req, res, next) => {
   try {
-    const { division, service, formData, clientDetails } = req.body;
+    const { division, service, formData, clientDetails, clientId } = req.body;
     const parsedClient = typeof clientDetails === "string" ? JSON.parse(clientDetails) : clientDetails;
     const parsedForm = typeof formData === "string" ? JSON.parse(formData || "{}") : formData || {};
 
-    if (!division || !service || !parsedClient?.clientName) {
-      return next(errorHandler(400, "Division, service and client name are required"));
+    if (!division || !service) {
+      return next(errorHandler(400, "Division and service are required"));
     }
 
     const serviceDoc = await Service.findById(service);
     if (!serviceDoc) return next(errorHandler(404, "Service not found"));
     if (serviceDoc.price == null) return next(errorHandler(400, "Service price is not configured"));
+
+    let clientDoc = null;
+    if (clientId) {
+      clientDoc = await Client.findById(clientId);
+      if (!clientDoc) return next(errorHandler(404, "Client not found"));
+      if (req.user.role !== "admin" && String(clientDoc.associate) !== req.user.id) {
+        return next(errorHandler(403, "Access denied"));
+      }
+    } else if (parsedClient?.clientName) {
+      clientDoc = await upsertClientRecord(req.user.id, parsedClient);
+    }
+
+    const resolvedClient = clientDoc
+      ? {
+          clientName: clientDoc.clientName,
+          mobileNumber: clientDoc.mobileNumber,
+          email: clientDoc.email,
+          address: clientDoc.address,
+        }
+      : parsedClient;
+
+    if (!resolvedClient?.clientName) {
+      return next(errorHandler(400, "Client details are required"));
+    }
 
     for (const field of serviceDoc.fields || []) {
       if (field.required && !parsedForm[field.name]) {
@@ -199,7 +249,7 @@ export const submitWork = async (req, res, next) => {
       servicePrice: serviceDoc.price,
       associateEarningPercent: serviceDoc.associateEarningPercent ?? SERVICE_EARNING_PERCENT,
       associateEarningAmount: serviceDoc.associateEarningAmount ?? toMoney((serviceDoc.price * SERVICE_EARNING_PERCENT) / 100),
-      clientDetails: parsedClient,
+      clientDetails: resolvedClient,
       formData: parsedForm,
       documents,
       status: "Pending",
@@ -217,12 +267,129 @@ export const submitWork = async (req, res, next) => {
 
     await notifyAdmins({
       title: "New work submitted",
-      message: `${parsedClient.clientName} was submitted for review`,
+      message: `${resolvedClient.clientName} was submitted for review`,
       type: "Work Submitted",
       workSubmission: work._id,
     });
 
     res.status(201).json({ message: "Work submitted", work });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listClients = async (req, res, next) => {
+  try {
+    const isAdmin = req.user.role === "admin";
+    const selectedAssociate = isAdmin && req.query.associate ? req.query.associate : req.user.id;
+    const workFilter = { associate: selectedAssociate };
+    const clientFilter = { associate: selectedAssociate };
+
+    const [works, clients] = await Promise.all([
+      WorkSubmission.find(workFilter)
+        .populate("associate", "name email")
+        .populate("division", "name")
+        .populate("service", "name")
+        .sort({ updatedAt: -1 }),
+      Client.find(clientFilter).populate("associate", "name email").sort({ createdAt: -1 }),
+    ]);
+
+    const groups = new Map();
+
+    const ensureGroup = ({ associateId, associateName, associateEmail, clientName, mobileNumber, email, address, clientId = null }) => {
+      const key = [
+        associateId,
+        clientName,
+        mobileNumber,
+        email,
+        address,
+      ].map(normalizeClientPart).join("|");
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          clientKey: key,
+          clientId,
+          clientName: clientName || "Unnamed client",
+          mobileNumber: mobileNumber || "",
+          email: email || "",
+          address: address || "",
+          associateId,
+          associateName,
+          associateEmail,
+          worksCount: 0,
+          services: [],
+          latestStatus: "",
+          latestWorkId: "",
+          latestUpdatedAt: null,
+          workIds: [],
+        });
+      } else if (clientId) {
+        groups.get(key).clientId = clientId;
+      }
+      return groups.get(key);
+    };
+
+    works.forEach((work) => {
+      const group = ensureGroup({
+        associateId: String(work.associate?._id || work.associate || ""),
+        associateName: work.associate?.name || "",
+        associateEmail: work.associate?.email || "",
+        clientName: work.clientDetails?.clientName || "",
+        mobileNumber: work.clientDetails?.mobileNumber || "",
+        email: work.clientDetails?.email || "",
+        address: work.clientDetails?.address || "",
+      });
+
+      group.worksCount += 1;
+      group.workIds.push(work._id);
+
+      const serviceName = work.service?.name;
+      if (serviceName && !group.services.includes(serviceName)) {
+        group.services.push(serviceName);
+      }
+
+      const updatedAt = new Date(work.updatedAt || work.createdAt || 0).getTime();
+      const latestAt = new Date(group.latestUpdatedAt || 0).getTime();
+      if (updatedAt >= latestAt) {
+        group.latestUpdatedAt = work.updatedAt || work.createdAt || null;
+        group.latestStatus = work.status || "";
+        group.latestWorkId = work.workId || "";
+      }
+    });
+
+    clients.forEach((client) => {
+      const group = ensureGroup({
+        associateId: String(client.associate?._id || client.associate || ""),
+        associateName: client.associate?.name || "",
+        associateEmail: client.associate?.email || "",
+        clientName: client.clientName,
+        mobileNumber: client.mobileNumber,
+        email: client.email,
+        address: client.address,
+        clientId: client._id,
+      });
+      if (!group.associateName) group.associateName = client.associate?.name || "";
+      if (!group.associateEmail) group.associateEmail = client.associate?.email || "";
+    });
+
+    const clientList = Array.from(groups.values()).sort(
+      (a, b) => new Date(b.latestUpdatedAt || 0).getTime() - new Date(a.latestUpdatedAt || 0).getTime()
+    );
+
+    res.status(200).json({ clients: clientList });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createClient = async (req, res, next) => {
+  try {
+    const { clientName, mobileNumber, email, address, associateId } = req.body;
+    if (!clientName) return next(errorHandler(400, "Client name is required"));
+
+    const ownerId = req.user.role === "admin" && associateId ? associateId : req.user.id;
+    const client = await upsertClientRecord(ownerId, { clientName, mobileNumber, email, address });
+    res.status(201).json({ message: "Client saved", client });
   } catch (error) {
     next(error);
   }
@@ -235,6 +402,9 @@ export const listWorks = async (req, res, next) => {
       division,
       service,
       associate,
+      clientName,
+      mobileNumber,
+      email,
       search,
       from,
       to,
@@ -247,6 +417,9 @@ export const listWorks = async (req, res, next) => {
     if (division) filter.division = division;
     if (service) filter.service = service;
     if (associate && req.user.role === "admin") filter.associate = associate;
+    if (clientName) filter["clientDetails.clientName"] = new RegExp(clientName, "i");
+    if (mobileNumber) filter["clientDetails.mobileNumber"] = new RegExp(mobileNumber, "i");
+    if (email) filter["clientDetails.email"] = new RegExp(email, "i");
     if (from || to) filter.createdAt = {};
     if (from) filter.createdAt.$gte = new Date(from);
     if (to) filter.createdAt.$lte = new Date(to);
@@ -438,6 +611,31 @@ export const adminDashboard = async (req, res, next) => {
       .sort({ updatedAt: -1 })
       .limit(10);
 
+    // ---------------- Module 6: Dashboard Counters (Admin) ----------------
+    const [
+      totalQuotations,
+      draftQuotations,
+      acceptedQuotations,
+      rejectedQuotations,
+      totalInvoices,
+      pendingPaymentInvoices,
+      paidInvoices,
+      activeProjects,
+      completedProjects,
+      totalComplaints,
+    ] = await Promise.all([
+      Quotation.countDocuments(),
+      Quotation.countDocuments({ status: "Draft" }),
+      Quotation.countDocuments({ status: "Accepted" }),
+      Quotation.countDocuments({ status: "Rejected" }),
+      Invoice.countDocuments(),
+      Invoice.countDocuments({ invoiceStatus: { $in: ["Waiting For Payment", "Partially Paid", "Overdue"] } }),
+      Invoice.countDocuments({ invoiceStatus: "Paid" }),
+      Invoice.countDocuments({ projectStatus: { $nin: ["Completed", "Cancelled"] } }),
+      Invoice.countDocuments({ projectStatus: "Completed" }),
+      Complaint.countDocuments(),
+    ]);
+
     const statistics = {
       totalAssociates,
       totalWorkRequests: await WorkSubmission.countDocuments(),
@@ -448,6 +646,16 @@ export const adminDashboard = async (req, res, next) => {
       "In Process": 0,
       Completed: 0,
       Rejected: 0,
+      totalQuotations,
+      draftQuotations,
+      acceptedQuotations,
+      rejectedQuotations,
+      totalInvoices,
+      pendingPaymentInvoices,
+      paidInvoices,
+      activeProjects,
+      completedProjects,
+      totalComplaints,
     };
     statusCounts.forEach((item) => {
       statistics[item._id] = item.count;
@@ -501,6 +709,38 @@ export const associateDashboard = async (req, res, next) => {
     statusCounts.forEach((item) => {
       if (item._id === "Documents Required") statistics.requestedDocuments = item.count;
       statistics[item._id] = item.count;
+    });
+
+    // ---------------- Module 6: Dashboard Counters (Associate) ----------------
+    const [
+      myQuotations,
+      approvedQuotations,
+      rejectedQuotations,
+      myInvoices,
+      pendingPayments,
+      activeProjects,
+      myComplaints,
+    ] = await Promise.all([
+      Quotation.countDocuments({ associate: req.user.id }),
+      Quotation.countDocuments({ associate: req.user.id, status: "Accepted" }),
+      Quotation.countDocuments({ associate: req.user.id, status: "Rejected" }),
+      Invoice.countDocuments({ associate: req.user.id }),
+      Invoice.countDocuments({
+        associate: req.user.id,
+        invoiceStatus: { $in: ["Waiting For Payment", "Partially Paid", "Overdue"] },
+      }),
+      Invoice.countDocuments({ associate: req.user.id, projectStatus: { $nin: ["Completed", "Cancelled"] } }),
+      Complaint.countDocuments({ associate: req.user.id }),
+    ]);
+
+    Object.assign(statistics, {
+      myQuotations,
+      approvedQuotations,
+      rejectedQuotations,
+      myInvoices,
+      pendingPayments,
+      activeProjects,
+      myComplaints,
     });
     const recentWorks = await WorkSubmission.find({ associate: req.user.id })
       .populate("division", "name")

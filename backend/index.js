@@ -4,18 +4,22 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
-import db from "../backend/config/db.js"
+import db from "../backend/config/db.js";
 
 // Routes
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
 import businessRoutes from "./routes/business.route.js";
+import quotationRoutes from "./routes/quotation.route.js";
+import invoiceRoutes from "./routes/invoice.route.js";
+import paymentRoutes from "./routes/payment.route.js";
+import complaintRoutes from "./routes/complaint.route.js";
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-db()
+db();
 
 const app = express();
 
@@ -24,12 +28,16 @@ app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes
+// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/business", businessRoutes);
+app.use("/api/quotations", quotationRoutes);
+app.use("/api/invoices", invoiceRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/complaints", complaintRoutes);
 
-// Error middleware
+// Global error handler
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({

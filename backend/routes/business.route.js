@@ -5,12 +5,14 @@ import {
   adminDashboard,
   associateDashboard,
   createDivision,
+  createClient,
   createService,
   deleteDivision,
   deleteService,
   getService,
   getWork,
   listDivisions,
+  listClients,
   listNotifications,
   listServices,
   listWorks,
@@ -40,6 +42,9 @@ router.post("/works", verifyToken, upload.array("documents", 20), submitWork);
 router.get("/works/:id", verifyToken, getWork);
 router.post("/works/:id/status", verifyToken, adminOnly, upload.array("documents", 20), updateWorkStatus);
 router.post("/works/:id/documents", verifyToken, upload.array("documents", 20), uploadAdditionalDocuments);
+
+router.get("/clients", verifyToken, listClients);
+router.post("/clients", verifyToken, createClient);
 
 router.get("/dashboard/admin", verifyToken, adminOnly, adminDashboard);
 router.get("/dashboard/associate", verifyToken, associateDashboard);
