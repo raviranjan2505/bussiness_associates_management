@@ -20,7 +20,7 @@ const Navbar = ({ activeMenu }) => {
         </button>
       </div>
 
-      <h2 className="text-xl font-semibold text-gray-800">Work Managements</h2>
+      <h2 className="text-xl font-semibold text-gray-800">Work Management</h2>
 
       {openSideMenu && (
         <div className="fixed inset-0 z-40 flex lg:hidden">

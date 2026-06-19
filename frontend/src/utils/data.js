@@ -20,7 +20,7 @@ export const SIDE_MENU_DATA = [
   { id: 3,  label: "Quotations",          icon: MdRequestQuote,       path: "/admin/quotations" },
   { id: 4,  label: "Invoices",            icon: MdReceiptLong,        path: "/admin/invoices" },
   { id: 5,  label: "Payments",            icon: MdPayments,           path: "/admin/payments" },
-  { id: 6,  label: "Projects",            icon: MdFolderOpen,         path: "/admin/projects" },
+  { id: 6,  label: "Work",                icon: MdFolderOpen,         path: "/admin/projects" },
   { id: 7,  label: "Complaints",          icon: MdBugReport,          path: "/admin/complaints" },
   { id: 8,  label: "Divisions & Services",icon: MdDomain,             path: "/admin/divisions-services" },
   { id: 9,  label: "Associates",          icon: MdPeopleAlt,          path: "/admin/users" },
@@ -51,6 +51,8 @@ export const STATUS_DATA = [
   { label: "Rejected",           value: "Rejected" },
 ];
 
+export const WORK_STATUSES = STATUS_DATA.map((item) => item.value);
+
 // ── Quotation statuses ────────────────────────────────────────────────────
 export const QUOTATION_STATUSES = ["Draft", "Sent", "Accepted", "Rejected", "Expired"];
 
@@ -65,18 +67,7 @@ export const INVOICE_STATUSES = [
 ];
 
 // ── Project/Workflow statuses ─────────────────────────────────────────────
-export const PROJECT_STATUSES = [
-  "Waiting For Payment",
-  "Payment Received",
-  "Work Assigned",
-  "Work Started",
-  "In Progress",
-  "Review Pending",
-  "Client Approval Pending",
-  "Completed",
-  "On Hold",
-  "Cancelled",
-];
+export const PROJECT_STATUSES = WORK_STATUSES;
 
 // ── Complaint statuses ────────────────────────────────────────────────────
 export const COMPLAINT_STATUSES = ["Pending", "In Review", "Resolved", "Closed"];

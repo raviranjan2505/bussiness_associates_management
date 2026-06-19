@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import axiosInstance from "../../utils/axioInstance";
-import { PROJECT_STATUSES, PAYMENT_METHODS } from "../../utils/data";
+import { WORK_STATUSES, PAYMENT_METHODS } from "../../utils/data";
 
 const fmt = (v) => `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
@@ -47,7 +47,7 @@ const InvoiceDetails = () => {
     e.preventDefault();
     try {
       await axiosInstance.post(`/invoices/${id}/project-status`, projectForm);
-      toast.success("Project status updated");
+      toast.success("Work status updated");
       load();
     } catch (e) { toast.error(e.response?.data?.message || "Failed"); }
   };
@@ -134,9 +134,9 @@ const InvoiceDetails = () => {
               </form>
             </section>
 
-            {/* Project Timeline */}
+            {/* Work Timeline */}
             <section className="bg-white border border-gray-100 rounded-lg p-5">
-              <h2 className="font-semibold text-gray-900 mb-3">Project Timeline</h2>
+              <h2 className="font-semibold text-gray-900 mb-3">Work Timeline</h2>
               {timeline.length === 0 ? <p className="text-sm text-gray-500">No timeline entries yet.</p> : (
                 <div className="space-y-3">
                   {timeline.map((t) => (
@@ -154,13 +154,13 @@ const InvoiceDetails = () => {
             </section>
           </div>
 
-          {/* Sidebar: Update Project Status */}
+          {/* Sidebar: Update Work Status */}
           <aside>
             <form onSubmit={handleProjectStatus} className="bg-white border border-gray-100 rounded-lg p-5 space-y-3">
-              <h2 className="font-semibold text-gray-900">Update Project Status</h2>
+              <h2 className="font-semibold text-gray-900">Update Work Status</h2>
               <select className="w-full border rounded-lg p-2 text-sm" value={projectForm.projectStatus} onChange={(e) => setProjectForm({ ...projectForm, projectStatus: e.target.value })} required>
                 <option value="">Select status</option>
-                {PROJECT_STATUSES.map((s) => <option key={s}>{s}</option>)}
+                {WORK_STATUSES.map((s) => <option key={s}>{s}</option>)}
               </select>
               <textarea className="w-full border rounded-lg p-2 text-sm" rows={3} placeholder="Remark" value={projectForm.remark} onChange={(e) => setProjectForm({ ...projectForm, remark: e.target.value })} />
               <input type="date" className="w-full border rounded-lg p-2 text-sm" placeholder="Expected Completion" value={projectForm.expectedCompletionDate} onChange={(e) => setProjectForm({ ...projectForm, expectedCompletionDate: e.target.value })} />

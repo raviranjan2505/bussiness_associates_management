@@ -271,13 +271,13 @@ export const acceptQuotation = async (req, res, next) => {
       invoiceStatus: "Waiting For Payment",
       notes: quotation.notes,
       terms: quotation.terms,
-      projectStatus: "Waiting For Payment",
+      projectStatus: "Pending",
       createdBy: req.user.id,
     });
 
     await ProjectTimeline.create({
       invoice: invoice._id,
-      newStatus: "Waiting For Payment",
+      newStatus: "Pending",
       remark: `Invoice ${invoice.invoiceNumber} generated from accepted quotation ${quotation.quotationNumber}`,
       updatedBy: req.user.id,
     });

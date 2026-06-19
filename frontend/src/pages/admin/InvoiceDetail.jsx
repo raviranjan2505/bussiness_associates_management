@@ -6,7 +6,7 @@ import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import ProjectTimelineView from "../../components/ProjectTimelineView";
 import axiosInstance from "../../utils/axioInstance";
-import { PROJECT_STATUS_DATA, PAYMENT_METHOD_DATA } from "../../utils/data";
+import { STATUS_DATA, PAYMENT_METHOD_DATA } from "../../utils/data";
 
 const fmt = (v) => `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
@@ -34,7 +34,7 @@ const InvoiceDetail = () => {
     e.preventDefault();
     try {
       await axiosInstance.post(`/invoices/${id}/project-status`, projectForm);
-      toast.success("Project status updated");
+      toast.success("Work status updated");
       load();
     } catch (err) {
       toast.error(err.response?.data?.message || "Error");
@@ -177,7 +177,7 @@ const InvoiceDetail = () => {
             </section>
           </div>
 
-          {/* Right: Project status + timeline */}
+          {/* Right: Work status + timeline */}
           <aside className="space-y-5">
             <section className="bg-white border border-gray-100 rounded-lg p-5 text-sm space-y-3">
               <h2 className="font-semibold text-gray-900">Invoice Info</h2>
@@ -190,9 +190,9 @@ const InvoiceDetail = () => {
             </section>
 
             <form onSubmit={updateProjectStatus} className="bg-white border border-gray-100 rounded-lg p-5 space-y-3">
-              <h2 className="font-semibold text-gray-900">Update Project Status</h2>
+              <h2 className="font-semibold text-gray-900">Update Work Status</h2>
               <select className="w-full border rounded-lg p-2" value={projectForm.projectStatus} onChange={(e) => setProjectForm({ ...projectForm, projectStatus: e.target.value })}>
-                {PROJECT_STATUS_DATA.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                {STATUS_DATA.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
               <textarea className="w-full border rounded-lg p-2" rows={2} placeholder="Remark (optional)" value={projectForm.remark} onChange={(e) => setProjectForm({ ...projectForm, remark: e.target.value })} />
               <div className="grid grid-cols-2 gap-2">
@@ -209,7 +209,7 @@ const InvoiceDetail = () => {
             </form>
 
             <section className="bg-white border border-gray-100 rounded-lg p-5">
-              <h2 className="font-semibold text-gray-900 mb-4">Project Timeline</h2>
+              <h2 className="font-semibold text-gray-900 mb-4">Work Timeline</h2>
               <ProjectTimelineView items={timeline} />
             </section>
           </aside>
