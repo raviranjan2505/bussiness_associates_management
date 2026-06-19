@@ -4,13 +4,12 @@ import moment from "moment";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import axiosInstance from "../../utils/axioInstance";
-
-const formatMoney = (value) => (Number.isFinite(Number(value)) ? Number(value).toFixed(2) : "0.00");
+import { buildClientRoute, groupWorksByClient } from "../../utils/clientWork";
 
 const AssociateWorks = () => {
   const { id } = useParams();
   const [associate, setAssociate] = useState(null);
-  const [works, setWorks] = useState([]);
+  const [clients, setClients] = useState([]);
 
   const load = async () => {
     const [userRes, worksRes] = await Promise.all([
@@ -19,7 +18,7 @@ const AssociateWorks = () => {
     ]);
 
     setAssociate(userRes.data);
-    setWorks(worksRes.data.works || []);
+    setClients(groupWorksByClient(worksRes.data.works || [], "associate"));
   };
 
   useEffect(() => {
@@ -38,7 +37,9 @@ const AssociateWorks = () => {
             <p className="text-sm text-gray-500">{associate?.email}</p>
           </div>
           <div className="rounded-lg border border-gray-100 bg-white px-4 py-3 text-sm text-gray-600">
-            <div>Total works: <span className="font-semibold text-gray-900">{works.length}</span></div>
+            <div>
+              Total clients: <span className="font-semibold text-gray-900">{clients.length}</span>
+            </div>
           </div>
         </div>
 
@@ -62,39 +63,46 @@ const AssociateWorks = () => {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-left text-gray-500">
                 <tr>
-                  <th className="p-3">Work ID</th>
                   <th className="p-3">Client</th>
-                  <th className="p-3">Division</th>
-                  <th className="p-3">Service</th>
-                  <th className="p-3">Price</th>
-                  <th className="p-3">Earning</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Submitted</th>
+                  <th className="p-3">All Services</th>
+                  <th className="p-3">Works</th>
+                  <th className="p-3">Latest Status</th>
+                  <th className="p-3">Updated</th>
                   <th className="p-3"></th>
                 </tr>
               </thead>
               <tbody>
-                {works.map((work) => (
-                  <tr key={work._id} className="border-t">
-                    <td className="p-3 font-medium">{work.workId}</td>
-                    <td className="p-3">{work.clientDetails?.clientName}</td>
-                    <td className="p-3">{work.division?.name}</td>
-                    <td className="p-3">{work.service?.name}</td>
-                    <td className="p-3">Rs. {formatMoney(work.servicePrice || work.service?.price || 0)}</td>
-                    <td className="p-3">Rs. {formatMoney(work.associateEarningAmount || work.service?.associateEarningAmount || 0)}</td>
-                    <td className="p-3"><StatusBadge status={work.status} /></td>
-                    <td className="p-3">{moment(work.createdAt).format("DD MMM YYYY")}</td>
+                {clients.map((client) => (
+                  <tr key={client.clientKey} className="border-t hover:bg-gray-50">
                     <td className="p-3">
-                      <Link className="text-blue-700 font-medium" to={`/admin/work/${work._id}`}>
+                      <div className="font-medium text-gray-900">{client.clientName}</div>
+                      <div className="text-xs text-gray-500">
+                        {client.mobileNumber || "No mobile"}{client.email ? ` | ${client.email}` : ""}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <Link to={buildClientRoute("admin", client.clientKey)} className="text-blue-700 font-medium">
+                        All Services ({client.services.length})
+                      </Link>
+                    </td>
+                    <td className="p-3">{client.works.length}</td>
+                    <td className="p-3">
+                      <StatusBadge status={client.latestStatus} />
+                    </td>
+                    <td className="p-3">
+                      {client.latestUpdatedAt ? moment(client.latestUpdatedAt).format("DD MMM YYYY hh:mm A") : "-"}
+                    </td>
+                    <td className="p-3">
+                      <Link className="text-blue-700 font-medium" to={buildClientRoute("admin", client.clientKey)}>
                         Open
                       </Link>
                     </td>
                   </tr>
                 ))}
-                {!works.length && (
+                {!clients.length && (
                   <tr>
-                    <td className="p-4 text-gray-500" colSpan={9}>
-                      No work found for this associate.
+                    <td className="p-4 text-gray-500" colSpan={6}>
+                      No clients found for this associate.
                     </td>
                   </tr>
                 )}

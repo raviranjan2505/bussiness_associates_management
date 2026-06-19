@@ -2,18 +2,41 @@ import React from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Toaster } from "react-hot-toast";
+
+// Auth
 import Login from "./pages/auth/Login";
 import SignUp from "./pages/auth/SignUp";
-import ManageUsers from "./pages/admin/ManageUsers";
-import AssociateWorks from "./pages/admin/AssociateWorks";
+
+// Admin pages
 import BusinessDashboard from "./pages/admin/BusinessDashboard";
 import ManageDivisionsServices from "./pages/admin/ManageDivisionsServices";
 import ReviewWorks from "./pages/admin/ReviewWorks";
+import ManageUsers from "./pages/admin/ManageUsers";
+import AssociateWorks from "./pages/admin/AssociateWorks";
+import AdminQuotations from "./pages/admin/Quotations";
+import CreateQuotation from "./pages/admin/CreateQuotation";
+import AdminInvoices from "./pages/admin/Invoices";
+import AdminPayments from "./pages/admin/Payments";
+import AdminProjects from "./pages/admin/Projects";
+import AdminComplaints from "./pages/admin/Complaints";
+
+// Associate pages
 import AssociateDashboard from "./pages/associate/AssociateDashboard";
 import SubmitWork from "./pages/associate/SubmitWork";
 import MyWorks from "./pages/associate/MyWorks";
+import AssociateQuotations from "./pages/associate/AssociateQuotations";
+import AssociateInvoices from "./pages/associate/AssociateInvoices";
+import AssociatePayments from "./pages/associate/AssociatePayments";
+import AssociateComplaints from "./pages/associate/AssociateComplaints";
+
+// Shared pages
 import WorkDetails from "./pages/shared/WorkDetails";
+import ClientWorks from "./pages/shared/ClientWorks";
 import Notifications from "./pages/shared/Notifications";
+import QuotationDetail from "./pages/shared/QuotationDetail";
+import InvoiceDetail from "./pages/shared/InvoiceDetail";
+import ComplaintDetail from "./pages/shared/ComplaintDetail";
+
 import PrivateRoute from "./routes/PrivateRoute";
 
 const App = () => {
@@ -24,35 +47,65 @@ const App = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
 
+          {/* ── Admin routes ──────────────────────────────── */}
           <Route element={<PrivateRoute allowedRoles={["admin"]} />}>
             <Route path="/admin/dashboard" element={<BusinessDashboard />} />
             <Route path="/admin/divisions-services" element={<ManageDivisionsServices />} />
             <Route path="/admin/works" element={<ReviewWorks />} />
+            <Route path="/admin/clients" element={<ReviewWorks />} />
+            <Route path="/admin/clients/:clientKey" element={<ClientWorks />} />
             <Route path="/admin/work/:id" element={<WorkDetails />} />
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/admin/users/:id" element={<AssociateWorks />} />
             <Route path="/admin/notifications" element={<Notifications />} />
+            {/* Quotations */}
+            <Route path="/admin/quotations" element={<AdminQuotations />} />
+            <Route path="/admin/quotations/create" element={<CreateQuotation />} />
+            <Route path="/admin/quotations/:id" element={<QuotationDetail />} />
+            {/* Invoices */}
+            <Route path="/admin/invoices" element={<AdminInvoices />} />
+            <Route path="/admin/invoices/:id" element={<InvoiceDetail />} />
+            {/* Payments */}
+            <Route path="/admin/payments" element={<AdminPayments />} />
+            {/* Projects */}
+            <Route path="/admin/projects" element={<AdminProjects />} />
+            {/* Complaints */}
+            <Route path="/admin/complaints" element={<AdminComplaints />} />
+            <Route path="/admin/complaints/:id" element={<ComplaintDetail />} />
           </Route>
 
+          {/* ── Associate routes ──────────────────────────── */}
           <Route element={<PrivateRoute allowedRoles={["associate"]} />}>
             <Route path="/associate/dashboard" element={<AssociateDashboard />} />
             <Route path="/associate/submit-work" element={<SubmitWork />} />
             <Route path="/associate/works" element={<MyWorks />} />
+            <Route path="/associate/clients" element={<MyWorks />} />
+            <Route path="/associate/clients/:clientKey" element={<ClientWorks />} />
             <Route path="/associate/work/:id" element={<WorkDetails />} />
             <Route path="/associate/notifications" element={<Notifications />} />
+            {/* Quotations */}
+            <Route path="/associate/quotations" element={<AssociateQuotations />} />
+            <Route path="/associate/quotations/:id" element={<QuotationDetail />} />
+            {/* Invoices */}
+            <Route path="/associate/invoices" element={<AssociateInvoices />} />
+            <Route path="/associate/invoices/:id" element={<InvoiceDetail />} />
+            {/* Payments */}
+            <Route path="/associate/payments" element={<AssociatePayments />} />
+            {/* Complaints */}
+            <Route path="/associate/complaints" element={<AssociateComplaints />} />
+            <Route path="/associate/complaints/:id" element={<ComplaintDetail />} />
           </Route>
 
           <Route path="/" element={<Root />} />
         </Routes>
       </BrowserRouter>
-      <Toaster />
+      <Toaster position="top-right" />
     </div>
   );
 };
 
 const Root = () => {
   const { currentUser } = useSelector((state) => state.user);
-
   if (!currentUser) return <Navigate to="/login" />;
   if (currentUser.role === "admin") return <Navigate to="/admin/dashboard" />;
   if (currentUser.role === "associate") return <Navigate to="/associate/dashboard" />;
