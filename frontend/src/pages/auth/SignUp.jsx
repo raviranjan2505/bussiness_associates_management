@@ -10,7 +10,6 @@ import uploadImage from "../../utils/uploadImage"
 
 const SignUp = () => {
   const navigate = useNavigate()
-
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
