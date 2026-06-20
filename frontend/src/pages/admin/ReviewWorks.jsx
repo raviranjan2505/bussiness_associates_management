@@ -1,14 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import moment from "moment";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import axiosInstance from "../../utils/axioInstance";
+import { STATUS_DATA } from "../../utils/data";
 import { buildClientRoute } from "../../utils/clientWork";
 
-const ReviewWorks = ({ activeMenu = "Client List" }) => {
+const ReviewWorks = ({
+  activeMenu = "Client List",
+  pageTitle = "Client List",
+  pageDescription = "View clients from every associate and open the full work history from All Services.",
+}) => {
   const [clients, setClients] = useState([]);
+  const [params] = useSearchParams();
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState(params.get("projectStatus") || params.get("status") || "");
 
   const load = async () => {
     const res = await axiosInstance.get("/business/clients");
@@ -24,32 +31,44 @@ const ReviewWorks = ({ activeMenu = "Client List" }) => {
     if (!q) return clients;
     return clients.filter((client) => {
       const haystack = `${client.clientName || ""} ${client.mobileNumber || ""} ${client.email || ""} ${client.associateName || ""} ${client.workIds?.join(" ") || ""}`.toLowerCase();
-      return haystack.includes(q);
+      const matchesSearch = haystack.includes(q);
+      const matchesStatus = !status || String(client.latestStatus || "") === String(status);
+      return matchesSearch && matchesStatus;
     });
-  }, [clients, search]);
+  }, [clients, search, status]);
 
   return (
     <DashboardLayout activeMenu={activeMenu}>
       <div className="p-6 space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Client List</h1>
-            <p className="text-sm text-gray-500">
-              View clients from every associate and open the full work history from All Services.
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
+            <p className="text-sm text-gray-500">{pageDescription}</p>
           </div>
           <button onClick={load} className="rounded-lg bg-gray-900 px-4 py-2 text-white">
             Refresh
           </button>
         </div>
 
-        <div className="rounded-lg border border-gray-100 bg-white p-4">
+        <div className="grid gap-3 rounded-lg border border-gray-100 bg-white p-4 md:grid-cols-[1fr_260px]">
           <input
             className="w-full rounded-lg border p-3"
             placeholder="Search by client name, mobile, email, associate, or work id"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <select
+            className="w-full rounded-lg border p-3"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="">All Work Statuses</option>
+            {STATUS_DATA.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <section className="overflow-hidden rounded-lg border border-gray-100 bg-white">

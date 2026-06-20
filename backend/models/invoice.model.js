@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { WORK_STATUSES as WORK_FLOW_STATUSES } from "./workSubmission.model.js";
 
 export const INVOICE_STATUSES = [
   "Generated",
@@ -9,8 +10,7 @@ export const INVOICE_STATUSES = [
   "Cancelled",
 ];
 
-// Module 5: Project / Workflow Management statuses
-export const PROJECT_STATUSES = [
+const LEGACY_PROJECT_STATUSES = [
   "Waiting For Payment",
   "Payment Received",
   "Work Assigned",
@@ -22,6 +22,10 @@ export const PROJECT_STATUSES = [
   "On Hold",
   "Cancelled",
 ];
+
+// Keep invoice workflow aligned with the same work statuses used across the app.
+export const WORK_STATUSES = WORK_FLOW_STATUSES;
+export const PROJECT_STATUSES = WORK_FLOW_STATUSES;
 
 const invoiceServiceSchema = new mongoose.Schema(
   {
@@ -74,8 +78,13 @@ const invoiceSchema = new mongoose.Schema(
     notes: { type: String, trim: true },
     terms: { type: String, trim: true },
 
-    // ---------------- Module 5: Project / Workflow Management ----------------
-    projectStatus: { type: String, enum: PROJECT_STATUSES, default: "Waiting For Payment", index: true },
+    // Keep invoice work status aligned with work submissions.
+    projectStatus: {
+      type: String,
+      enum: [...WORK_FLOW_STATUSES, ...LEGACY_PROJECT_STATUSES],
+      default: "Pending",
+      index: true,
+    },
     startDate: { type: Date },
     expectedCompletionDate: { type: Date },
     actualCompletionDate: { type: Date },

@@ -7,7 +7,22 @@ import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import axiosInstance from "../../utils/axioInstance";
 import { formatMoney, formatDateTime } from "../../utils/helper";
-import { PROJECT_STATUSES } from "../../utils/data";
+import { WORK_STATUSES } from "../../utils/data";
+
+const legacyStatusMap = {
+  "Waiting For Payment": "Pending",
+  "Payment Received": "Under Review",
+  "Work Assigned": "Documents Required",
+  "Work Started": "In Process",
+  "In Progress": "In Process",
+  "Review Pending": "Under Review",
+  "Client Approval Pending": "Under Review",
+  Completed: "Completed",
+  "On Hold": "Pending",
+  Cancelled: "Rejected",
+};
+
+const normalizeWorkStatus = (status) => legacyStatusMap[status] || status || "";
 
 const InvoiceDetail = () => {
   const { id } = useParams();
@@ -28,6 +43,7 @@ const InvoiceDetail = () => {
     setInvoice(invRes.data);
     setTimeline(tlRes.data.timeline || []);
     setPayments(payRes.data.payments || []);
+    setProjectForm((f) => ({ ...f, projectStatus: normalizeWorkStatus(invRes.data.invoice?.projectStatus) }));
   };
 
   useEffect(() => { load().catch(console.error); }, [id]);
@@ -37,7 +53,7 @@ const InvoiceDetail = () => {
     if (!projectForm.projectStatus) return toast.error("Select a status");
     try {
       await axiosInstance.post(`/invoices/${id}/project-status`, projectForm);
-      toast.success("Project status updated");
+      toast.success("Work status updated");
       setProjectForm({ projectStatus: "", remark: "", startDate: "", expectedCompletionDate: "" });
       load();
     } catch (err) {
@@ -84,7 +100,7 @@ const InvoiceDetail = () => {
                 <Info label="Phone"     value={invoice.customerPhone} />
                 <Info label="Associate" value={invoice.associate?.name} />
                 <Info label="Due Date"  value={invoice.dueDate ? moment(invoice.dueDate).format("DD MMM YYYY") : "—"} />
-                <Info label="Project Status" value={<StatusBadge status={invoice.projectStatus} />} />
+                <Info label="Work Status" value={<StatusBadge status={invoice.projectStatus} />} />
               </div>
             </section>
 
@@ -184,11 +200,11 @@ const InvoiceDetail = () => {
             {/* Project status update (admin only) */}
             {isAdmin && (
               <form onSubmit={updateStatus} className="bg-white border border-gray-100 rounded-lg p-5 space-y-3">
-                <h2 className="font-semibold text-gray-900">Update Project Status</h2>
+                <h2 className="font-semibold text-gray-900">Update Work Status</h2>
                 <select className="w-full border rounded-lg p-2" value={projectForm.projectStatus}
                   onChange={(e) => setProjectForm({ ...projectForm, projectStatus: e.target.value })}>
                   <option value="">Select status…</option>
-                  {PROJECT_STATUSES.map((s) => <option key={s}>{s}</option>)}
+                  {WORK_STATUSES.map((s) => <option key={s}>{s}</option>)}
                 </select>
                 <input className="w-full border rounded-lg p-2" placeholder="Remark (optional)" value={projectForm.remark}
                   onChange={(e) => setProjectForm({ ...projectForm, remark: e.target.value })} />
@@ -210,7 +226,7 @@ const InvoiceDetail = () => {
 
             {/* Project timeline */}
             <section className="bg-white border border-gray-100 rounded-lg p-5">
-              <h2 className="font-semibold text-gray-900 mb-4">Project Timeline</h2>
+              <h2 className="font-semibold text-gray-900 mb-4">Work Timeline</h2>
               {timeline.length === 0 && <p className="text-sm text-gray-500">No timeline entries yet.</p>}
               <div className="space-y-4">
                 {timeline.map((entry, i) => (

@@ -106,19 +106,23 @@ const CreateQuotation = () => {
     setSelectedWork(work);
   }, [form.workId, clientWorks]);
 
-  const serviceLine = useMemo(() => {
-    if (!selectedWork) return null;
-    const servicePrice = Number(selectedWork.servicePrice ?? selectedWork.service?.price ?? 0);
-    return {
-      service: selectedWork.service?._id,
-      name: selectedWork.service?.name || selectedWork.workId || "Selected work",
-      price: servicePrice,
-      quantity: 1,
-      amount: servicePrice,
-    };
-  }, [selectedWork]);
+  const serviceLines = useMemo(() => {
+    return clientWorks
+      .filter((work) => work && (work.service?.name || work.workId))
+      .map((work) => {
+        const servicePrice = Number(work.servicePrice ?? work.service?.price ?? 0);
+        return {
+          service: work.service?._id,
+          name: work.service?.name || work.workId || "Related work",
+          description: work.workId ? `Work ID: ${work.workId}` : undefined,
+          price: servicePrice,
+          quantity: 1,
+          amount: servicePrice,
+        };
+      });
+  }, [clientWorks]);
 
-  const subtotal = Number(serviceLine?.amount || 0);
+  const subtotal = serviceLines.reduce((sum, line) => sum + Number(line.amount || 0), 0);
   const discountAmt = discount.type === "percentage" ? (subtotal * (Number(discount.value) || 0)) / 100 : Number(discount.value) || 0;
   const taxAmt = ((subtotal - discountAmt) * (Number(tax.percent) || 0)) / 100;
   const total = subtotal - discountAmt + taxAmt;
@@ -129,6 +133,7 @@ const CreateQuotation = () => {
     if (!form.clientId) return toast.error("Select a client");
     if (!form.workId || !selectedWork) return toast.error("Select a work");
     if (!form.customerName) return toast.error("Customer name is required");
+    if (!serviceLines.length) return toast.error("No services found for this client");
 
     setLoading(true);
     try {
@@ -138,7 +143,7 @@ const CreateQuotation = () => {
         customerName: form.customerName,
         customerEmail: form.customerEmail,
         customerPhone: form.customerPhone,
-        services: [serviceLine],
+        services: serviceLines,
         discount,
         tax,
         notes: form.notes,
@@ -170,7 +175,7 @@ const CreateQuotation = () => {
       <form onSubmit={submit} className="p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Create Quotation</h1>
-          <p className="text-sm text-gray-500">Select an associate, then pick a client and work. The price will come from that work automatically.</p>
+          <p className="text-sm text-gray-500">Quotation totals are calculated from every work linked to the selected client.</p>
         </div>
 
         <section className="bg-white border border-gray-100 rounded-lg p-5 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -262,7 +267,7 @@ const CreateQuotation = () => {
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
                 <h2 className="font-semibold text-gray-900">Selected Work</h2>
-                <p className="text-sm text-gray-500">The quotation line is pulled from this work automatically.</p>
+                <p className="text-sm text-gray-500">This work stays selected for context, while the quotation uses all related works for the client.</p>
               </div>
               <div className="text-sm text-gray-600">
                 Status: <span className="font-semibold text-gray-900">{selectedWork.status || "-"}</span>
@@ -273,6 +278,40 @@ const CreateQuotation = () => {
               <Info label="Service" value={selectedWork.service?.name} />
               <Info label="Price" value={formatMoney(selectedWork.servicePrice || selectedWork.service?.price || 0)} />
               <Info label="Updated" value={selectedWork.updatedAt ? new Date(selectedWork.updatedAt).toLocaleString() : "-"} />
+            </div>
+          </section>
+        )}
+
+        {serviceLines.length > 0 && (
+          <section className="bg-white border border-gray-100 rounded-lg p-5 space-y-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="font-semibold text-gray-900">Related Works Included</h2>
+                <p className="text-sm text-gray-500">Each linked work contributes one service line to the quotation subtotal.</p>
+              </div>
+              <div className="text-sm text-gray-600">
+                Service lines: <span className="font-semibold text-gray-900">{serviceLines.length}</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-gray-100">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-left text-gray-500">
+                  <tr>
+                    <th className="p-3">Work ID</th>
+                    <th className="p-3">Service</th>
+                    <th className="p-3 text-right">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {serviceLines.map((line, index) => (
+                    <tr key={`${line.description || line.name}-${index}`} className="border-t">
+                      <td className="p-3 text-gray-700">{line.description ? line.description.replace("Work ID: ", "") : "-"}</td>
+                      <td className="p-3 font-medium text-gray-900">{line.name}</td>
+                      <td className="p-3 text-right text-gray-700">{formatMoney(line.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
         )}

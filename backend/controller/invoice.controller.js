@@ -1,4 +1,4 @@
-import Invoice, { INVOICE_STATUSES, PROJECT_STATUSES } from "../models/invoice.model.js";
+import Invoice, { INVOICE_STATUSES, WORK_STATUSES } from "../models/invoice.model.js";
 import Payment from "../models/payment.model.js";
 import ProjectTimeline from "../models/projectTimeline.model.js";
 import { errorHandler } from "../utils/error.js";
@@ -23,7 +23,7 @@ export const listInvoices = async (req, res, next) => {
 
     if (req.user.role !== "admin") filter.associate = req.user.id;
     if (invoiceStatus && INVOICE_STATUSES.includes(invoiceStatus)) filter.invoiceStatus = invoiceStatus;
-    if (projectStatus && PROJECT_STATUSES.includes(projectStatus)) filter.projectStatus = projectStatus;
+    if (projectStatus && WORK_STATUSES.includes(projectStatus)) filter.projectStatus = projectStatus;
     if (from || to) filter.createdAt = {};
     if (from) filter.createdAt.$gte = new Date(from);
     if (to) filter.createdAt.$lte = new Date(to);
@@ -70,7 +70,7 @@ export const updateProjectStatus = async (req, res, next) => {
     const { projectStatus, remark, startDate, expectedCompletionDate, actualCompletionDate, deadline, assignedAdmin } =
       req.body;
 
-    if (!PROJECT_STATUSES.includes(projectStatus)) return next(errorHandler(400, "Invalid project status"));
+    if (!WORK_STATUSES.includes(projectStatus)) return next(errorHandler(400, "Invalid work status"));
 
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) return next(errorHandler(404, "Invoice not found"));
@@ -100,8 +100,8 @@ export const updateProjectStatus = async (req, res, next) => {
 
     await notify({
       user: invoice.associate,
-      title: `Project status: ${projectStatus}`,
-      message: remark || `Your project for ${invoice.customerName} has been moved to: ${projectStatus}`,
+      title: `Work status: ${projectStatus}`,
+      message: remark || `Your work for ${invoice.customerName} has been moved to: ${projectStatus}`,
       type: "Work Status Changed",
       invoice: invoice._id,
     });

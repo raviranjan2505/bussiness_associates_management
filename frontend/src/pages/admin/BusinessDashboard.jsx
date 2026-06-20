@@ -62,10 +62,10 @@ const BusinessDashboard = () => {
 
         {/* ── Project / Complaint counters ───────────────── */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase mb-3">Projects & Complaints</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase mb-3">Works & Complaints</h2>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            <StatLink title="Active Projects"    value={s.activeProjects || 0}    to="/admin/projects"           color="indigo" />
-            <StatLink title="Completed Projects" value={s.completedProjects || 0} to="/admin/projects?projectStatus=Completed" color="emerald" />
+            <StatLink title="Active Works"       value={s.activeProjects || 0}    to="/admin/projects"           color="indigo" />
+            <StatLink title="Completed Works"    value={s.completedProjects || 0} to="/admin/projects?status=Completed" color="emerald" />
             <StatLink title="Total Complaints"   value={s.totalComplaints || 0}   to="/admin/complaints"         color="rose" />
           </div>
         </section>
