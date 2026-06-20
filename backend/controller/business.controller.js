@@ -580,10 +580,7 @@ export const adminDashboard = async (req, res, next) => {
         $group: {
           _id: null,
           totalIncome: {
-            $sum: "$associateEarn
-            
-            
-            ingAmount",
+            $sum: "$associateEarningAmount",
           },
         },
       },
