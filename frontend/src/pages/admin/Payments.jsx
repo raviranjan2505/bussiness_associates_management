@@ -31,8 +31,21 @@ const AdminPayments = () => {
 
   useEffect(() => {
     load();
-    axiosInstance.get("/invoices", { params: { invoiceStatus: "Waiting For Payment" } })
-      .then((r) => setInvoices(r.data.invoices || [])).catch(console.error);
+    // Fetch all invoices that can receive payments (not Paid or Cancelled)
+    Promise.all([
+      axiosInstance.get("/invoices", { params: { invoiceStatus: "Generated" } }),
+      axiosInstance.get("/invoices", { params: { invoiceStatus: "Waiting For Payment" } }),
+      axiosInstance.get("/invoices", { params: { invoiceStatus: "Partially Paid" } }),
+      axiosInstance.get("/invoices", { params: { invoiceStatus: "Overdue" } }),
+    ])
+      .then((responses) => {
+        const allInvoices = responses.flatMap((r) => r.data.invoices || []);
+        // Remove duplicates and filter to only show invoices with balance due
+        const uniqueInvoices = Array.from(new Map(allInvoices.map((inv) => [inv._id, inv])).values())
+          .filter((inv) => inv.balanceDue > 0);
+        setInvoices(uniqueInvoices);
+      })
+      .catch(console.error);
   }, []);
 
   const addPayment = async (e) => {

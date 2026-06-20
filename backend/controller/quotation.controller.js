@@ -3,7 +3,6 @@ import Client from "../models/client.model.js";
 import WorkSubmission from "../models/workSubmission.model.js";
 import Service from "../models/service.model.js";
 import Invoice from "../models/invoice.model.js";
-import ProjectTimeline from "../models/projectTimeline.model.js";
 import { errorHandler } from "../utils/error.js";
 import { toMoney } from "../utils/money.js";
 import { notify, notifyAdmins } from "../utils/notify.js";
@@ -271,15 +270,7 @@ export const acceptQuotation = async (req, res, next) => {
       invoiceStatus: "Waiting For Payment",
       notes: quotation.notes,
       terms: quotation.terms,
-      projectStatus: "Pending",
       createdBy: req.user.id,
-    });
-
-    await ProjectTimeline.create({
-      invoice: invoice._id,
-      newStatus: "Pending",
-      remark: `Invoice ${invoice.invoiceNumber} generated from accepted quotation ${quotation.quotationNumber}`,
-      updatedBy: req.user.id,
     });
 
     await notify({

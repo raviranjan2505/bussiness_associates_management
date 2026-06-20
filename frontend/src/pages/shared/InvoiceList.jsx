@@ -80,7 +80,6 @@ const InvoiceList = () => {
                     <td className="p-3 font-medium">₹{Number(inv.totalAmount || 0).toLocaleString("en-IN")}</td>
                     <td className="p-3 text-amber-700 font-medium">₹{Number(inv.balanceDue || 0).toLocaleString("en-IN")}</td>
                     <td className="p-3"><StatusBadge status={inv.invoiceStatus} /></td>
-                    <td className="p-3"><StatusBadge status={inv.projectStatus} /></td>
                     <td className="p-3 text-gray-500">{inv.dueDate ? moment(inv.dueDate).format("DD MMM YYYY") : "—"}</td>
                     <td className="p-3">
                       <div className="flex items-center gap-2">

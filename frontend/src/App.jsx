@@ -11,6 +11,7 @@ import SignUp from "./pages/auth/SignUp";
 import BusinessDashboard from "./pages/admin/BusinessDashboard";
 import ManageDivisionsServices from "./pages/admin/ManageDivisionsServices";
 import ReviewWorks from "./pages/admin/ReviewWorks";
+import AllClients from "./pages/admin/AllClients";
 import ManageUsers from "./pages/admin/ManageUsers";
 import AssociateWorks from "./pages/admin/AssociateWorks";
 import AdminQuotations from "./pages/admin/Quotations";
@@ -19,6 +20,7 @@ import AdminInvoices from "./pages/admin/Invoices";
 import AdminPayments from "./pages/admin/Payments";
 import AdminProjects from "./pages/admin/Projects";
 import AdminComplaints from "./pages/admin/Complaints";
+import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
 
 // Associate pages
 import AssociateDashboard from "./pages/associate/AssociateDashboard";
@@ -52,7 +54,7 @@ const App = () => {
             <Route path="/admin/dashboard" element={<BusinessDashboard />} />
             <Route path="/admin/divisions-services" element={<ManageDivisionsServices />} />
             <Route path="/admin/works" element={<ReviewWorks />} />
-            <Route path="/admin/clients" element={<ReviewWorks />} />
+            <Route path="/admin/clients" element={<AllClients />} />
             <Route path="/admin/clients/:clientKey" element={<ClientWorks />} />
             <Route path="/admin/work/:id" element={<WorkDetails />} />
             <Route path="/admin/users" element={<ManageUsers />} />
@@ -72,6 +74,8 @@ const App = () => {
             {/* Complaints */}
             <Route path="/admin/complaints" element={<AdminComplaints />} />
             <Route path="/admin/complaints/:id" element={<ComplaintDetail />} />
+            {/* Announcements */}
+            <Route path="/admin/announcements" element={<ManageAnnouncements />} />
           </Route>
 
           {/* ── Associate routes ──────────────────────────── */}

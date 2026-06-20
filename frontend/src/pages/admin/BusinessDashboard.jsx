@@ -3,6 +3,7 @@ import moment from "moment";
 import { Link } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import AnnouncementBanner from "../../components/AnnouncementBanner";
 import CustomBarChart from "../../components/CustomBarChart";
 import CustomPieChart from "../../components/CustomPieChart";
 import axiosInstance from "../../utils/axioInstance";
@@ -26,6 +27,9 @@ const BusinessDashboard = () => {
           <h1 className="text-2xl font-bold text-gray-900">Business Dashboard</h1>
           <p className="text-sm text-gray-500">{moment().format("dddd, DD MMMM YYYY")}</p>
         </div>
+
+        {/* ── Announcements Banner ──────────────────────── */}
+        <AnnouncementBanner />
 
         {/* ── Work counters ─────────────────────────────── */}
         <section>

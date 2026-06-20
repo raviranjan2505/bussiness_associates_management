@@ -11,6 +11,7 @@ import {
   MdPayments,
   MdFolderOpen,
   MdBugReport,
+  MdCampaign,
 } from "react-icons/md";
 
 // ── Admin side menu ────────────────────────────────────────────────────────
@@ -22,10 +23,11 @@ export const SIDE_MENU_DATA = [
   { id: 5,  label: "Payments",            icon: MdPayments,           path: "/admin/payments" },
   { id: 6,  label: "Work",                icon: MdFolderOpen,         path: "/admin/projects" },
   { id: 7,  label: "Complaints",          icon: MdBugReport,          path: "/admin/complaints" },
-  { id: 8,  label: "Divisions & Services",icon: MdDomain,             path: "/admin/divisions-services" },
-  { id: 9,  label: "Associates",          icon: MdPeopleAlt,          path: "/admin/users" },
-  { id: 10, label: "Notifications",       icon: MdNotifications,      path: "/admin/notifications" },
-  { id: 11, label: "Logout",              icon: MdLogout,             path: "logout" },
+  { id: 8,  label: "Announcements",       icon: MdCampaign,           path: "/admin/announcements" },
+  { id: 9,  label: "Divisions & Services",icon: MdDomain,             path: "/admin/divisions-services" },
+  { id: 10, label: "Associates",          icon: MdPeopleAlt,          path: "/admin/users" },
+  { id: 11, label: "Notifications",       icon: MdNotifications,      path: "/admin/notifications" },
+  { id: 12, label: "Logout",              icon: MdLogout,             path: "logout" },
 ];
 
 // ── Associate side menu ───────────────────────────────────────────────────

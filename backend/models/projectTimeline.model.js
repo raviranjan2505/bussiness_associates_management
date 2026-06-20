@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { WORK_STATUSES } from "./invoice.model.js";
+import { WORK_STATUSES } from "./workSubmission.model.js";
 
 const projectTimelineSchema = new mongoose.Schema(
   {

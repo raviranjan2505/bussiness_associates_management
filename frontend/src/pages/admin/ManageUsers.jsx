@@ -49,6 +49,7 @@ const ManageUsers = () => {
                   <th className="p-3">Name</th>
                   <th className="p-3">Email</th>
                   <th className="p-3">Joined</th>
+                  <th className="p-3 text-right">Total Income</th>
                   <th className="p-3">Action</th>
                 </tr>
               </thead>
@@ -58,6 +59,7 @@ const ManageUsers = () => {
                     <td className="p-3 font-medium text-gray-900">{user.name}</td>
                     <td className="p-3 text-gray-600">{user.email}</td>
                     <td className="p-3 text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
+                    <td className="p-3 text-right font-semibold text-green-600">₹{(user.totalIncome || 0).toLocaleString("en-IN")}</td>
                     <td className="p-3">
                       <Link className="text-blue-700 font-medium" to={`/admin/users/${user._id}`}>
                         View Works
@@ -67,7 +69,7 @@ const ManageUsers = () => {
                 ))}
                 {!filteredUsers.length && (
                   <tr>
-                    <td className="p-4 text-gray-500" colSpan={4}>
+                    <td className="p-4 text-gray-500" colSpan={5}>
                       No associates found.
                     </td>
                   </tr>

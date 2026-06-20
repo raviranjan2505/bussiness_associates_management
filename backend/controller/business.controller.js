@@ -283,6 +283,15 @@ export const submitWork = async (req, res, next) => {
 export const listClients = async (req, res, next) => {
   try {
     const isAdmin = req.user.role === "admin";
+    const allClients = isAdmin && req.query.allClients === "true";
+
+    // If admin wants all clients, return flat list of all clients
+    if (allClients) {
+      const clients = await Client.find().populate("associate", "name email").sort({ createdAt: -1 });
+      return res.status(200).json({ clients });
+    }
+
+    // Otherwise, return grouped clients by associate (existing logic)
     const selectedAssociate = isAdmin && req.query.associate ? req.query.associate : req.user.id;
     const workFilter = { associate: selectedAssociate };
     const clientFilter = { associate: selectedAssociate };
@@ -633,8 +642,8 @@ export const adminDashboard = async (req, res, next) => {
       Invoice.countDocuments(),
       Invoice.countDocuments({ invoiceStatus: { $in: ["Waiting For Payment", "Partially Paid", "Overdue"] } }),
       Invoice.countDocuments({ invoiceStatus: "Paid" }),
-      Invoice.countDocuments({ projectStatus: { $nin: ["Completed", "Cancelled"] } }),
-      Invoice.countDocuments({ projectStatus: "Completed" }),
+      WorkSubmission.countDocuments({ status: { $nin: ["Completed", "Cancelled"] } }),
+      WorkSubmission.countDocuments({ status: "Completed" }),
       Complaint.countDocuments(),
     ]);
 
@@ -731,7 +740,7 @@ export const associateDashboard = async (req, res, next) => {
         associate: req.user.id,
         invoiceStatus: { $in: ["Waiting For Payment", "Partially Paid", "Overdue"] },
       }),
-      Invoice.countDocuments({ associate: req.user.id, projectStatus: { $nin: ["Completed", "Cancelled"] } }),
+      WorkSubmission.countDocuments({ associate: req.user.id, status: { $nin: ["Completed", "Cancelled"] } }),
       Complaint.countDocuments({ associate: req.user.id }),
     ]);
 

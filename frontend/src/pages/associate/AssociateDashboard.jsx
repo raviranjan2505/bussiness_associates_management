@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import moment from "moment";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import AnnouncementBanner from "../../components/AnnouncementBanner";
 import axiosInstance from "../../utils/axioInstance";
 
 const AssociateDashboard = () => {
@@ -26,6 +27,9 @@ const AssociateDashboard = () => {
             Submit Work
           </Link>
         </div>
+
+        {/* ── Announcements Banner ──────────────────────── */}
+        <AnnouncementBanner />
 
         {/* ── Work counters ─────────────────────────────── */}
         <section>

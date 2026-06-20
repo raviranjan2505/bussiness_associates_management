@@ -4,9 +4,8 @@ import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
-import ProjectTimelineView from "../../components/ProjectTimelineView";
 import axiosInstance from "../../utils/axioInstance";
-import { STATUS_DATA, PAYMENT_METHOD_DATA } from "../../utils/data";
+import { PAYMENT_METHOD_DATA } from "../../utils/data";
 
 const fmt = (v) => `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
@@ -15,31 +14,21 @@ const InvoiceDetail = () => {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
   const [payments, setPayments] = useState([]);
-  const [timeline, setTimeline] = useState([]);
 
-  const [projectForm, setProjectForm] = useState({ projectStatus: "", remark: "", startDate: "", expectedCompletionDate: "", deadline: "" });
   const [paymentForm, setPaymentForm] = useState({ amount: "", paymentMethod: "Bank Transfer", transactionId: "", remarks: "", paymentDate: "" });
+  const [dueDate, setDueDate] = useState("");
 
   const load = async () => {
-    const res = await axiosInstance.get(`/invoices/${id}`);
-    setInvoice(res.data.invoice);
-    setPayments(res.data.payments || []);
-    setTimeline(res.data.timeline || []);
-    setProjectForm((f) => ({ ...f, projectStatus: res.data.invoice.projectStatus }));
+    const [invRes, payRes] = await Promise.all([
+      axiosInstance.get(`/invoices/${id}`),
+      axiosInstance.get("/payments", { params: { invoiceId: id } }),
+    ]);
+    setInvoice(invRes.data);
+    setPayments(payRes.data.payments || []);
+    setDueDate(invRes.data?.dueDate ? moment(invRes.data.dueDate).format("YYYY-MM-DD") : "");
   };
 
   useEffect(() => { load().catch(console.error); }, [id]);
-
-  const updateProjectStatus = async (e) => {
-    e.preventDefault();
-    try {
-      await axiosInstance.post(`/invoices/${id}/project-status`, projectForm);
-      toast.success("Work status updated");
-      load();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Error");
-    }
-  };
 
   const addPayment = async (e) => {
     e.preventDefault();
@@ -73,6 +62,17 @@ const InvoiceDetail = () => {
     }
   };
 
+  const updateDueDate = async (e) => {
+    e.preventDefault();
+    try {
+      await axiosInstance.put(`/invoices/${id}`, { dueDate });
+      toast.success("Due date updated");
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error");
+    }
+  };
+
   if (!invoice) return <DashboardLayout activeMenu="Invoices"><div className="p-6">Loading...</div></DashboardLayout>;
 
   const inv = invoice;
@@ -89,7 +89,6 @@ const InvoiceDetail = () => {
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             <StatusBadge status={inv.invoiceStatus} />
-            <StatusBadge status={inv.projectStatus} />
             <a href={`http://localhost:3000/api/invoices/${id}/pdf`} target="_blank" rel="noreferrer" className="bg-gray-900 text-white rounded-lg px-4 py-2 text-sm">Download PDF</a>
           </div>
         </div>
@@ -163,55 +162,40 @@ const InvoiceDetail = () => {
 
               {/* Add payment form */}
               {!["Paid", "Cancelled"].includes(inv.invoiceStatus) && (
-                <form onSubmit={addPayment} className="p-5 border-t grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <input type="number" min="1" className="border rounded-lg p-2" placeholder="Amount (₹)" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} required />
-                  <select className="border rounded-lg p-2" value={paymentForm.paymentMethod} onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}>
-                    {PAYMENT_METHOD_DATA.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                  </select>
-                  <input className="border rounded-lg p-2" placeholder="Transaction ID (optional)" value={paymentForm.transactionId} onChange={(e) => setPaymentForm({ ...paymentForm, transactionId: e.target.value })} />
-                  <input type="date" className="border rounded-lg p-2" value={paymentForm.paymentDate} onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })} />
-                  <input className="border rounded-lg p-2" placeholder="Remarks (optional)" value={paymentForm.remarks} onChange={(e) => setPaymentForm({ ...paymentForm, remarks: e.target.value })} />
-                  <button className="bg-gray-900 text-white rounded-lg px-4 py-2">Add Payment</button>
+                <form onSubmit={addPayment} className="p-5 border-t space-y-3">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <input type="number" min="1" step="0.01" className="border rounded-lg p-2" placeholder="Amount (₹)" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} required />
+                    <select className="border rounded-lg p-2" value={paymentForm.paymentMethod} onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}>
+                      {PAYMENT_METHOD_DATA.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                    <input className="border rounded-lg p-2" placeholder="Transaction ID (optional)" value={paymentForm.transactionId} onChange={(e) => setPaymentForm({ ...paymentForm, transactionId: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <input type="date" className="border rounded-lg p-2" value={paymentForm.paymentDate} onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })} />
+                    <input className="border rounded-lg p-2" placeholder="Remarks (optional)" value={paymentForm.remarks} onChange={(e) => setPaymentForm({ ...paymentForm, remarks: e.target.value })} />
+                  </div>
+                  <button type="submit" className="bg-gray-900 text-white rounded-lg px-4 py-2 w-full font-medium">Add Payment</button>
                 </form>
               )}
             </section>
           </div>
 
-          {/* Right: Work status + timeline */}
+          {/* Right: Invoice info */}
           <aside className="space-y-5">
             <section className="bg-white border border-gray-100 rounded-lg p-5 text-sm space-y-3">
               <h2 className="font-semibold text-gray-900">Invoice Info</h2>
               <Info label="Status" value={<StatusBadge status={inv.invoiceStatus} />} />
               <Info label="Due Date" value={inv.dueDate ? moment(inv.dueDate).format("DD MMM YYYY") : "–"} />
               {inv.quotation && <Info label="Quotation Ref" value={inv.quotation.quotationNumber} />}
-              {inv.startDate && <Info label="Start Date" value={moment(inv.startDate).format("DD MMM YYYY")} />}
-              {inv.expectedCompletionDate && <Info label="Expected Completion" value={moment(inv.expectedCompletionDate).format("DD MMM YYYY")} />}
               {inv.notes && <Info label="Notes" value={inv.notes} />}
             </section>
 
-            <form onSubmit={updateProjectStatus} className="bg-white border border-gray-100 rounded-lg p-5 space-y-3">
-              <h2 className="font-semibold text-gray-900">Update Work Status</h2>
-              <select className="w-full border rounded-lg p-2" value={projectForm.projectStatus} onChange={(e) => setProjectForm({ ...projectForm, projectStatus: e.target.value })}>
-                {STATUS_DATA.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-              </select>
-              <textarea className="w-full border rounded-lg p-2" rows={2} placeholder="Remark (optional)" value={projectForm.remark} onChange={(e) => setProjectForm({ ...projectForm, remark: e.target.value })} />
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-gray-500">Start Date</label>
-                  <input type="date" className="w-full border rounded-lg p-2 mt-0.5" value={projectForm.startDate} onChange={(e) => setProjectForm({ ...projectForm, startDate: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500">Expected Completion</label>
-                  <input type="date" className="w-full border rounded-lg p-2 mt-0.5" value={projectForm.expectedCompletionDate} onChange={(e) => setProjectForm({ ...projectForm, expectedCompletionDate: e.target.value })} />
-                </div>
-              </div>
-              <button className="bg-gray-900 text-white rounded-lg px-4 py-2 w-full">Update Status</button>
+            {/* Edit Due Date Form */}
+            <form onSubmit={updateDueDate} className="bg-white border border-gray-100 rounded-lg p-5 space-y-3">
+              <h2 className="font-semibold text-gray-900">Payment Due Date</h2>
+              <input type="date" className="w-full border rounded-lg p-2" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              <button className="bg-gray-900 text-white rounded-lg px-4 py-2 w-full text-sm">Update Due Date</button>
             </form>
-
-            <section className="bg-white border border-gray-100 rounded-lg p-5">
-              <h2 className="font-semibold text-gray-900 mb-4">Work Timeline</h2>
-              <ProjectTimelineView items={timeline} />
-            </section>
           </aside>
         </div>
       </div>

@@ -2,27 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import moment from "moment";
-import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import axiosInstance from "../../utils/axioInstance";
-import { formatMoney, formatDateTime } from "../../utils/helper";
-import { WORK_STATUSES } from "../../utils/data";
+import { formatMoney } from "../../utils/helper";
 
-const legacyStatusMap = {
-  "Waiting For Payment": "Pending",
-  "Payment Received": "Under Review",
-  "Work Assigned": "Documents Required",
-  "Work Started": "In Process",
-  "In Progress": "In Process",
-  "Review Pending": "Under Review",
-  "Client Approval Pending": "Under Review",
-  Completed: "Completed",
-  "On Hold": "Pending",
-  Cancelled: "Rejected",
-};
-
-const normalizeWorkStatus = (status) => legacyStatusMap[status] || status || "";
 
 const InvoiceDetail = () => {
   const { id } = useParams();
@@ -30,36 +14,18 @@ const InvoiceDetail = () => {
   const isAdmin = currentUser?.role === "admin";
 
   const [invoice, setInvoice] = useState(null);
-  const [timeline, setTimeline] = useState([]);
   const [payments, setPayments] = useState([]);
-  const [projectForm, setProjectForm] = useState({ projectStatus: "", remark: "", startDate: "", expectedCompletionDate: "" });
 
   const load = async () => {
-    const [invRes, tlRes, payRes] = await Promise.all([
+    const [invRes, payRes] = await Promise.all([
       axiosInstance.get(`/invoices/${id}`),
-      axiosInstance.get(`/invoices/${id}/timeline`),
       axiosInstance.get("/payments", { params: { invoiceId: id } }),
     ]);
     setInvoice(invRes.data);
-    setTimeline(tlRes.data.timeline || []);
     setPayments(payRes.data.payments || []);
-    setProjectForm((f) => ({ ...f, projectStatus: normalizeWorkStatus(invRes.data.invoice?.projectStatus) }));
   };
 
   useEffect(() => { load().catch(console.error); }, [id]);
-
-  const updateStatus = async (e) => {
-    e.preventDefault();
-    if (!projectForm.projectStatus) return toast.error("Select a status");
-    try {
-      await axiosInstance.post(`/invoices/${id}/project-status`, projectForm);
-      toast.success("Work status updated");
-      setProjectForm({ projectStatus: "", remark: "", startDate: "", expectedCompletionDate: "" });
-      load();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed");
-    }
-  };
 
   const downloadPdf = () => window.open(`${axiosInstance.defaults.baseURL}/invoices/${id}/pdf`, "_blank");
 
@@ -100,7 +66,6 @@ const InvoiceDetail = () => {
                 <Info label="Phone"     value={invoice.customerPhone} />
                 <Info label="Associate" value={invoice.associate?.name} />
                 <Info label="Due Date"  value={invoice.dueDate ? moment(invoice.dueDate).format("DD MMM YYYY") : "—"} />
-                <Info label="Work Status" value={<StatusBadge status={invoice.projectStatus} />} />
               </div>
             </section>
 
@@ -194,49 +159,6 @@ const InvoiceDetail = () => {
               <Row label="Amount Paid" value={formatMoney(invoice.amountPaid)} />
               <div className={`flex justify-between font-semibold ${invoice.balanceDue > 0 ? "text-red-700" : "text-emerald-700"}`}>
                 <span>Balance Due</span><span>{formatMoney(invoice.balanceDue)}</span>
-              </div>
-            </section>
-
-            {/* Project status update (admin only) */}
-            {isAdmin && (
-              <form onSubmit={updateStatus} className="bg-white border border-gray-100 rounded-lg p-5 space-y-3">
-                <h2 className="font-semibold text-gray-900">Update Work Status</h2>
-                <select className="w-full border rounded-lg p-2" value={projectForm.projectStatus}
-                  onChange={(e) => setProjectForm({ ...projectForm, projectStatus: e.target.value })}>
-                  <option value="">Select status…</option>
-                  {WORK_STATUSES.map((s) => <option key={s}>{s}</option>)}
-                </select>
-                <input className="w-full border rounded-lg p-2" placeholder="Remark (optional)" value={projectForm.remark}
-                  onChange={(e) => setProjectForm({ ...projectForm, remark: e.target.value })} />
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Start Date</p>
-                    <input type="date" className="w-full border rounded-lg p-2" value={projectForm.startDate}
-                      onChange={(e) => setProjectForm({ ...projectForm, startDate: e.target.value })} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Expected Completion</p>
-                    <input type="date" className="w-full border rounded-lg p-2" value={projectForm.expectedCompletionDate}
-                      onChange={(e) => setProjectForm({ ...projectForm, expectedCompletionDate: e.target.value })} />
-                  </div>
-                </div>
-                <button className="bg-gray-900 text-white rounded-lg px-4 py-2 w-full text-sm">Update Status</button>
-              </form>
-            )}
-
-            {/* Project timeline */}
-            <section className="bg-white border border-gray-100 rounded-lg p-5">
-              <h2 className="font-semibold text-gray-900 mb-4">Work Timeline</h2>
-              {timeline.length === 0 && <p className="text-sm text-gray-500">No timeline entries yet.</p>}
-              <div className="space-y-4">
-                {timeline.map((entry, i) => (
-                  <div key={entry._id || i} className="border-l-2 border-blue-200 pl-4">
-                    <StatusBadge status={entry.newStatus} />
-                    <p className="mt-1 text-xs text-gray-500">{formatDateTime(entry.timestamp)}</p>
-                    {entry.remark && <p className="text-sm text-gray-600 mt-1">{entry.remark}</p>}
-                    <p className="text-xs text-gray-400">by {entry.updatedBy?.name || "System"}</p>
-                  </div>
-                ))}
               </div>
             </section>
           </aside>

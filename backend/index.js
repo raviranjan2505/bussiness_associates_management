@@ -14,6 +14,7 @@ import quotationRoutes from "./routes/quotation.route.js";
 import invoiceRoutes from "./routes/invoice.route.js";
 import paymentRoutes from "./routes/payment.route.js";
 import complaintRoutes from "./routes/complaint.route.js";
+import announcementRoutes from "./routes/announcement.route.js";
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use("/api/quotations", quotationRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/complaints", complaintRoutes);
+app.use("/api/announcements", announcementRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
