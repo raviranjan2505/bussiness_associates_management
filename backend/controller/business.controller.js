@@ -21,10 +21,12 @@ const normalizeClientPart = (value) =>
     .toLowerCase()
     .replace(/\s+/g, " ");
 
+const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const upsertClientRecord = async (associateId, clientInput) => {
   const existingCandidates = await Client.find({
     associate: associateId,
-    clientName: new RegExp(`^${String(clientInput.clientName || "").trim()}$`, "i"),
+    clientName: new RegExp(`^${escapeRegex(clientInput.clientName || "")}$`, "i"),
   });
   const existing = existingCandidates.find((client) =>
     normalizeClientPart(client.mobileNumber) === normalizeClientPart(clientInput.mobileNumber) &&
