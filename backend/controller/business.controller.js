@@ -4,6 +4,7 @@ import Service from "../models/service.model.js";
 import Client from "../models/client.model.js";
 import User from "../models/user.model.js";
 import WorkSubmission, { WORK_STATUSES } from "../models/workSubmission.model.js";
+import Lead from "../models/lead.model.js";
 import Notification from "../models/notification.model.js";
 import Quotation from "../models/quotation.model.js";
 import Invoice from "../models/invoice.model.js";
@@ -193,8 +194,19 @@ export const deleteService = async (req, res, next) => {
 export const submitWork = async (req, res, next) => {
   try {
     const { division, service, formData, clientDetails, clientId } = req.body;
-    const parsedClient = typeof clientDetails === "string" ? JSON.parse(clientDetails) : clientDetails;
-    const parsedForm = typeof formData === "string" ? JSON.parse(formData || "{}") : formData || {};
+
+    let parsedClient = clientDetails;
+    let parsedForm = formData;
+    try {
+      parsedClient = typeof clientDetails === "string" ? JSON.parse(clientDetails) : clientDetails;
+    } catch (err) {
+      return next(errorHandler(400, "Invalid client details payload"));
+    }
+    try {
+      parsedForm = typeof formData === "string" ? JSON.parse(formData || "{}") : formData || {};
+    } catch (err) {
+      return next(errorHandler(400, "Invalid form data payload"));
+    }
 
     if (!division || !service) {
       return next(errorHandler(400, "Division and service are required"));
@@ -205,13 +217,19 @@ export const submitWork = async (req, res, next) => {
     if (serviceDoc.price == null) return next(errorHandler(400, "Service price is not configured"));
 
     let clientDoc = null;
-    if (clientId) {
-      clientDoc = await Client.findById(clientId);
-      if (!clientDoc) return next(errorHandler(404, "Client not found"));
-      if (req.user.role !== "admin" && String(clientDoc.associate) !== req.user.id) {
-        return next(errorHandler(403, "Access denied"));
+    const clientIdValue = typeof clientId === "string" ? clientId.trim() : clientId;
+    if (clientIdValue) {
+      if (mongoose.isValidObjectId(clientIdValue)) {
+        clientDoc = await Client.findById(clientIdValue);
+        if (!clientDoc) return next(errorHandler(404, "Client not found"));
+        if (req.user.role !== "admin" && String(clientDoc.associate) !== req.user.id) {
+          return next(errorHandler(403, "Access denied"));
+        }
+      } else if (!parsedClient?.clientName) {
+        return next(errorHandler(400, "Invalid client identifier"));
       }
-    } else if (parsedClient?.clientName) {
+    }
+    if (!clientDoc && parsedClient?.clientName) {
       clientDoc = await upsertClientRecord(req.user.id, parsedClient);
     }
 
@@ -244,37 +262,46 @@ export const submitWork = async (req, res, next) => {
       uploadedBy: req.user.id,
     }));
 
-    const work = new WorkSubmission({
+    const lead = new Lead({
       associate: req.user.id,
       division,
       service,
       servicePrice: serviceDoc.price,
       associateEarningPercent: serviceDoc.associateEarningPercent ?? SERVICE_EARNING_PERCENT,
       associateEarningAmount: serviceDoc.associateEarningAmount ?? toMoney((serviceDoc.price * SERVICE_EARNING_PERCENT) / 100),
+      clientId: clientDoc?._id,
       clientDetails: resolvedClient,
+      title: req.body.title || serviceDoc.name,
+      description: req.body.description || parsedForm.description || "",
+      priority: req.body.priority || "Normal",
+      category: req.body.category || serviceDoc.name,
       formData: parsedForm,
       documents,
-      status: "Pending",
+      expectedCompletionDate: req.body.expectedCompletionDate ? new Date(req.body.expectedCompletionDate) : undefined,
+      remarks: req.body.remarks,
+      leadStatus: "Submitted",
     });
 
-    work.statusHistory.push({
-      newStatus: "Pending",
-      reason: "Work Submitted",
+    lead.statusHistory.push({
+      newStatus: "Submitted",
+      reason: "Lead Submitted",
       remark: "Submission received from associate",
       updatedBy: req.user.id,
     });
-    addAudit(work, "Work Created", "Associate submitted a new work request", req.user);
-    if (documents.length) addAudit(work, "Document Uploaded", `${documents.length} document(s) uploaded`, req.user);
-    await work.save();
+    addAudit(lead, "Lead Created", "Associate submitted a new lead request", req.user);
+    if (documents.length) addAudit(lead, "Document Uploaded", `${documents.length} document(s) uploaded`, req.user);
+    await lead.save();
 
     await notifyAdmins({
-      title: "New work submitted",
+      title: "New lead submitted",
       message: `${resolvedClient.clientName} was submitted for review`,
-      type: "Work Submitted",
-      workSubmission: work._id,
+      type: "Lead Submitted",
+      lead: lead._id,
     });
 
-    res.status(201).json({ message: "Work submitted", work });
+    const responseLead = lead.toObject();
+    responseLead.workId = lead.leadId;
+    res.status(201).json({ message: "Work submitted", work: responseLead });
   } catch (error) {
     next(error);
   }
@@ -377,7 +404,7 @@ export const listClients = async (req, res, next) => {
         mobileNumber: client.mobileNumber,
         email: client.email,
         address: client.address,
-        clientId: client._id,
+        clientId: client._id ? String(client._id) : null,
       });
       if (!group.associateName) group.associateName = client.associate?.name || "";
       if (!group.associateEmail) group.associateEmail = client.associate?.email || "";
@@ -502,6 +529,25 @@ export const updateWorkStatus = async (req, res, next) => {
       return next(errorHandler(400, "Completed documents can only be attached when the work is marked Completed"));
     }
     const previousStatus = work.status;
+
+    let invoice = null;
+    if (work.invoiceId) {
+      invoice = await Invoice.findById(work.invoiceId);
+    }
+    if (!invoice && work.leadId) {
+      invoice = await Invoice.findOne({ leadId: work.leadId });
+    }
+    if (work.status === "Waiting For Payment" && status !== "Waiting For Payment") {
+      if (!invoice || !["Partially Paid", "Paid"].includes(invoice.invoiceStatus)) {
+        return next(
+          errorHandler(
+            400,
+            "Work status cannot be changed until the associated invoice is partially paid or paid"
+          )
+        );
+      }
+    }
+
     work.status = status;
     work.expectedCompletionDate = expectedCompletionDate || work.expectedCompletionDate;
     work.assignedAdmin = assignedAdmin || req.user.id;

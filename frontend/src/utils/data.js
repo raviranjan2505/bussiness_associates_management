@@ -18,9 +18,10 @@ import {
 export const SIDE_MENU_DATA = [
   { id: 1,  label: "Dashboard",           icon: MdDashboardCustomize, path: "/admin/dashboard" },
   { id: 2,  label: "Client List",         icon: MdManageHistory,      path: "/admin/clients" },
-  { id: 3,  label: "Quotations",          icon: MdRequestQuote,       path: "/admin/quotations" },
-  { id: 4,  label: "Invoices",            icon: MdReceiptLong,        path: "/admin/invoices" },
-  { id: 5,  label: "Payments",            icon: MdPayments,           path: "/admin/payments" },
+  { id: 3,  label: "New Leads",           icon: MdCampaign,           path: "/admin/leads" },
+  { id: 4,  label: "Quotations",          icon: MdRequestQuote,       path: "/admin/quotations" },
+  { id: 5,  label: "Invoices",            icon: MdReceiptLong,        path: "/admin/invoices" },
+  { id: 6,  label: "Payments",            icon: MdPayments,           path: "/admin/payments" },
   { id: 6,  label: "Work",                icon: MdFolderOpen,         path: "/admin/projects" },
   { id: 7,  label: "Complaints",          icon: MdBugReport,          path: "/admin/complaints" },
   { id: 8,  label: "Announcements",       icon: MdCampaign,           path: "/admin/announcements" },
@@ -34,7 +35,8 @@ export const SIDE_MENU_DATA = [
 export const ASSOCIATE_SIDE_MENU_DATA = [
   { id: 1, label: "Dashboard",     icon: MdDashboardCustomize, path: "/associate/dashboard" },
   { id: 2, label: "Submit Work",   icon: MdOutlineTaskAlt,     path: "/associate/submit-work" },
-  { id: 3, label: "Client List",    icon: MdManageHistory,      path: "/associate/clients" },
+  { id: 3, label: "My Leads",      icon: MdCampaign,           path: "/associate/leads" },
+  { id: 4, label: "Client List",    icon: MdManageHistory,      path: "/associate/clients" },
   { id: 4, label: "Quotations",    icon: MdRequestQuote,       path: "/associate/quotations" },
   { id: 5, label: "Invoices",      icon: MdReceiptLong,        path: "/associate/invoices" },
   { id: 6, label: "Payments",      icon: MdPayments,           path: "/associate/payments" },

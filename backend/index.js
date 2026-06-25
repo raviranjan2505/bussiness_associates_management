@@ -15,6 +15,7 @@ import invoiceRoutes from "./routes/invoice.route.js";
 import paymentRoutes from "./routes/payment.route.js";
 import complaintRoutes from "./routes/complaint.route.js";
 import announcementRoutes from "./routes/announcement.route.js";
+import leadRoutes from "./routes/lead.route.js";
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use("/api/business", businessRoutes);
 app.use("/api/quotations", quotationRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/leads", leadRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/announcements", announcementRoutes);
 

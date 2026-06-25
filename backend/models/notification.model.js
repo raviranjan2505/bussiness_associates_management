@@ -15,6 +15,10 @@ const notificationSchema = new mongoose.Schema(
         "Documents Uploaded",
         "Work Completed",
         "Work Rejected",
+        // Lead workflow notifications
+        "Lead Submitted",
+        "Quotation Created",
+        "Payment Recorded",
         // Module 10: Notification System additions
         "Quotation Sent",
         "Quotation Accepted",

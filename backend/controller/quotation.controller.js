@@ -1,5 +1,7 @@
+import mongoose from "mongoose";
 import Quotation, { QUOTATION_STATUSES } from "../models/quotation.model.js";
 import Client from "../models/client.model.js";
+import Lead from "../models/lead.model.js";
 import WorkSubmission from "../models/workSubmission.model.js";
 import Service from "../models/service.model.js";
 import Invoice from "../models/invoice.model.js";
@@ -7,6 +9,7 @@ import { errorHandler } from "../utils/error.js";
 import { toMoney } from "../utils/money.js";
 import { notify, notifyAdmins } from "../utils/notify.js";
 import { generateSequenceNumber } from "../utils/sequence.js";
+import { convertLeadToWork } from "../utils/leadConversion.js";
 import { streamQuotationPdf } from "../utils/pdfGenerator.js";
 
 const ensureQuotationAccess = (quotation, user) => {
@@ -58,13 +61,71 @@ const buildServiceLines = async (services = []) => {
 
 export const createQuotation = async (req, res, next) => {
   try {
-    const { associate, customerName, customerEmail, customerPhone, clientId, workId, services, notes, terms, discount, tax, validUntil } = req.body;
+    const { associate, customerName, customerEmail, customerPhone, clientId, workId, leadIds, services, notes, terms, discount, tax, validUntil } = req.body;
 
     let client = null;
     let work = null;
     let associateId = associate || req.user.id;
+    let quotationServices = [];
+    let quotationLeadId = null;
+    let quotationLeadIds = [];
 
-    if (workId) {
+    if (Array.isArray(leadIds) && leadIds.length) {
+      const invalidLeadIds = leadIds.filter((id) => !mongoose.isValidObjectId(id));
+      if (invalidLeadIds.length) return next(errorHandler(400, "Invalid lead identifiers provided"));
+
+      const leads = await Lead.find({ _id: { $in: leadIds } }).populate("associate", "name email").populate("service", "name price associateEarningPercent associateEarningAmount");
+      if (leads.length !== leadIds.length) return next(errorHandler(404, "One or more selected leads were not found"));
+
+      if (req.user.role !== "admin") {
+        const invalidLead = leads.find((lead) => String(lead.associate?._id || lead.associate) !== req.user.id);
+        if (invalidLead) return next(errorHandler(403, "You can only create quotations for your own leads"));
+      }
+
+      if (associate && leads.some((lead) => String(lead.associate?._id || lead.associate) !== String(associate))) {
+        return next(errorHandler(400, "Selected associate does not match the selected leads"));
+      }
+
+      if (clientId && leads.some((lead) => String(lead.clientId || "") !== String(clientId))) {
+        return next(errorHandler(400, "Selected client does not match the selected leads"));
+      }
+
+      const firstLead = leads[0];
+      if (!clientId && firstLead.clientId) client = await Client.findById(firstLead.clientId);
+      if (clientId) {
+        client = await Client.findById(clientId);
+        if (!client) return next(errorHandler(404, "Client not found"));
+      }
+
+      quotationServices = leads.map((lead) => {
+        const servicePrice = lead.servicePrice ?? lead.service?.price ?? 0;
+        return {
+          service: lead.service?._id,
+          name: lead.service?.name || `Lead ${lead.leadId}`,
+          description: `Lead ${lead.leadId}`,
+          price: Number(servicePrice),
+          quantity: 1,
+          amount: Number(servicePrice),
+          associateEarningPercent: lead.associateEarningPercent || 0,
+          associateEarningAmount: lead.associateEarningAmount || 0,
+        };
+      });
+
+      quotationLeadIds = leads.map((lead) => lead._id);
+      if (leads.length === 1) quotationLeadId = leads[0]._id;
+
+      if (!customerName && firstLead.clientDetails?.clientName) {
+        req.body.customerName = firstLead.clientDetails.clientName;
+      }
+      if (customerEmail === undefined && firstLead.clientDetails?.email) {
+        req.body.customerEmail = firstLead.clientDetails.email;
+      }
+      if (customerPhone === undefined && firstLead.clientDetails?.mobileNumber) {
+        req.body.customerPhone = firstLead.clientDetails.mobileNumber;
+      }
+    }
+
+    if (workId && quotationServices.length === 0) {
       work = await WorkSubmission.findById(workId).populate("associate", "name email");
       if (!work) return next(errorHandler(404, "Work not found"));
       if (associate && String(associate) !== String(work.associate?._id || work.associate)) {
@@ -95,13 +156,19 @@ export const createQuotation = async (req, res, next) => {
 
     if (!resolvedCustomerName) return next(errorHandler(400, "Customer name is required"));
 
-    const serviceLines = await buildServiceLines(services);
+    if (!quotationServices.length && !services?.length) {
+      return next(errorHandler(400, "At least one service or lead selection is required"));
+    }
+
+    const serviceLines = quotationServices.length ? quotationServices : await buildServiceLines(services);
 
     const quotationNumber = await generateSequenceNumber(Quotation, "QUO");
 
     const quotation = new Quotation({
       quotationNumber,
       associate: associateId,
+      leadId: quotationLeadId,
+      leadIds: quotationLeadIds,
       client: client?._id,
       customerName: resolvedCustomerName,
       customerEmail: resolvedCustomerEmail,
@@ -251,44 +318,122 @@ export const acceptQuotation = async (req, res, next) => {
     quotation.respondedAt = new Date();
     await quotation.save();
 
-    // Module 3: Auto-generate invoice on acceptance
-    const invoiceNumber = await generateSequenceNumber(Invoice, "INV");
-    const invoice = await Invoice.create({
-      invoiceNumber,
-      quotation: quotation._id,
-      associate: quotation.associate,
-      customerName: quotation.customerName,
-      customerEmail: quotation.customerEmail,
-      customerPhone: quotation.customerPhone,
-      services: quotation.services,
-      subtotal: quotation.subtotal,
-      discount: quotation.discount,
-      tax: quotation.tax,
-      totalAmount: quotation.totalAmount,
-      amountPaid: 0,
-      dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-      invoiceStatus: "Waiting For Payment",
-      notes: quotation.notes,
-      terms: quotation.terms,
-      createdBy: req.user.id,
-    });
+    const quoteLeadIds = [quotation.leadId, ...(quotation.leadIds || [])].filter(Boolean).map(String);
+    const uniqueLeadIds = [...new Set(quoteLeadIds)];
+    const createdWorks = [];
+    const createdInvoices = [];
+
+    if (uniqueLeadIds.length) {
+      const leads = await Lead.find({ _id: { $in: uniqueLeadIds } }).populate(
+        "service",
+        "name price associateEarningPercent associateEarningAmount"
+      );
+      if (leads.length !== uniqueLeadIds.length) return next(errorHandler(404, "One or more linked leads were not found"));
+
+      const serviceMap = new Map();
+      (quotation.services || []).forEach((service, index) => {
+        const leadId = quoteLeadIds[index];
+        if (leadId) serviceMap.set(String(leadId), service);
+      });
+
+      for (const lead of leads) {
+        const leadService = serviceMap.get(String(lead._id));
+        const line = leadService || {
+          service: lead.service?._id,
+          name: lead.service?.name || `Lead ${lead.leadId}`,
+          description: `Lead ${lead.leadId}`,
+          price: Number(lead.servicePrice ?? lead.service?.price ?? 0),
+          quantity: 1,
+          amount: Number(lead.servicePrice ?? lead.service?.price ?? 0),
+          associateEarningPercent: lead.associateEarningPercent || 0,
+          associateEarningAmount: lead.associateEarningAmount || 0,
+        };
+
+        const invoiceDiscount = { ...quotation.discount };
+        if (quotation.discount?.type === "flat") {
+          const totalDiscount = quotation.discount.amount ?? quotation.discount.value ?? 0;
+          invoiceDiscount.amount = Number(
+            ((line.amount / Math.max(quotation.subtotal, 1)) * totalDiscount).toFixed(2)
+          );
+        } else if (quotation.discount?.type === "percentage") {
+          invoiceDiscount.amount = Number(((line.amount * (quotation.discount.value || 0)) / 100).toFixed(2));
+        }
+
+        const subtotal = Number(line.amount || 0);
+        const taxedBase = Math.max(subtotal - (invoiceDiscount.amount || 0), 0);
+        const invoiceTax = {
+          percent: quotation.tax?.percent || 0,
+          amount: Number(((taxedBase * (quotation.tax?.percent || 0)) / 100).toFixed(2)),
+        };
+        const invoiceTotal = Number((taxedBase + invoiceTax.amount).toFixed(2));
+
+        const work = await convertLeadToWork(lead, {
+          status: "Waiting For Payment",
+          reason: "Quotation accepted",
+          remark: "Work created after quotation acceptance",
+          updatedBy: quotation.associate,
+        });
+
+        const invoiceNumber = await generateSequenceNumber(Invoice, "INV");
+        const invoice = await Invoice.create({
+          invoiceNumber,
+          quotation: quotation._id,
+          leadId: lead._id,
+          associate: quotation.associate,
+          customerName: quotation.customerName,
+          customerEmail: quotation.customerEmail,
+          customerPhone: quotation.customerPhone,
+          services: [line],
+          subtotal,
+          discount: invoiceDiscount,
+          tax: invoiceTax,
+          totalAmount: invoiceTotal,
+          amountPaid: 0,
+          balanceDue: invoiceTotal,
+          dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
+          invoiceStatus: "Waiting For Payment",
+          notes: quotation.notes,
+          terms: quotation.terms,
+          createdBy: req.user.id,
+        });
+
+        if (work) {
+          work.invoiceId = invoice._id;
+          await work.save();
+        }
+
+        if (!lead.invoiceId) {
+          lead.invoiceId = invoice._id;
+          await lead.save();
+        }
+
+        createdWorks.push(work);
+        createdInvoices.push(invoice);
+      }
+    }
 
     await notify({
       user: quotation.associate,
       title: "Invoice generated",
-      message: `Invoice ${invoice.invoiceNumber} has been generated for ${quotation.customerName}`,
+      message: `Invoice(s) generated for accepted quotation ${quotation.quotationNumber}`,
       type: "Invoice Generated",
-      invoice: invoice._id,
+      invoice: createdInvoices.map((inv) => inv._id),
     });
 
     await notifyAdmins({
       title: "Quotation accepted",
-      message: `${quotation.customerName} accepted quotation ${quotation.quotationNumber}. Invoice ${invoice.invoiceNumber} created.`,
+      message: `${quotation.customerName} accepted quotation ${quotation.quotationNumber}. Invoice(s) generated.`,
       type: "Quotation Accepted",
       quotation: quotation._id,
     });
 
-    res.status(200).json({ message: "Quotation accepted, invoice generated", quotation, invoice });
+    res.status(200).json({
+      message: "Quotation accepted, work and invoice records created",
+      quotation,
+      works: createdWorks,
+      invoices: createdInvoices,
+      invoice: createdInvoices.length === 1 ? createdInvoices[0] : createdInvoices[0] || null,
+    });
   } catch (error) {
     next(error);
   }
