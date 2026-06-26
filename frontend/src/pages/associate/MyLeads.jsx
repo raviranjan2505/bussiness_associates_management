@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import moment from "moment";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import axiosInstance from "../../utils/axioInstance";
 
@@ -9,7 +8,6 @@ const MyLeads = () => {
   const [leads, setLeads] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   const loadLeads = async () => {
     try {
@@ -78,11 +76,7 @@ const MyLeads = () => {
                   </tr>
                 ) : filteredLeads.length > 0 ? (
                   filteredLeads.map((lead) => (
-                    <tr
-                      key={lead._id}
-                      className="border-t hover:bg-gray-50 cursor-pointer"
-                      onClick={() => navigate(`/associate/leads/${lead._id}`)}
-                    >
+                    <tr key={lead._id} className="border-t hover:bg-gray-50">
                       <td className="p-3 font-medium text-gray-900">{lead.leadId}</td>
                       <td className="p-3 text-gray-600">
                         <div>{lead.clientDetails?.clientName || "-"}</div>
