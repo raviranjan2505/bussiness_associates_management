@@ -20,6 +20,8 @@ import AdminInvoices from "./pages/admin/Invoices";
 import AdminPayments from "./pages/admin/Payments";
 import AdminProjects from "./pages/admin/Projects";
 import AdminComplaints from "./pages/admin/Complaints";
+import Leads from "./pages/admin/Leads";
+import LeadDetails from "./pages/admin/LeadDetails";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
 
 // Associate pages
@@ -30,6 +32,7 @@ import AssociateQuotations from "./pages/associate/AssociateQuotations";
 import AssociateInvoices from "./pages/associate/AssociateInvoices";
 import AssociatePayments from "./pages/associate/AssociatePayments";
 import AssociateComplaints from "./pages/associate/AssociateComplaints";
+import MyLeads from "./pages/associate/MyLeads";
 
 // Shared pages
 import WorkDetails from "./pages/shared/WorkDetails";
@@ -64,6 +67,8 @@ const App = () => {
             <Route path="/admin/quotations" element={<AdminQuotations />} />
             <Route path="/admin/quotations/create" element={<CreateQuotation />} />
             <Route path="/admin/quotations/:id" element={<QuotationDetail />} />
+            <Route path="/admin/leads" element={<Leads />} />
+            <Route path="/admin/leads/:id" element={<LeadDetails />} />
             {/* Invoices */}
             <Route path="/admin/invoices" element={<AdminInvoices />} />
             <Route path="/admin/invoices/:id" element={<InvoiceDetail />} />
@@ -82,6 +87,8 @@ const App = () => {
           <Route element={<PrivateRoute allowedRoles={["associate"]} />}>
             <Route path="/associate/dashboard" element={<AssociateDashboard />} />
             <Route path="/associate/submit-work" element={<SubmitWork />} />
+            <Route path="/associate/leads" element={<MyLeads />} />
+            <Route path="/associate/leads/:id" element={<LeadDetails activeMenu="My Leads" />} />
             <Route path="/associate/works" element={<MyWorks />} />
             <Route path="/associate/clients" element={<MyWorks />} />
             <Route path="/associate/clients/:clientKey" element={<ClientWorks />} />

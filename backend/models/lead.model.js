@@ -1,15 +1,5 @@
 import mongoose from "mongoose";
 
-export const WORK_STATUSES = [
-  "Waiting For Payment",
-  "Pending",
-  "Under Review",
-  "Documents Required",
-  "In Process",
-  "Completed",
-  "Rejected",
-];
-
 const documentSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -28,8 +18,8 @@ const documentSchema = new mongoose.Schema(
 
 const statusHistorySchema = new mongoose.Schema(
   {
-    previousStatus: { type: String, enum: WORK_STATUSES },
-    newStatus: { type: String, enum: WORK_STATUSES, required: true },
+    previousStatus: { type: String },
+    newStatus: { type: String, required: true },
     reason: { type: String, trim: true },
     remark: { type: String, trim: true },
     internalNote: { type: String, trim: true },
@@ -52,9 +42,9 @@ const auditLogSchema = new mongoose.Schema(
   { _id: true }
 );
 
-const workSubmissionSchema = new mongoose.Schema(
+const leadSchema = new mongoose.Schema(
   {
-    workId: { type: String, unique: true, index: true },
+    leadId: { type: String, unique: true, index: true },
     associate: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     assignedAdmin: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     division: { type: mongoose.Schema.Types.ObjectId, ref: "Division", required: true, index: true },
@@ -62,36 +52,45 @@ const workSubmissionSchema = new mongoose.Schema(
     servicePrice: { type: Number, min: 0 },
     associateEarningPercent: { type: Number, default: 20, min: 0, max: 100 },
     associateEarningAmount: { type: Number, min: 0 },
-    leadId: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", index: true },
-    quotationId: { type: mongoose.Schema.Types.ObjectId, ref: "Quotation", index: true },
-    invoiceId: { type: mongoose.Schema.Types.ObjectId, ref: "Invoice", index: true },
-    paymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", index: true },
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: "Client", index: true },
     clientDetails: {
       clientName: { type: String, required: true, trim: true, index: true },
       mobileNumber: { type: String, trim: true, index: true },
       email: { type: String, trim: true },
       address: { type: String, trim: true },
     },
+    title: { type: String, trim: true },
+    description: { type: String, trim: true },
+    priority: { type: String, trim: true },
+    category: { type: String, trim: true },
     formData: { type: mongoose.Schema.Types.Mixed, default: {} },
     documents: [documentSchema],
-    status: { type: String, enum: WORK_STATUSES, default: "Pending", index: true },
     expectedCompletionDate: { type: Date },
-    completedAt: { type: Date },
+    remarks: { type: String, trim: true },
+    isConverted: { type: Boolean, default: false, index: true },
+    convertedWorkId: { type: mongoose.Schema.Types.ObjectId, ref: "WorkSubmission" },
+    convertedAt: { type: Date },
+    leadStatus: { type: String, default: "Submitted", index: true },
+    adminViewed: { type: Boolean, default: false },
+    viewedAt: { type: Date },
+    quotationId: { type: mongoose.Schema.Types.ObjectId, ref: "Quotation", index: true },
+    invoiceId: { type: mongoose.Schema.Types.ObjectId, ref: "Invoice", index: true },
+    paymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", index: true },
     statusHistory: [statusHistorySchema],
     auditLogs: [auditLogSchema],
   },
   { timestamps: true }
 );
 
-workSubmissionSchema.index({ createdAt: -1 });
-workSubmissionSchema.index({ "clientDetails.clientName": "text", workId: "text", "clientDetails.mobileNumber": "text" });
+leadSchema.index({ createdAt: -1 });
+leadSchema.index({ "clientDetails.clientName": "text", leadId: "text", "clientDetails.mobileNumber": "text" });
 
-workSubmissionSchema.pre("save", async function (next) {
-  if (this.workId) return next();
-  const count = await mongoose.model("WorkSubmission").countDocuments();
-  this.workId = `WORK-${new Date().getFullYear()}-${String(count + 1).padStart(5, "0")}`;
+leadSchema.pre("save", async function (next) {
+  if (this.leadId) return next();
+  const count = await mongoose.model("Lead").countDocuments();
+  this.leadId = `LEAD-${new Date().getFullYear()}-${String(count + 1).padStart(5, "0")}`;
   next();
 });
 
-const WorkSubmission = mongoose.model("WorkSubmission", workSubmissionSchema);
-export default WorkSubmission;
+const Lead = mongoose.model("Lead", leadSchema);
+export default Lead;

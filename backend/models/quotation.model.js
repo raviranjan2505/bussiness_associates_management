@@ -10,6 +10,8 @@ const quotationServiceSchema = new mongoose.Schema(
     price: { type: Number, required: true, min: 0 },
     quantity: { type: Number, default: 1, min: 1 },
     amount: { type: Number, required: true, min: 0 },
+    associateEarningPercent: { type: Number, default: 0, min: 0, max: 100 },
+    associateEarningAmount: { type: Number, default: 0, min: 0 },
   },
   { _id: true }
 );
@@ -21,6 +23,8 @@ const quotationSchema = new mongoose.Schema(
     // "associateId" from the spec -> stored as a User reference, consistent with
     // how WorkSubmission references the submitting associate.
     associate: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    leadId: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", index: true },
+    leadIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Lead", index: true }],
     client: { type: mongoose.Schema.Types.ObjectId, ref: "Client", index: true },
 
     customerName: { type: String, required: true, trim: true, index: true },
@@ -53,6 +57,7 @@ const quotationSchema = new mongoose.Schema(
     },
 
     totalAmount: { type: Number, required: true, min: 0, default: 0 },
+    associateEarningAmount: { type: Number, default: 0, min: 0 },
 
     notes: { type: String, trim: true },
     terms: { type: String, trim: true },
@@ -94,6 +99,9 @@ quotationSchema.pre("validate", function (next) {
   this.tax.amount = Number(((taxableAmount * taxPercent) / 100).toFixed(2));
 
   this.totalAmount = Number((taxableAmount + this.tax.amount).toFixed(2));
+  this.associateEarningAmount = Number(
+    (this.services || []).reduce((sum, item) => sum + (Number(item.associateEarningAmount) || 0), 0).toFixed(2)
+  );
 
   next();
 });

@@ -4,6 +4,7 @@ import { errorHandler } from "../utils/error.js";
 import { toMoney } from "../utils/money.js";
 import { notify } from "../utils/notify.js";
 import { streamReceiptPdf } from "../utils/pdfGenerator.js";
+import { convertLeadIfPaid } from "../utils/leadConversion.js";
 
 const syncInvoicePaymentStatus = async (invoice) => {
   const payments = await Payment.find({ invoice: invoice._id, status: "Verified" });
@@ -33,6 +34,7 @@ export const addPayment = async (req, res, next) => {
 
     const payment = await Payment.create({
       invoice: invoiceId,
+      leadId: invoice.leadId,
       amount: toMoney(Number(amount)),
       paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
       paymentMethod: paymentMethod || "Bank Transfer",
@@ -104,6 +106,7 @@ export const verifyPayment = async (req, res, next) => {
         invoice: invoice._id,
         payment: payment._id,
       });
+      await convertLeadIfPaid(invoice);
     }
     res.status(200).json({ message: "Payment verified", payment });
   } catch (error) {
@@ -146,6 +149,8 @@ export const markInvoicePaid = async (req, res, next) => {
       type: "Payment Updated",
       invoice: invoice._id,
     });
+
+    await convertLeadIfPaid(invoice);
 
     res.status(200).json({ message: "Invoice marked as paid", invoice });
   } catch (error) {

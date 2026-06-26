@@ -6,6 +6,7 @@ export const PAYMENT_METHODS = ["Cash", "Bank Transfer", "UPI", "Cheque", "Card"
 const paymentSchema = new mongoose.Schema(
   {
     invoice: { type: mongoose.Schema.Types.ObjectId, ref: "Invoice", required: true, index: true },
+    leadId: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", index: true },
     amount: { type: Number, required: true, min: 0 },
     paymentDate: { type: Date, required: true, default: Date.now },
     paymentMethod: { type: String, enum: PAYMENT_METHODS, default: "Bank Transfer" },

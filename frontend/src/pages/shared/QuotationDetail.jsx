@@ -35,7 +35,12 @@ const QuotationDetail = () => {
     try {
       const res = await axiosInstance.post(`/quotations/${id}/accept`);
       toast.success("Quotation accepted — invoice generated");
-      navigate(`${base}/invoices/${res.data.invoice._id}`);
+      const invoice = res.data.invoice || (Array.isArray(res.data.invoices) ? res.data.invoices[0] : null);
+      if (invoice && invoice._id) {
+        navigate(`${base}/invoices/${invoice._id}`);
+      } else {
+        navigate(`${base}/invoices`);
+      }
     } catch (e) { toast.error(e.response?.data?.message || "Failed"); }
   };
 

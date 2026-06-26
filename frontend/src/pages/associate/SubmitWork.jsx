@@ -40,7 +40,7 @@ const SubmitWork = () => {
 
   useEffect(() => {
     if (!form.clientRef) return setSelectedClient(null);
-    const client = clients.find((item) => (item.clientId || item.clientKey) === form.clientRef) || null;
+    const client = clients.find((item) => String(item.clientId || item.clientKey) === form.clientRef) || null;
     setSelectedClient(client);
   }, [form.clientRef, clients]);
 
@@ -65,16 +65,21 @@ const SubmitWork = () => {
     payload.append("division", form.division);
     payload.append("service", form.service);
     if (selectedClient.clientId) {
-      payload.append("clientId", selectedClient.clientId);
+      payload.append("clientId", String(selectedClient.clientId));
     } else {
       payload.append("clientDetails", JSON.stringify(selectedClientPayload));
     }
     payload.append("formData", JSON.stringify(formData));
     documents.forEach((file) => payload.append("documents", file));
 
-    const res = await axiosInstance.post("/business/works", payload);
-    toast.success("Work submitted");
-    navigate(`/associate/work/${res.data.work._id}`);
+    try {
+      const res = await axiosInstance.post("/business/works", payload);
+      toast.success("Work submitted");
+      navigate(`/associate/work/${res.data.work._id}`);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Unable to submit work");
+    }
   };
 
   const renderField = (field) => {

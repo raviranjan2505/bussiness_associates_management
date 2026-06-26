@@ -26,6 +26,7 @@ const invoiceSchema = new mongoose.Schema(
     invoiceNumber: { type: String, unique: true, index: true },
 
     quotation: { type: mongoose.Schema.Types.ObjectId, ref: "Quotation", index: true },
+    leadId: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", index: true },
     associate: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
 
     customerName: { type: String, required: true, trim: true, index: true },
