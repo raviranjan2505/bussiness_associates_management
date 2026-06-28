@@ -307,6 +307,198 @@ export const submitWork = async (req, res, next) => {
   }
 };
 
+// ---------------------------------------------------------------------------
+// submitMultiWork — submit one client + multiple services in a single request
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// submitMultiWork — one client + multiple services → ONE lead record
+// ---------------------------------------------------------------------------
+export const submitMultiWork = async (req, res, next) => {
+  try {
+    const { clientDetails, clientId, services: servicesJson } = req.body;
+
+    // ── Parse services array ──────────────────────────────────────────────
+    let serviceItems = [];
+    try {
+      serviceItems = typeof servicesJson === "string" ? JSON.parse(servicesJson) : servicesJson;
+    } catch {
+      return next(errorHandler(400, "Invalid services payload"));
+    }
+    if (!Array.isArray(serviceItems) || serviceItems.length === 0) {
+      return next(errorHandler(400, "At least one service is required"));
+    }
+
+    // ── Resolve client ────────────────────────────────────────────────────
+    let parsedClientDetails = clientDetails;
+    try {
+      parsedClientDetails =
+        typeof clientDetails === "string" ? JSON.parse(clientDetails || "{}") : clientDetails || {};
+    } catch {
+      return next(errorHandler(400, "Invalid client details payload"));
+    }
+
+    let clientDoc = null;
+    const clientIdValue = typeof clientId === "string" ? clientId.trim() : clientId;
+    if (clientIdValue) {
+      if (mongoose.isValidObjectId(clientIdValue)) {
+        clientDoc = await Client.findById(clientIdValue);
+        if (!clientDoc) return next(errorHandler(404, "Client not found"));
+        if (req.user.role !== "admin" && String(clientDoc.associate) !== req.user.id) {
+          return next(errorHandler(403, "Access denied"));
+        }
+      } else if (!parsedClientDetails?.clientName) {
+        return next(errorHandler(400, "Invalid client identifier"));
+      }
+    }
+    if (!clientDoc && parsedClientDetails?.clientName) {
+      clientDoc = await upsertClientRecord(req.user.id, parsedClientDetails);
+    }
+
+    const resolvedClient = clientDoc
+      ? {
+          clientName: clientDoc.clientName,
+          mobileNumber: clientDoc.mobileNumber,
+          email: clientDoc.email,
+          address: clientDoc.address,
+        }
+      : parsedClientDetails;
+
+    if (!resolvedClient?.clientName) {
+      return next(errorHandler(400, "Client details are required"));
+    }
+
+    // ── Build file index map (fieldname = documents_0, documents_1, …) ───
+    const filesByIndex = {};
+    if (req.files && Array.isArray(req.files)) {
+      req.files.forEach((file) => {
+        const match = file.fieldname.match(/^documents_(\d+)$/);
+        if (match) {
+          const idx = Number(match[1]);
+          if (!filesByIndex[idx]) filesByIndex[idx] = [];
+          filesByIndex[idx].push(file);
+        }
+      });
+    }
+
+    // ── Build embedded service lines ──────────────────────────────────────
+    const serviceLines = [];
+    let totalServicePrice = 0;
+    let totalAssociateEarning = 0;
+    const firstDivision = serviceItems[0]?.division;
+
+    for (let i = 0; i < serviceItems.length; i++) {
+      const item = serviceItems[i];
+      const { division, service, formData: rawFormData } = item;
+
+      if (!division || !service) {
+        return next(errorHandler(400, `Service ${i + 1}: division and service are required`));
+      }
+
+      let parsedForm = {};
+      try {
+        parsedForm = typeof rawFormData === "string" ? JSON.parse(rawFormData || "{}") : rawFormData || {};
+      } catch {
+        parsedForm = {};
+      }
+
+      const serviceDoc = await Service.findById(service);
+      if (!serviceDoc) return next(errorHandler(404, `Service ${i + 1}: service not found`));
+      if (serviceDoc.price == null) return next(errorHandler(400, `Service ${i + 1}: price is not configured`));
+
+      // Validate required form fields for this service
+      for (const field of serviceDoc.fields || []) {
+        if (field.required && !parsedForm[field.name]) {
+          return next(errorHandler(400, `Service ${i + 1} (${serviceDoc.name}): ${field.label} is required`));
+        }
+      }
+
+      const earningPercent = serviceDoc.associateEarningPercent ?? SERVICE_EARNING_PERCENT;
+      const earningAmount = serviceDoc.associateEarningAmount ?? toMoney((serviceDoc.price * earningPercent) / 100);
+
+      const serviceDocs = (filesByIndex[i] || []).map((file) => ({
+        name: file.originalname,
+        category: "Initial Submission",
+        url: toFileUrl(req, file),
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        uploadedBy: req.user.id,
+      }));
+
+      serviceLines.push({
+        division,
+        service: serviceDoc._id,
+        name: serviceDoc.name,
+        description: serviceDoc.description || "",
+        price: serviceDoc.price,
+        quantity: 1,
+        amount: serviceDoc.price,
+        associateEarningPercent: earningPercent,
+        associateEarningAmount: earningAmount,
+        formData: parsedForm,
+        documents: serviceDocs,
+      });
+
+      totalServicePrice += serviceDoc.price;
+      totalAssociateEarning += earningAmount;
+    }
+
+    // ── Build top-level documents (all files merged, for quick access) ────
+    const allDocuments = serviceLines.flatMap((sl) => sl.documents);
+
+    // ── Create ONE lead with all services embedded ────────────────────────
+    const serviceNames = serviceLines.map((sl) => sl.name).join(", ");
+
+    const lead = new Lead({
+      associate: req.user.id,
+      // Populate legacy single-service fields from first service for backward compat
+      division: firstDivision,
+      service: serviceLines[0]?.service,
+      servicePrice: totalServicePrice,
+      associateEarningPercent: SERVICE_EARNING_PERCENT,
+      associateEarningAmount: toMoney(totalAssociateEarning),
+      // Multi-service payload
+      services: serviceLines,
+      clientId: clientDoc?._id,
+      clientDetails: resolvedClient,
+      title: serviceLines.length === 1 ? serviceLines[0].name : `${serviceLines.length} Services`,
+      description: serviceNames,
+      priority: "Normal",
+      category: serviceLines.length === 1 ? serviceLines[0].name : "Multiple Services",
+      formData: serviceLines[0]?.formData || {},
+      documents: allDocuments,
+      leadStatus: "Submitted",
+    });
+
+    lead.statusHistory.push({
+      newStatus: "Submitted",
+      reason: "Lead Submitted",
+      remark: `Submission received: ${serviceLines.length} service(s) for ${resolvedClient.clientName}`,
+      updatedBy: req.user.id,
+    });
+    addAudit(lead, "Lead Created", `Associate submitted ${serviceLines.length} service(s) in one lead`, req.user);
+    if (allDocuments.length) {
+      addAudit(lead, "Document Uploaded", `${allDocuments.length} document(s) uploaded`, req.user);
+    }
+
+    await lead.save();
+
+    await notifyAdmins({
+      title: "New lead submitted",
+      message: `${resolvedClient.clientName} — ${serviceLines.length} service(s) submitted for review`,
+      type: "Lead Submitted",
+      lead: lead._id,
+    });
+
+    const responseObj = lead.toObject();
+    responseObj.workId = lead.leadId;
+
+    res.status(201).json({ message: "Work submitted", work: responseObj, works: [responseObj] });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const listClients = async (req, res, next) => {
   try {
     const isAdmin = req.user.role === "admin";
@@ -410,7 +602,33 @@ export const listClients = async (req, res, next) => {
       if (!group.associateEmail) group.associateEmail = client.associate?.email || "";
     });
 
-    const clientList = Array.from(groups.values()).sort(
+    // Attach lead counts per client group
+    const leads = await Lead.find({ associate: selectedAssociate })
+      .select("clientDetails clientId leadStatus")
+      .lean();
+
+    leads.forEach((lead) => {
+      const cd = lead.clientDetails || {};
+      const key = [
+        selectedAssociate,
+        cd.clientName,
+        cd.mobileNumber,
+        cd.email,
+        cd.address,
+      ].map(normalizeClientPart).join("|");
+      const group = groups.get(key);
+      if (group) {
+        group.leadsCount = (group.leadsCount || 0) + 1;
+        group.leadIds = group.leadIds || [];
+        group.leadIds.push(lead._id);
+      }
+    });
+
+    const clientList = Array.from(groups.values()).map((g) => ({
+      ...g,
+      leadsCount: g.leadsCount || 0,
+      leadIds: g.leadIds || [],
+    })).sort(
       (a, b) => new Date(b.latestUpdatedAt || 0).getTime() - new Date(a.latestUpdatedAt || 0).getTime()
     );
 

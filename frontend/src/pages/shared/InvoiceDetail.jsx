@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import moment from "moment";
+import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import axiosInstance from "../../utils/axioInstance";
@@ -15,6 +16,9 @@ const InvoiceDetail = () => {
 
   const [invoice, setInvoice] = useState(null);
   const [payments, setPayments] = useState([]);
+  const [sendingToClient, setSendingToClient] = useState(false);
+  const [showEmailOverride, setShowEmailOverride] = useState(false);
+  const [overrideEmail, setOverrideEmail] = useState("");
 
   const load = async () => {
     const [invRes, payRes] = await Promise.all([
@@ -28,6 +32,26 @@ const InvoiceDetail = () => {
   useEffect(() => { load().catch(console.error); }, [id]);
 
   const downloadPdf = () => window.open(`${axiosInstance.defaults.baseURL}/invoices/${id}/pdf`, "_blank");
+
+  const sendToClient = async (emailOverride) => {
+    setSendingToClient(true);
+    try {
+      const payload = emailOverride ? { email: emailOverride } : {};
+      await axiosInstance.post(`/invoices/${id}/send-to-client`, payload);
+      toast.success("Invoice emailed to client successfully");
+      setShowEmailOverride(false);
+      setOverrideEmail("");
+      load();
+    } catch (e) {
+      const msg = e.response?.data?.message || "Failed to send email";
+      if (msg.toLowerCase().includes("no client email")) {
+        setShowEmailOverride(true);
+      }
+      toast.error(msg);
+    } finally {
+      setSendingToClient(false);
+    }
+  };
 
   if (!invoice) return (
     <DashboardLayout activeMenu="Invoices">
@@ -44,15 +68,52 @@ const InvoiceDetail = () => {
             <p className="text-sm text-gray-500">
               {invoice.customerName}
               {invoice.quotation && ` · Quotation: ${invoice.quotation.quotationNumber}`}
+              {invoice.clientEmailSentAt && (
+                <span className="ml-2 text-green-600">
+                  · Emailed to client {moment(invoice.clientEmailSentAt).format("DD MMM YYYY")}
+                </span>
+              )}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={invoice.invoiceStatus} />
             <button onClick={downloadPdf} className="border border-gray-300 text-gray-700 rounded-lg px-3 py-2 text-sm hover:bg-gray-50">
               Download PDF
             </button>
+            {/* Send to Client — available to both associate and admin */}
+            <button
+              onClick={() => sendToClient()}
+              disabled={sendingToClient}
+              className="border border-emerald-600 text-emerald-700 rounded-lg px-3 py-2 text-sm hover:bg-emerald-50 disabled:opacity-50 flex items-center gap-1"
+            >
+              {sendingToClient ? "Sending…" : "📧 Send to Client"}
+            </button>
           </div>
         </div>
+
+        {/* Email override panel */}
+        {showEmailOverride && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+            <p className="text-sm font-medium text-amber-800">No email address on record. Enter the client's email to send:</p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                className="flex-1 border rounded-lg p-2 text-sm"
+                placeholder="client@example.com"
+                value={overrideEmail}
+                onChange={(e) => setOverrideEmail(e.target.value)}
+              />
+              <button
+                onClick={() => sendToClient(overrideEmail)}
+                disabled={sendingToClient || !overrideEmail}
+                className="bg-emerald-600 text-white rounded-lg px-4 py-2 text-sm disabled:opacity-50"
+              >
+                Send
+              </button>
+              <button onClick={() => setShowEmailOverride(false)} className="border rounded-lg px-3 py-2 text-sm">Cancel</button>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           {/* Left */}
@@ -80,6 +141,7 @@ const InvoiceDetail = () => {
                       <th className="p-3 text-right">Price</th>
                       <th className="p-3 text-right">Qty</th>
                       <th className="p-3 text-right">Amount</th>
+                      <th className="p-3 text-right text-green-700">Commission</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -89,9 +151,27 @@ const InvoiceDetail = () => {
                         <td className="p-3 text-right">{formatMoney(s.price)}</td>
                         <td className="p-3 text-right">{s.quantity}</td>
                         <td className="p-3 text-right">{formatMoney(s.amount)}</td>
+                        <td className="p-3 text-right text-green-700 font-medium">
+                          {s.associateEarningAmount > 0
+                            ? formatMoney(s.associateEarningAmount)
+                            : s.associateEarningPercent > 0
+                            ? `${s.associateEarningPercent}%`
+                            : "—"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot className="border-t-2 border-gray-300 bg-gray-50 font-semibold text-sm">
+                    <tr>
+                      <td className="p-3 text-gray-700" colSpan={3}>Total</td>
+                      <td className="p-3 text-right text-gray-900">
+                        {formatMoney((invoice.services || []).reduce((sum, s) => sum + Number(s.amount || 0), 0))}
+                      </td>
+                      <td className="p-3 text-right text-green-700">
+                        {formatMoney((invoice.services || []).reduce((sum, s) => sum + Number(s.associateEarningAmount || 0), 0))}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </section>
@@ -160,6 +240,18 @@ const InvoiceDetail = () => {
               <div className={`flex justify-between font-semibold ${invoice.balanceDue > 0 ? "text-red-700" : "text-emerald-700"}`}>
                 <span>Balance Due</span><span>{formatMoney(invoice.balanceDue)}</span>
               </div>
+              {(() => {
+                const totalCommission = (invoice.services || []).reduce((sum, s) => sum + Number(s.associateEarningAmount || 0), 0);
+                return totalCommission > 0 ? (
+                  <div className="border-t pt-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-700 font-medium">Your Commission</span>
+                      <span className="font-bold text-green-700">{formatMoney(totalCommission)}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">Total associate earning</p>
+                  </div>
+                ) : null;
+              })()}
             </section>
           </aside>
         </div>

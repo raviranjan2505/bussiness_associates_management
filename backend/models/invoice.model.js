@@ -55,6 +55,7 @@ const invoiceSchema = new mongoose.Schema(
     balanceDue: { type: Number, default: 0, min: 0 },
 
     dueDate: { type: Date },
+    clientEmailSentAt: { type: Date },
 
     invoiceStatus: { type: String, enum: INVOICE_STATUSES, default: "Generated", index: true },
 
