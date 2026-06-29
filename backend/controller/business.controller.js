@@ -541,7 +541,7 @@ export const listClients = async (req, res, next) => {
             as: "matchedClient",
           },
         },
-        { $unwind: { path: "$matchedClient", preserveNullAndEmpty: false } },
+        { $unwind: "$matchedClient" },
         { $group: { _id: "$matchedClient._id", count: { $sum: 1 } } },
       ]);
       const workCountMap = new Map(workAgg.map((r) => [String(r._id), r.count]));

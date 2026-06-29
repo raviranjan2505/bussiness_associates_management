@@ -11,6 +11,7 @@ const AdminQuotations = () => {
   const [quotations, setQuotations] = useState([]);
   const [filters, setFilters] = useState({ search: "", status: "", from: "", to: "" });
   const [loading, setLoading] = useState(false);
+ 
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,7 +65,8 @@ const AdminQuotations = () => {
             + New Quotation
           </Link>
         </div>
-
+         {/* ── Quotation counters ─────────────────────────── */}
+       
         {/* Filters */}
         <div className="grid grid-cols-1 gap-3 rounded-lg border border-gray-100 bg-white p-4 md:grid-cols-4">
           <input
@@ -181,5 +183,7 @@ const AdminQuotations = () => {
     </DashboardLayout>
   );
 };
+
+
 
 export default AdminQuotations;

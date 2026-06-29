@@ -1,205 +1,154 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import axiosInstance from "../../utils/axioInstance";
-import { buildClientRoute } from "../../utils/clientWork";
-
-const emptyClientForm = { clientName: "", mobileNumber: "", email: "", address: "" };
+import { STATUS_DATA } from "../../utils/data";
 
 const MyWorks = () => {
-  const [clients, setClients] = useState([]);
+  const navigate = useNavigate();
+  const [works, setWorks] = useState([]);
   const [search, setSearch] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [clientForm, setClientForm] = useState(emptyClientForm);
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const res = await axiosInstance.get("/business/clients");
-    setClients(res.data.clients || []);
-  };
-
-  useEffect(() => {
-    load().catch(console.error);
-  }, []);
-
-  const filteredClients = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return clients;
-    return clients.filter((client) => {
-      const haystack = `${client.clientName || ""} ${client.mobileNumber || ""} ${client.email || ""} ${client.workIds?.join(" ") || ""}`.toLowerCase();
-      return haystack.includes(q);
-    });
-  }, [clients, search]);
-
-  const submitClient = async (e) => {
-    e.preventDefault();
-    setSaving(true);
     try {
-      await axiosInstance.post("/business/clients", clientForm);
-      toast.success("Client saved");
-      setClientForm(emptyClientForm);
-      setShowForm(false);
-      await load();
-    } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message || "Unable to save client");
+      setLoading(true);
+      const res = await axiosInstance.get("/business/works");
+      setWorks(res.data.works || []);
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Unable to load works");
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
+  useEffect(() => { load(); }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return works.filter((w) => {
+      const matchSearch = !q || [
+        w.workId,
+        w.clientDetails?.clientName,
+        w.clientDetails?.mobileNumber,
+        w.clientDetails?.email,
+        w.service?.name,
+        w.division?.name,
+      ].filter(Boolean).join(" ").toLowerCase().includes(q);
+      const matchStatus = !status || w.status === status;
+      return matchSearch && matchStatus;
+    });
+  }, [works, search, status]);
+
   return (
-    <DashboardLayout activeMenu="Client List">
+    <DashboardLayout activeMenu="My Works">
       <div className="p-6 space-y-5">
+
+        {/* Header */}
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Client List</h1>
+            <h1 className="text-2xl font-bold text-gray-900">My Works</h1>
             <p className="text-sm text-gray-500">
-              Add a client once, then pick them from Submit Work instead of typing details again.
+              All work submissions. Click a row to view full details and track status.
             </p>
           </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white"
-          >
-            + Add Client
-          </button>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-500">{filtered.length} of {works.length}</span>
+            <button
+              onClick={load}
+              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
 
-        <div className="rounded-lg border border-gray-100 bg-white p-4">
+        {/* Filters */}
+        <div className="grid gap-3 rounded-lg border border-gray-100 bg-white p-4 md:grid-cols-[1fr_240px]">
           <input
-            className="w-full rounded-lg border p-3"
-            placeholder="Search by client name, mobile, email, or work id"
+            className="w-full rounded-lg border p-3 text-sm focus:border-gray-400 focus:outline-none"
+            placeholder="Search by work ID, client name, mobile, service…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <select
+            className="w-full rounded-lg border p-3 text-sm focus:border-gray-400 focus:outline-none"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="">All Statuses</option>
+            {STATUS_DATA.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </select>
         </div>
 
+        {/* Table */}
         <section className="overflow-hidden rounded-lg border border-gray-100 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-left text-gray-500">
                 <tr>
+                  <th className="p-3">Work ID</th>
                   <th className="p-3">Client</th>
-                  <th className="p-3">Contact</th>
-                  <th className="p-3">Works</th>
-                  <th className="p-3">All Services</th>
-                  <th className="p-3">Latest Status</th>
+                  <th className="p-3">Service</th>
+                  <th className="p-3">Division</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Submitted</th>
                   <th className="p-3">Updated</th>
-                  <th className="p-3"></th>
+                  <th className="p-3" />
                 </tr>
               </thead>
               <tbody>
-                {filteredClients.map((client) => (
-                  <tr key={client.clientKey} className="border-t hover:bg-gray-50">
-                    <td className="p-3">
-                      <p className="font-medium text-gray-900">{client.clientName}</p>
-                      <p className="text-xs text-gray-500">Client ID: {client.clientId || "From work history"}</p>
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-gray-400">Loading works…</td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-gray-400">
+                      {search || status ? "No works match your filters." : "No works submitted yet."}
                     </td>
-                    <td className="p-3 text-gray-600">
-                      <div>{client.mobileNumber || "-"}</div>
-                      <div>{client.email || "-"}</div>
-                    </td>
-                    <td className="p-3 font-medium text-gray-900">{client.worksCount || 0}</td>
-                    <td className="p-3">
-                      <Link className="font-medium text-blue-700" to={buildClientRoute("associate", client.clientKey)}>
-                        All Services ({client.services?.length || 0})
-                      </Link>
-                    </td>
-                    <td className="p-3">
-                      <StatusBadge status={client.latestStatus || "Pending"} />
-                    </td>
-                    <td className="p-3 text-gray-600">
-                      {client.latestUpdatedAt ? moment(client.latestUpdatedAt).format("DD MMM YYYY hh:mm A") : "-"}
+                  </tr>
+                ) : filtered.map((work) => (
+                  <tr
+                    key={work._id}
+                    onClick={() => navigate(`/associate/work/${work._id}`)}
+                    className="border-t cursor-pointer hover:bg-blue-50 transition-colors"
+                  >
+                    <td className="p-3 font-mono text-xs font-semibold text-gray-800">
+                      {work.workId || "—"}
                     </td>
                     <td className="p-3">
-                      <Link className="font-medium text-blue-700" to={buildClientRoute("associate", client.clientKey)}>
-                        Open
-                      </Link>
+                      <p className="font-medium text-gray-900">{work.clientDetails?.clientName || "—"}</p>
+                      <p className="text-xs text-gray-400">
+                        {work.clientDetails?.mobileNumber || ""}
+                        {work.clientDetails?.email ? ` · ${work.clientDetails.email}` : ""}
+                      </p>
                     </td>
+                    <td className="p-3 text-gray-700">{work.service?.name || "—"}</td>
+                    <td className="p-3 text-gray-600">{work.division?.name || "—"}</td>
+                    <td className="p-3">
+                      <StatusBadge status={work.status || "Pending"} />
+                    </td>
+                    <td className="p-3 text-gray-500 whitespace-nowrap">
+                      {moment(work.createdAt).format("DD MMM YYYY")}
+                    </td>
+                    <td className="p-3 text-gray-500 whitespace-nowrap">
+                      {moment(work.updatedAt).format("DD MMM YYYY")}
+                    </td>
+                    <td className="p-3 text-gray-400 text-right">›</td>
                   </tr>
                 ))}
-                {!filteredClients.length && (
-                  <tr>
-                    <td className="p-4 text-gray-500" colSpan={7}>
-                      No clients found.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
         </section>
       </div>
-
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Add Client</h2>
-                <p className="text-sm text-gray-500">Save the client once and reuse them from Submit Work.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="rounded-lg border px-3 py-1 text-sm text-gray-600 hover:bg-gray-50"
-              >
-                Close
-              </button>
-            </div>
-
-            <form onSubmit={submitClient} className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <input
-                className="rounded-lg border p-3"
-                placeholder="Client Name"
-                value={clientForm.clientName}
-                onChange={(e) => setClientForm({ ...clientForm, clientName: e.target.value })}
-                required
-              />
-              <input
-                className="rounded-lg border p-3"
-                placeholder="Mobile Number"
-                value={clientForm.mobileNumber}
-                onChange={(e) => setClientForm({ ...clientForm, mobileNumber: e.target.value })}
-              />
-              <input
-                type="email"
-                className="rounded-lg border p-3 md:col-span-2"
-                placeholder="Email"
-                value={clientForm.email}
-                onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
-              />
-              <textarea
-                className="rounded-lg border p-3 md:col-span-2"
-                rows="3"
-                placeholder="Address"
-                value={clientForm.address}
-                onChange={(e) => setClientForm({ ...clientForm, address: e.target.value })}
-              />
-              <div className="md:col-span-2 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="rounded-lg border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-                >
-                  {saving ? "Saving..." : "Save Client"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </DashboardLayout>
   );
 };

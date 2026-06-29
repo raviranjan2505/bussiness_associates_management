@@ -15,6 +15,7 @@ const QuotationDetail = () => {
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState({});
 
+
   const load = async () => {
     const res = await axiosInstance.get(`/quotations/${id}`);
     setQuotation(res.data);
@@ -72,6 +73,8 @@ const QuotationDetail = () => {
             <h1 className="text-2xl font-bold text-gray-900">{q.quotationNumber}</h1>
             <p className="text-sm text-gray-500">{q.customerName} · {q.associate?.name}</p>
           </div>
+
+ 
           <div className="flex gap-3 items-center flex-wrap">
             <StatusBadge status={q.status} />
             {q.status === "Draft" && (
@@ -222,6 +225,12 @@ const TotalRow = ({ label, value, bold }) => (
     <span>{label}</span>
     <span>{value}</span>
   </div>
+);
+
+const StatLink = ({ title, value, to, color }) => (
+  <Link to={to}>
+    <Stat title={title} value={value} color={color} />
+  </Link>
 );
 
 export default QuotationDetail;

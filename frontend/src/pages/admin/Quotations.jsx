@@ -14,7 +14,14 @@ const AdminQuotations = () => {
   const [quotations, setQuotations] = useState([]);
   const [filters, setFilters] = useState({ search: "", status: params.get("status") || "", from: "", to: "" });
   const [loading, setLoading] = useState(false);
+ const [data, setData] = useState({ statistics: {} });
 
+
+  useEffect(() => {
+    axiosInstance.get("/business/dashboard/admin").then((res) => setData(res.data)).catch(console.error);
+  }, []);
+
+  const s = data.statistics || {};
   const load = async () => {
     setLoading(true);
     try {
@@ -54,6 +61,15 @@ const AdminQuotations = () => {
             + New Quotation
           </Link>
         </div>
+<section>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase mb-3">Quotations</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <StatLink title="Total Quotations"    value={s.totalQuotations || 0}    to="/admin/quotations"            color="purple" />
+            <StatLink title="Draft"               value={s.draftQuotations || 0}    to="/admin/quotations?status=Draft"    color="gray" />
+            <StatLink title="Accepted"            value={s.acceptedQuotations || 0} to="/admin/quotations?status=Accepted" color="green" />
+            <StatLink title="Rejected"            value={s.rejectedQuotations || 0} to="/admin/quotations?status=Rejected" color="red" />
+          </div>
+        </section>
 
         {/* Filters */}
         <div className="grid grid-cols-1 gap-3 bg-white border border-gray-100 rounded-lg p-4 md:grid-cols-5">
@@ -120,4 +136,28 @@ const AdminQuotations = () => {
   );
 };
 
+const Stat = ({ title, value, color = "blue" }) => {
+  const colors = {
+    blue: "bg-blue-50 text-blue-900",
+    indigo: "bg-indigo-50 text-indigo-900",
+    amber: "bg-amber-50 text-amber-900",
+    emerald: "bg-emerald-50 text-emerald-900",
+    green: "bg-green-50 text-green-900",
+    purple: "bg-purple-50 text-purple-900",
+    gray: "bg-gray-50 text-gray-700",
+    red: "bg-red-50 text-red-900",
+    rose: "bg-rose-50 text-rose-900",
+  };
+  return (
+    <div className={`rounded-lg p-5 ${colors[color] || colors.blue}`}>
+      <p className="text-xs font-medium opacity-70">{title}</p>
+      <p className="mt-2 text-3xl font-bold">{value}</p>
+    </div>
+  );
+};
+const StatLink = ({ title, value, to, color }) => (
+  <Link to={to}>
+    <Stat title={title} value={value} color={color} />
+  </Link>
+);
 export default AdminQuotations;
