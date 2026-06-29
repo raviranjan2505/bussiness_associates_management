@@ -10,7 +10,8 @@ import { toMoney } from "../utils/money.js";
 import { notify, notifyAdmins } from "../utils/notify.js";
 import { generateSequenceNumber } from "../utils/sequence.js";
 import { convertLeadToWork } from "../utils/leadConversion.js";
-import { streamQuotationPdf } from "../utils/pdfGenerator.js";
+import { streamQuotationPdf, streamClientQuotationPdf, buildClientQuotationHtml } from "../utils/pdfGenerator.js";
+import { sendMail } from "../utils/mailer.js";
 
 const ensureQuotationAccess = (quotation, user) => {
   if (user.role === "admin") return true;
@@ -18,7 +19,10 @@ const ensureQuotationAccess = (quotation, user) => {
 };
 
 const populateQuotation = (query) =>
-  query.populate("associate", "name email profileImageUrl").populate("services.service", "name price");
+  query
+    .populate("associate", "name email profileImageUrl")
+    .populate("services.service", "name price")
+    .populate("invoiceId", "invoiceNumber totalAmount invoiceStatus");
 
 // Build/refresh the embedded services array (and let the pre-validate hook recompute totals)
 const buildServiceLines = async (services = []) => {
@@ -97,22 +101,50 @@ export const createQuotation = async (req, res, next) => {
         if (!client) return next(errorHandler(404, "Client not found"));
       }
 
-      quotationServices = leads.map((lead) => {
-        const servicePrice = lead.servicePrice ?? lead.service?.price ?? 0;
-        return {
-          service: lead.service?._id,
-          name: lead.service?.name || `Lead ${lead.leadId}`,
-          description: `Lead ${lead.leadId}`,
-          price: Number(servicePrice),
-          quantity: 1,
-          amount: Number(servicePrice),
-          associateEarningPercent: lead.associateEarningPercent || 0,
-          associateEarningAmount: lead.associateEarningAmount || 0,
-        };
-      });
+      // Build service lines — for multi-service leads expand ALL embedded services;
+      // for legacy single-service leads use the top-level service field.
+      // Track which leadId each service line belongs to (parallel array).
+      const quotationServiceLeadIds = []; // quotationServiceLeadIds[i] = leadId of quotationServices[i]
 
+      for (const lead of leads) {
+        if (Array.isArray(lead.services) && lead.services.length > 0) {
+          // Multi-service lead — expand every embedded service
+          for (const svc of lead.services) {
+            quotationServices.push({
+              service: svc.service,
+              name: svc.name,
+              description: svc.description || `Lead ${lead.leadId}`,
+              price: Number(svc.price || 0),
+              quantity: Number(svc.quantity || 1),
+              amount: Number(svc.amount || svc.price || 0),
+              associateEarningPercent: Number(svc.associateEarningPercent || 0),
+              associateEarningAmount: Number(svc.associateEarningAmount || 0),
+            });
+            quotationServiceLeadIds.push(lead._id);
+          }
+        } else {
+          // Legacy single-service lead
+          const servicePrice = lead.servicePrice ?? lead.service?.price ?? 0;
+          quotationServices.push({
+            service: lead.service?._id,
+            name: lead.service?.name || `Lead ${lead.leadId}`,
+            description: `Lead ${lead.leadId}`,
+            price: Number(servicePrice),
+            quantity: 1,
+            amount: Number(servicePrice),
+            associateEarningPercent: lead.associateEarningPercent || 0,
+            associateEarningAmount: lead.associateEarningAmount || 0,
+          });
+          quotationServiceLeadIds.push(lead._id);
+        }
+      }
+
+      // Store the per-service lead mapping on the quotation so acceptQuotation
+      // can reconstruct which services belong to which lead.
       quotationLeadIds = leads.map((lead) => lead._id);
       if (leads.length === 1) quotationLeadId = leads[0]._id;
+      // Attach the per-line lead-id array for acceptQuotation to use
+      req._quotationServiceLeadIds = quotationServiceLeadIds;
 
       if (!customerName && firstLead.clientDetails?.clientName) {
         req.body.customerName = firstLead.clientDetails.clientName;
@@ -169,6 +201,7 @@ export const createQuotation = async (req, res, next) => {
       associate: associateId,
       leadId: quotationLeadId,
       leadIds: quotationLeadIds,
+      serviceLeadIds: req._quotationServiceLeadIds || [],
       client: client?._id,
       customerName: resolvedCustomerName,
       customerEmail: resolvedCustomerEmail,
@@ -324,42 +357,66 @@ export const acceptQuotation = async (req, res, next) => {
     const createdInvoices = [];
 
     if (uniqueLeadIds.length) {
+      // ── Lead-linked quotation: one invoice per lead (with ALL its services) ─
       const leads = await Lead.find({ _id: { $in: uniqueLeadIds } }).populate(
         "service",
         "name price associateEarningPercent associateEarningAmount"
       );
       if (leads.length !== uniqueLeadIds.length) return next(errorHandler(404, "One or more linked leads were not found"));
 
-      const serviceMap = new Map();
-      (quotation.services || []).forEach((service, index) => {
-        const leadId = quoteLeadIds[index];
-        if (leadId) serviceMap.set(String(leadId), service);
+      // Build a map: leadId → [ ...all quotation service lines for that lead ]
+      // Use serviceLeadIds[] (parallel to services[]) if available — it is the
+      // authoritative per-service lead mapping stored at quotation creation time.
+      // Fall back to quoteLeadIds[index] for older quotations that pre-date this field.
+      const servicesByLead = new Map();
+      const svcLeadIds = (quotation.serviceLeadIds || []).length
+        ? quotation.serviceLeadIds.map(String)
+        : quoteLeadIds;  // legacy fallback
+
+      (quotation.services || []).forEach((svc, index) => {
+        const leadId = String(svcLeadIds[index] || "");
+        if (!leadId || leadId === "undefined") return;
+        if (!servicesByLead.has(leadId)) servicesByLead.set(leadId, []);
+        servicesByLead.get(leadId).push(svc);
       });
 
       for (const lead of leads) {
-        const leadService = serviceMap.get(String(lead._id));
-        const line = leadService || {
-          service: lead.service?._id,
-          name: lead.service?.name || `Lead ${lead.leadId}`,
-          description: `Lead ${lead.leadId}`,
-          price: Number(lead.servicePrice ?? lead.service?.price ?? 0),
-          quantity: 1,
-          amount: Number(lead.servicePrice ?? lead.service?.price ?? 0),
-          associateEarningPercent: lead.associateEarningPercent || 0,
-          associateEarningAmount: lead.associateEarningAmount || 0,
-        };
+        const leadIdStr = String(lead._id);
 
-        const invoiceDiscount = { ...quotation.discount };
-        if (quotation.discount?.type === "flat") {
-          const totalDiscount = quotation.discount.amount ?? quotation.discount.value ?? 0;
-          invoiceDiscount.amount = Number(
-            ((line.amount / Math.max(quotation.subtotal, 1)) * totalDiscount).toFixed(2)
-          );
-        } else if (quotation.discount?.type === "percentage") {
-          invoiceDiscount.amount = Number(((line.amount * (quotation.discount.value || 0)) / 100).toFixed(2));
+        // All service lines for this lead from the quotation
+        let lines = servicesByLead.get(leadIdStr) || [];
+
+        // Fallback for legacy single-service leads not in the map
+        if (!lines.length) {
+          const price = Number(lead.servicePrice ?? lead.service?.price ?? 0);
+          lines = [{
+            service: lead.service?._id,
+            name: lead.service?.name || `Lead ${lead.leadId}`,
+            description: `Lead ${lead.leadId}`,
+            price,
+            quantity: 1,
+            amount: price,
+            associateEarningPercent: lead.associateEarningPercent || 0,
+            associateEarningAmount: lead.associateEarningAmount || 0,
+          }];
         }
 
-        const subtotal = Number(line.amount || 0);
+        // Subtotal for this lead's services
+        const subtotal = Number(lines.reduce((s, l) => s + Number(l.amount || 0), 0).toFixed(2));
+
+        // Pro-rate flat discount by this lead's share of the quotation subtotal
+        const invoiceDiscount = { ...(quotation.discount?.toObject?.() || quotation.discount || {}) };
+        if (quotation.discount?.type === "flat") {
+          const totalDiscount = Number(quotation.discount.amount ?? quotation.discount.value ?? 0);
+          invoiceDiscount.amount = Number(
+            ((subtotal / Math.max(quotation.subtotal, 1)) * totalDiscount).toFixed(2)
+          );
+        } else if (quotation.discount?.type === "percentage") {
+          invoiceDiscount.amount = Number(
+            ((subtotal * (Number(quotation.discount.value) || 0)) / 100).toFixed(2)
+          );
+        }
+
         const taxedBase = Math.max(subtotal - (invoiceDiscount.amount || 0), 0);
         const invoiceTax = {
           percent: quotation.tax?.percent || 0,
@@ -383,7 +440,7 @@ export const acceptQuotation = async (req, res, next) => {
           customerName: quotation.customerName,
           customerEmail: quotation.customerEmail,
           customerPhone: quotation.customerPhone,
-          services: [line],
+          services: lines,          // ← ALL services for this lead, not just one
           subtotal,
           discount: invoiceDiscount,
           tax: invoiceTax,
@@ -397,42 +454,72 @@ export const acceptQuotation = async (req, res, next) => {
           createdBy: req.user.id,
         });
 
-        if (work) {
-          work.invoiceId = invoice._id;
-          await work.save();
-        }
-
-        if (!lead.invoiceId) {
-          lead.invoiceId = invoice._id;
-          await lead.save();
-        }
+        if (work) { work.invoiceId = invoice._id; await work.save(); }
+        if (!lead.invoiceId) { lead.invoiceId = invoice._id; await lead.save(); }
 
         createdWorks.push(work);
         createdInvoices.push(invoice);
       }
+    } else {
+      // ── Standalone quotation (no linked leads): single invoice ───────────
+      const subtotal = Number(quotation.subtotal || 0);
+      const discountAmt = Number(quotation.discount?.amount || 0);
+      const taxedBase = Math.max(subtotal - discountAmt, 0);
+      const taxAmount = Number(((taxedBase * (quotation.tax?.percent || 0)) / 100).toFixed(2));
+      const invoiceTotal = Number((taxedBase + taxAmount).toFixed(2));
+
+      const invoiceNumber = await generateSequenceNumber(Invoice, "INV");
+      const invoice = await Invoice.create({
+        invoiceNumber,
+        quotation: quotation._id,
+        associate: quotation.associate,
+        client: quotation.client,
+        customerName: quotation.customerName,
+        customerEmail: quotation.customerEmail,
+        customerPhone: quotation.customerPhone,
+        services: quotation.services,
+        subtotal,
+        discount: quotation.discount,
+        tax: { percent: quotation.tax?.percent || 0, amount: taxAmount },
+        totalAmount: invoiceTotal,
+        amountPaid: 0,
+        balanceDue: invoiceTotal,
+        dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
+        invoiceStatus: "Waiting For Payment",
+        notes: quotation.notes,
+        terms: quotation.terms,
+        createdBy: req.user.id,
+      });
+      createdInvoices.push(invoice);
+    }
+
+    // ── Link first invoice back onto quotation so the UI can find it ─────
+    if (createdInvoices.length > 0) {
+      quotation.invoiceId = createdInvoices[0]._id;
+      await quotation.save();
     }
 
     await notify({
       user: quotation.associate,
       title: "Invoice generated",
-      message: `Invoice(s) generated for accepted quotation ${quotation.quotationNumber}`,
+      message: `Invoice generated for accepted quotation ${quotation.quotationNumber}`,
       type: "Invoice Generated",
-      invoice: createdInvoices.map((inv) => inv._id),
+      invoice: createdInvoices[0]?._id,
     });
 
     await notifyAdmins({
       title: "Quotation accepted",
-      message: `${quotation.customerName} accepted quotation ${quotation.quotationNumber}. Invoice(s) generated.`,
+      message: `${quotation.customerName} accepted quotation ${quotation.quotationNumber}. Invoice generated.`,
       type: "Quotation Accepted",
       quotation: quotation._id,
     });
 
     res.status(200).json({
-      message: "Quotation accepted, work and invoice records created",
+      message: "Quotation accepted and invoice created",
       quotation,
       works: createdWorks,
       invoices: createdInvoices,
-      invoice: createdInvoices.length === 1 ? createdInvoices[0] : createdInvoices[0] || null,
+      invoice: createdInvoices[0] || null,
     });
   } catch (error) {
     next(error);
@@ -479,8 +566,65 @@ export const downloadQuotationPdf = async (req, res, next) => {
     const quotation = await populateQuotation(Quotation.findById(req.params.id));
     if (!quotation) return next(errorHandler(404, "Quotation not found"));
     if (!ensureQuotationAccess(quotation, req.user)) return next(errorHandler(403, "Access denied"));
-
     streamQuotationPdf(res, quotation);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Client copy — no commission column
+export const downloadClientQuotationPdf = async (req, res, next) => {
+  try {
+    const quotation = await populateQuotation(Quotation.findById(req.params.id));
+    if (!quotation) return next(errorHandler(404, "Quotation not found"));
+    if (!ensureQuotationAccess(quotation, req.user)) return next(errorHandler(403, "Access denied"));
+    streamClientQuotationPdf(res, quotation);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Send client-facing quotation by email (no commission data)
+// ---------------------------------------------------------------------------
+export const sendQuotationToClient = async (req, res, next) => {
+  try {
+    const quotation = await populateQuotation(Quotation.findById(req.params.id));
+    if (!quotation) return next(errorHandler(404, "Quotation not found"));
+    if (!ensureQuotationAccess(quotation, req.user)) return next(errorHandler(403, "Access denied"));
+
+    const recipientEmail = req.body.email || quotation.customerEmail;
+    if (!recipientEmail) return next(errorHandler(400, "No client email address on record. Please provide one."));
+
+    const html = buildClientQuotationHtml(quotation);
+    const companyName = process.env.COMPANY_NAME || "Our Firm";
+
+    await sendMail({
+      to: recipientEmail,
+      subject: `Quotation ${quotation.quotationNumber} from ${companyName}`,
+      html: `
+        <p>Dear ${quotation.customerName},</p>
+        <p>Please find your quotation <strong>${quotation.quotationNumber}</strong> below.</p>
+        <p>If you have any questions, please don't hesitate to contact us.</p>
+        <hr/>
+        ${html}
+        <hr/>
+        <p style="color:#6b7280;font-size:12px">This quotation was sent by ${companyName}.</p>
+      `,
+    });
+
+    // Record that it was sent to client
+    quotation.clientEmailSentAt = new Date();
+    await quotation.save();
+
+    await notifyAdmins({
+      title: "Quotation emailed to client",
+      message: `Quotation ${quotation.quotationNumber} was emailed to ${recipientEmail} by ${req.user.name || "associate"}`,
+      type: "Quotation Sent To Client",
+      quotation: quotation._id,
+    });
+
+    res.status(200).json({ message: `Quotation emailed to ${recipientEmail}` });
   } catch (error) {
     next(error);
   }

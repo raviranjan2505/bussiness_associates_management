@@ -138,20 +138,61 @@ export const createLeadQuotation = async (req, res, next) => {
     if (req.user.role !== "admin") return next(errorHandler(403, "Access denied"));
     if (lead.quotationId) return next(errorHandler(400, "A quotation already exists for this lead"));
 
-    const { services, notes, terms, discount, tax, validUntil } = req.body;
-    if (!Array.isArray(services) || !services.length) return next(errorHandler(400, "At least one service is required"));
+    const { notes, terms, discount, tax, validUntil } = req.body;
+
+    // Build service lines from the embedded services[] array (multi-service lead)
+    // or fall back to legacy single-service fields
+    let quotationServices;
+    if (Array.isArray(lead.services) && lead.services.length > 0) {
+      quotationServices = lead.services.map((svc) => ({
+        service: svc.service,
+        name: svc.name,
+        description: svc.description || `Lead ${lead.leadId} — ${svc.name}`,
+        price: Number(svc.price || 0),
+        quantity: Number(svc.quantity || 1),
+        amount: Number(svc.amount || svc.price || 0),
+        associateEarningPercent: svc.associateEarningPercent ?? lead.associateEarningPercent ?? 0,
+        associateEarningAmount: svc.associateEarningAmount ?? 0,
+      }));
+    } else {
+      // Legacy single-service lead — use body services if provided, else derive from lead
+      const { services } = req.body;
+      if (Array.isArray(services) && services.length) {
+        quotationServices = services.map((service) => ({
+          ...service,
+          associateEarningPercent: service.associateEarningPercent ?? lead.associateEarningPercent,
+          associateEarningAmount: service.associateEarningAmount ?? lead.associateEarningAmount,
+        }));
+      } else {
+        const servicePrice = lead.servicePrice || 0;
+        quotationServices = [
+          {
+            service: lead.service,
+            name: lead.title || `Lead ${lead.leadId}`,
+            description: `Lead ${lead.leadId}`,
+            price: servicePrice,
+            quantity: 1,
+            amount: servicePrice,
+            associateEarningPercent: lead.associateEarningPercent || 0,
+            associateEarningAmount: lead.associateEarningAmount || 0,
+          },
+        ];
+      }
+    }
+
+    if (!quotationServices.length) {
+      return next(errorHandler(400, "At least one service is required"));
+    }
 
     const quotationNumber = await generateSequenceNumber(Quotation, "QUO");
-    const quotationServices = services.map((service) => ({
-      ...service,
-      associateEarningPercent: service.associateEarningPercent ?? lead.associateEarningPercent,
-      associateEarningAmount: service.associateEarningAmount ?? lead.associateEarningAmount,
-    }));
 
     const quotation = new Quotation({
       quotationNumber,
       associate: lead.associate,
       leadId: lead._id,
+      // serviceLeadIds[i] = lead._id for every service line — so acceptQuotation
+      // knows all services belong to this single lead.
+      serviceLeadIds: quotationServices.map(() => lead._id),
       client: lead.clientId,
       customerName: lead.clientDetails.clientName,
       customerEmail: lead.clientDetails.email,

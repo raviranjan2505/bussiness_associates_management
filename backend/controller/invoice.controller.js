@@ -1,8 +1,9 @@
 import Invoice, { INVOICE_STATUSES } from "../models/invoice.model.js";
 import Payment from "../models/payment.model.js";
 import { errorHandler } from "../utils/error.js";
-import { notify } from "../utils/notify.js";
-import { streamInvoicePdf } from "../utils/pdfGenerator.js";
+import { notify, notifyAdmins } from "../utils/notify.js";
+import { streamInvoicePdf, streamClientInvoicePdf, buildClientInvoiceHtml } from "../utils/pdfGenerator.js";
+import { sendMail } from "../utils/mailer.js";
 
 const ensureInvoiceAccess = (invoice, user) => {
   if (user.role === "admin") return true;
@@ -62,6 +63,19 @@ export const downloadInvoicePdf = async (req, res, next) => {
   }
 };
 
+// Client copy — no commission
+export const downloadClientInvoicePdf = async (req, res, next) => {
+  try {
+    const invoice = await populateInvoice(Invoice.findById(req.params.id));
+    if (!invoice) return next(errorHandler(404, "Invoice not found"));
+    if (!ensureInvoiceAccess(invoice, req.user)) return next(errorHandler(403, "Access denied"));
+    const payments = await Payment.find({ invoice: invoice._id, status: "Verified" }).sort({ paymentDate: 1 });
+    streamClientInvoicePdf(res, invoice, payments);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updateInvoice = async (req, res, next) => {
   try {
     const { dueDate, notes, terms } = req.body;
@@ -75,6 +89,52 @@ export const updateInvoice = async (req, res, next) => {
 
     await invoice.save();
     res.status(200).json({ message: "Invoice updated", invoice });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Send client-facing invoice by email (no commission data)
+// ---------------------------------------------------------------------------
+export const sendInvoiceToClient = async (req, res, next) => {
+  try {
+    const invoice = await populateInvoice(Invoice.findById(req.params.id));
+    if (!invoice) return next(errorHandler(404, "Invoice not found"));
+    if (!ensureInvoiceAccess(invoice, req.user)) return next(errorHandler(403, "Access denied"));
+
+    const recipientEmail = req.body.email || invoice.customerEmail;
+    if (!recipientEmail) return next(errorHandler(400, "No client email address on record. Please provide one."));
+
+    const payments = await Payment.find({ invoice: invoice._id, status: "Verified" }).sort({ paymentDate: 1 });
+    const html = buildClientInvoiceHtml(invoice, payments);
+    const companyName = process.env.COMPANY_NAME || "Our Firm";
+
+    await sendMail({
+      to: recipientEmail,
+      subject: `Invoice ${invoice.invoiceNumber} from ${companyName}`,
+      html: `
+        <p>Dear ${invoice.customerName},</p>
+        <p>Please find your invoice <strong>${invoice.invoiceNumber}</strong> below.</p>
+        <p>Total Amount Due: <strong>Rs. ${Number(invoice.balanceDue || 0).toFixed(2)}</strong></p>
+        <hr/>
+        ${html}
+        <hr/>
+        <p style="color:#6b7280;font-size:12px">This invoice was sent by ${companyName}.</p>
+      `,
+    });
+
+    invoice.clientEmailSentAt = new Date();
+    await invoice.save();
+
+    await notifyAdmins({
+      title: "Invoice emailed to client",
+      message: `Invoice ${invoice.invoiceNumber} was emailed to ${recipientEmail} by ${req.user.name || "associate"}`,
+      type: "Invoice Sent To Client",
+      invoice: invoice._id,
+    });
+
+    res.status(200).json({ message: `Invoice emailed to ${recipientEmail}` });
   } catch (error) {
     next(error);
   }

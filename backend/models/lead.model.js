@@ -42,13 +42,46 @@ const auditLogSchema = new mongoose.Schema(
   { _id: true }
 );
 
+// Embedded service line for multi-service leads
+const leadServiceSchema = new mongoose.Schema(
+  {
+    division: { type: mongoose.Schema.Types.ObjectId, ref: "Division" },
+    service: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
+    name: { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
+    price: { type: Number, required: true, min: 0 },
+    quantity: { type: Number, default: 1, min: 1 },
+    amount: { type: Number, required: true, min: 0 },
+    associateEarningPercent: { type: Number, default: 20, min: 0, max: 100 },
+    associateEarningAmount: { type: Number, default: 0, min: 0 },
+    formData: { type: mongoose.Schema.Types.Mixed, default: {} },
+    documents: [
+      {
+        name: { type: String, required: true },
+        category: { type: String, default: "General" },
+        url: { type: String, required: true },
+        originalName: { type: String },
+        mimeType: { type: String },
+        size: { type: Number },
+        uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
+  },
+  { _id: true }
+);
+
 const leadSchema = new mongoose.Schema(
   {
     leadId: { type: String, unique: true, index: true },
     associate: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     assignedAdmin: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    division: { type: mongoose.Schema.Types.ObjectId, ref: "Division", required: true, index: true },
-    service: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true, index: true },
+    // For multi-service leads, services[] is the source of truth.
+    // division/service are kept for backward compat with single-service leads.
+    division: { type: mongoose.Schema.Types.ObjectId, ref: "Division", index: true },
+    service: { type: mongoose.Schema.Types.ObjectId, ref: "Service", index: true },
+    // Embedded services array (populated for multi-service submissions)
+    services: { type: [leadServiceSchema], default: [] },
     servicePrice: { type: Number, min: 0 },
     associateEarningPercent: { type: Number, default: 20, min: 0, max: 100 },
     associateEarningAmount: { type: Number, min: 0 },

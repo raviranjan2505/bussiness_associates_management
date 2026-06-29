@@ -5,7 +5,9 @@ import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
 import axiosInstance from "../../utils/axioInstance";
 
-const LeadDetails = () => {
+const formatMoney = (v) => (Number.isFinite(Number(v)) ? `Rs. ${Number(v).toFixed(2)}` : "Rs. 0.00");
+
+const LeadDetails = ({ activeMenu = "New Leads" }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [lead, setLead] = useState(null);
@@ -28,30 +30,14 @@ const LeadDetails = () => {
   const handleCreateQuotation = async () => {
     if (!lead) return;
     if (lead.quotationId) {
-      navigate(`/admin/quotations/${lead.quotationId._id}`);
+      navigate(`/admin/quotations/${lead.quotationId._id || lead.quotationId}`);
       return;
     }
 
-    const servicePrice = lead.servicePrice || lead.service?.price || 0;
-    const serviceLine = {
-      service: lead.service?._id,
-      name: lead.service?.name || "Lead service",
-      description: `Lead ${lead.leadId}`,
-      price: servicePrice,
-      quantity: 1,
-      amount: servicePrice,
-      associateEarningPercent: lead.associateEarningPercent || 0,
-      associateEarningAmount: lead.associateEarningAmount || 0,
-    };
-
     try {
       setActionLoading(true);
-      const res = await axiosInstance.post(`/leads/${id}/quotation`, {
-        services: [serviceLine],
-        notes: lead.remarks || undefined,
-        terms: lead.terms || undefined,
-        validUntil: undefined,
-      });
+      // POST with no services body — the backend derives them from lead.services[]
+      const res = await axiosInstance.post(`/leads/${id}/quotation`, {});
       toast.success("Quotation created for lead");
       navigate(`/admin/quotations/${res.data.quotation._id}`);
     } catch (error) {
@@ -68,7 +54,7 @@ const LeadDetails = () => {
 
   if (loading) {
     return (
-      <DashboardLayout activeMenu="New Leads">
+      <DashboardLayout activeMenu={activeMenu}>
         <div className="p-6 text-gray-500">Loading lead...</div>
       </DashboardLayout>
     );
@@ -76,15 +62,20 @@ const LeadDetails = () => {
 
   if (!lead) {
     return (
-      <DashboardLayout activeMenu="New Leads">
+      <DashboardLayout activeMenu={activeMenu}>
         <div className="p-6 text-gray-500">Lead not found.</div>
       </DashboardLayout>
     );
   }
 
+  // Determine whether this is a multi-service lead
+  const isMultiService = Array.isArray(lead.services) && lead.services.length > 0;
+  const serviceList = isMultiService ? lead.services : null;
+
   return (
-    <DashboardLayout activeMenu="New Leads">
+    <DashboardLayout activeMenu={activeMenu}>
       <div className="p-6 space-y-5">
+        {/* Header */}
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Lead Details</h1>
@@ -98,28 +89,129 @@ const LeadDetails = () => {
               disabled={actionLoading}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {lead.quotationId ? "View Quotation" : actionLoading ? "Creating…" : "Create Quotation"}
+              {lead.quotationId
+                ? "View Quotation"
+                : actionLoading
+                ? "Creating…"
+                : "Create Quotation"}
             </button>
           </div>
         </div>
 
+        {/* Client + Lead meta */}
         <section className="grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-gray-100 bg-white p-5">
             <h2 className="font-semibold text-gray-900">Client Info</h2>
-            <p className="mt-3 text-sm text-gray-700">Name: {lead.clientDetails?.clientName || "-"}</p>
-            <p className="text-sm text-gray-700">Mobile: {lead.clientDetails?.mobileNumber || "-"}</p>
-            <p className="text-sm text-gray-700">Email: {lead.clientDetails?.email || "-"}</p>
-            <p className="text-sm text-gray-700">Address: {lead.clientDetails?.address || "-"}</p>
+            <dl className="mt-3 space-y-1 text-sm text-gray-700">
+              <Row label="Name" value={lead.clientDetails?.clientName} />
+              <Row label="Mobile" value={lead.clientDetails?.mobileNumber} />
+              <Row label="Email" value={lead.clientDetails?.email} />
+              <Row label="Address" value={lead.clientDetails?.address} />
+            </dl>
           </div>
           <div className="rounded-lg border border-gray-100 bg-white p-5">
             <h2 className="font-semibold text-gray-900">Lead Info</h2>
-            <p className="mt-3 text-sm text-gray-700">Service: {lead.service?.name || "-"}</p>
-            <p className="text-sm text-gray-700">Division: {lead.division?.name || "-"}</p>
-            <p className="text-sm text-gray-700">Status: {lead.leadStatus || "-"}</p>
-            <p className="text-sm text-gray-700">Submitted: {moment(lead.createdAt).format("DD MMM YYYY")}</p>
+            <dl className="mt-3 space-y-1 text-sm text-gray-700">
+              {!isMultiService && (
+                <>
+                  <Row label="Service" value={lead.service?.name} />
+                  <Row label="Division" value={lead.division?.name} />
+                </>
+              )}
+              <Row label="Status" value={lead.leadStatus} />
+              <Row label="Submitted" value={moment(lead.createdAt).format("DD MMM YYYY")} />
+              {isMultiService && (
+                <Row label="Services" value={`${lead.services.length} services`} />
+              )}
+            </dl>
           </div>
         </section>
 
+        {/* Services table for multi-service leads */}
+        {isMultiService && (
+          <section className="rounded-lg border border-gray-100 bg-white p-5">
+            <h2 className="mb-4 font-semibold text-gray-900">
+              Services ({serviceList.length})
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-left text-gray-500">
+                  <tr>
+                    <th className="p-3">#</th>
+                    <th className="p-3">Service</th>
+                    <th className="p-3 text-right">Price</th>
+                    <th className="p-3 text-right">Earning</th>
+                    <th className="p-3">Documents</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {serviceList.map((svc, i) => (
+                    <tr key={svc._id || i} className="border-t">
+                      <td className="p-3 text-gray-500">{i + 1}</td>
+                      <td className="p-3 font-medium text-gray-900">{svc.name}</td>
+                      <td className="p-3 text-right text-gray-700">{formatMoney(svc.price)}</td>
+                      <td className="p-3 text-right text-gray-700">{formatMoney(svc.associateEarningAmount)}</td>
+                      <td className="p-3 text-gray-600">{svc.documents?.length || 0} file(s)</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="border-t bg-gray-50 font-semibold text-sm">
+                  <tr>
+                    <td colSpan={2} className="p-3 text-gray-700">Total</td>
+                    <td className="p-3 text-right text-gray-900">
+                      {formatMoney(serviceList.reduce((s, x) => s + Number(x.price || 0), 0))}
+                    </td>
+                    <td className="p-3 text-right text-gray-900">
+                      {formatMoney(serviceList.reduce((s, x) => s + Number(x.associateEarningAmount || 0), 0))}
+                    </td>
+                    <td className="p-3" />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* Single-service pricing (legacy) */}
+        {!isMultiService && (lead.servicePrice != null) && (
+          <section className="rounded-lg border border-gray-100 bg-white p-5">
+            <h2 className="mb-4 font-semibold text-gray-900">Service Pricing</h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-lg bg-gray-50 p-3">
+                <p className="text-xs uppercase text-gray-500">Service Price</p>
+                <p className="font-medium text-gray-900">{formatMoney(lead.servicePrice)}</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 p-3">
+                <p className="text-xs uppercase text-gray-500">Associate Earning</p>
+                <p className="font-medium text-gray-900">{formatMoney(lead.associateEarningAmount)}</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Documents (top-level) */}
+        {lead.documents?.length > 0 && (
+          <section className="rounded-lg border border-gray-100 bg-white p-5">
+            <h2 className="mb-3 font-semibold text-gray-900">
+              Documents ({lead.documents.length})
+            </h2>
+            <div className="space-y-2">
+              {lead.documents.map((doc, i) => (
+                <a
+                  key={doc._id || i}
+                  href={doc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-blue-700 hover:underline"
+                >
+                  📄 {doc.originalName || doc.name}
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Status History */}
         <section className="rounded-lg border border-gray-100 bg-white p-5">
           <h2 className="font-semibold text-gray-900">Status History</h2>
           <div className="mt-3 space-y-3">
@@ -131,7 +223,9 @@ const LeadDetails = () => {
                       <p className="font-medium text-gray-900">{item.newStatus}</p>
                       <p className="text-xs text-gray-500">{item.reason || "Status updated"}</p>
                     </div>
-                    <div className="text-xs text-gray-500">{moment(item.updatedAt).format("DD MMM YYYY, h:mm A")}</div>
+                    <div className="text-xs text-gray-500">
+                      {moment(item.updatedAt).format("DD MMM YYYY, h:mm A")}
+                    </div>
                   </div>
                   {item.remark && <p className="mt-2 text-sm text-gray-700">{item.remark}</p>}
                 </div>
@@ -145,5 +239,12 @@ const LeadDetails = () => {
     </DashboardLayout>
   );
 };
+
+const Row = ({ label, value }) => (
+  <div className="flex gap-2">
+    <span className="w-24 shrink-0 text-gray-500">{label}:</span>
+    <span className="font-medium text-gray-900">{value || "—"}</span>
+  </div>
+);
 
 export default LeadDetails;

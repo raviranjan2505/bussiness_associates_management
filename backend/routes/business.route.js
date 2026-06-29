@@ -18,6 +18,7 @@ import {
   listWorks,
   markNotificationRead,
   submitWork,
+  submitMultiWork,
   updateDivision,
   updateService,
   updateWorkStatus,
@@ -39,6 +40,7 @@ router.delete("/services/:id", verifyToken, adminOnly, deleteService);
 
 router.get("/works", verifyToken, listWorks);
 router.post("/works", verifyToken, upload.array("documents", 20), submitWork);
+router.post("/works/multi", verifyToken, upload.any(), submitMultiWork);
 router.get("/works/:id", verifyToken, getWork);
 router.post("/works/:id/status", verifyToken, adminOnly, upload.array("documents", 20), updateWorkStatus);
 router.post("/works/:id/documents", verifyToken, upload.array("documents", 20), uploadAdditionalDocuments);

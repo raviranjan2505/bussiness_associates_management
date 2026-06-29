@@ -4,7 +4,9 @@ import {
   listInvoices,
   getInvoice,
   downloadInvoicePdf,
+  downloadClientInvoicePdf,
   updateInvoice,
+  sendInvoiceToClient,
 } from "../controller/invoice.controller.js";
 
 const router = express.Router();
@@ -12,6 +14,8 @@ const router = express.Router();
 router.get("/", verifyToken, listInvoices);
 router.get("/:id", verifyToken, getInvoice);
 router.get("/:id/pdf", verifyToken, downloadInvoicePdf);
+router.get("/:id/pdf/client", verifyToken, downloadClientInvoicePdf);
 router.put("/:id", verifyToken, adminOnly, updateInvoice);
+router.post("/:id/send-to-client", verifyToken, sendInvoiceToClient);
 
 export default router;

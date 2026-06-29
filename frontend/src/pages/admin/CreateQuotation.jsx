@@ -34,91 +34,104 @@ const CreateQuotation = () => {
 
   useEffect(() => {
     if (!form.associate) {
-      setClients([]);
-      setLeads([]);
-      setSelectedLeadIds([]);
-      setSelectedClient(null);
-      setForm((prev) => ({ ...prev, clientId: "", customerName: "", customerEmail: "", customerPhone: "" }));
+      setClients([]); setLeads([]); setSelectedLeadIds([]); setSelectedClient(null);
+      setForm((p) => ({ ...p, clientId: "", customerName: "", customerEmail: "", customerPhone: "" }));
       return;
     }
-
     setLoadingClients(true);
-    axiosInstance
-      .get("/business/clients", { params: { associate: form.associate } })
+    axiosInstance.get("/business/clients", { params: { associate: form.associate } })
       .then((r) => setClients(r.data.clients || []))
       .catch(console.error)
       .finally(() => setLoadingClients(false));
-
-    setLeads([]);
-    setSelectedLeadIds([]);
-    setSelectedClient(null);
-    setForm((prev) => ({ ...prev, clientId: "", customerName: "", customerEmail: "", customerPhone: "" }));
+    setLeads([]); setSelectedLeadIds([]); setSelectedClient(null);
+    setForm((p) => ({ ...p, clientId: "", customerName: "", customerEmail: "", customerPhone: "" }));
   }, [form.associate]);
 
   useEffect(() => {
     if (!form.clientId) {
-      setSelectedClient(null);
-      setLeads([]);
-      setSelectedLeadIds([]);
-      setForm((prev) => ({ ...prev, customerName: "", customerEmail: "", customerPhone: "" }));
+      setSelectedClient(null); setLeads([]); setSelectedLeadIds([]);
+      setForm((p) => ({ ...p, customerName: "", customerEmail: "", customerPhone: "" }));
       return;
     }
-
-    const client = clients.find((item) => String(item.clientId || item.clientKey) === String(form.clientId)) || null;
+    const client = clients.find((c) => String(c.clientId || c.clientKey) === String(form.clientId)) || null;
     setSelectedClient(client);
     if (!client) return;
-
-    setForm((prev) => ({
-      ...prev,
+    setForm((p) => ({
+      ...p,
       customerName: client.clientName || "",
       customerEmail: client.email || "",
       customerPhone: client.mobileNumber || "",
     }));
-
     setSelectedLeadIds([]);
     setLoadingLeads(true);
-    axiosInstance
-      .get("/leads", { params: { associate: form.associate, clientId: form.clientId } })
+    axiosInstance.get("/leads", { params: { associate: form.associate, clientId: form.clientId } })
       .then((r) => setLeads(r.data.leads || []))
       .catch(console.error)
       .finally(() => setLoadingLeads(false));
   }, [form.clientId, clients, form.associate]);
 
   const selectedLeads = useMemo(
-    () => leads.filter((lead) => selectedLeadIds.includes(lead._id)),
+    () => leads.filter((l) => selectedLeadIds.includes(l._id)),
     [leads, selectedLeadIds]
   );
 
+  // Build service lines — supports both multi-service leads (lead.services[]) and legacy single-service leads
   const serviceLines = useMemo(() => {
-    return selectedLeads.map((lead) => {
-      const servicePrice = Number(lead.servicePrice ?? lead.service?.price ?? 0);
-      return {
-        service: lead.service?._id,
-        name: lead.service?.name || `Lead ${lead.leadId}`,
-        description: `Lead ${lead.leadId}`,
-        price: servicePrice,
-        quantity: 1,
-        amount: servicePrice,
-      };
+    const lines = [];
+    selectedLeads.forEach((lead) => {
+      // Multi-service lead
+      if (Array.isArray(lead.services) && lead.services.length > 0) {
+        lead.services.forEach((svc) => {
+          lines.push({
+            leadRef: lead.leadId,
+            service: svc.service,
+            name: svc.name,
+            description: `Lead ${lead.leadId}`,
+            price: Number(svc.price || 0),
+            quantity: Number(svc.quantity || 1),
+            amount: Number(svc.amount || svc.price || 0),
+            associateEarningPercent: Number(svc.associateEarningPercent || 0),
+            associateEarningAmount: Number(svc.associateEarningAmount || 0),
+          });
+        });
+      } else {
+        // Legacy single-service lead
+        const price = Number(lead.servicePrice ?? lead.service?.price ?? 0);
+        lines.push({
+          leadRef: lead.leadId,
+          service: lead.service?._id,
+          name: lead.service?.name || `Lead ${lead.leadId}`,
+          description: `Lead ${lead.leadId}`,
+          price,
+          quantity: 1,
+          amount: price,
+          associateEarningPercent: Number(lead.associateEarningPercent || 0),
+          associateEarningAmount: Number(lead.associateEarningAmount || 0),
+        });
+      }
     });
+    return lines;
   }, [selectedLeads]);
 
-  const subtotal = serviceLines.reduce((sum, line) => sum + Number(line.amount || 0), 0);
-  const discountAmt = discount.type === "percentage" ? (subtotal * (Number(discount.value) || 0)) / 100 : Number(discount.value) || 0;
-  const taxAmt = ((subtotal - discountAmt) * (Number(tax.percent) || 0)) / 100;
-  const total = subtotal - discountAmt + taxAmt;
+  const subtotal      = serviceLines.reduce((s, l) => s + l.amount, 0);
+  const totalCommission = serviceLines.reduce((s, l) => s + l.associateEarningAmount, 0);
+  const discountAmt   = discount.type === "percentage"
+    ? (subtotal * (Number(discount.value) || 0)) / 100
+    : Number(discount.value) || 0;
+  const taxAmt        = ((subtotal - discountAmt) * (Number(tax.percent) || 0)) / 100;
+  const total         = subtotal - discountAmt + taxAmt;
 
   const submit = async (e) => {
     e.preventDefault();
     if (!form.associate) return toast.error("Select an associate");
     if (!form.clientId) return toast.error("Select a client");
-    if (!selectedLeadIds.length) return toast.error("Select one or more leads to create the quotation");
+    if (!selectedLeadIds.length) return toast.error("Select one or more leads");
     if (!form.customerName) return toast.error("Customer name is required");
     if (!serviceLines.length) return toast.error("No services found for this client");
 
     setLoading(true);
     try {
-      const payload = {
+      const res = await axiosInstance.post("/quotations", {
         associate: form.associate,
         clientId: form.clientId,
         customerName: form.customerName,
@@ -130,8 +143,7 @@ const CreateQuotation = () => {
         terms: form.terms,
         validUntil: form.validUntil,
         leadIds: selectedLeadIds,
-      };
-      const res = await axiosInstance.post("/quotations", payload);
+      });
       toast.success("Quotation created");
       navigate(`/admin/quotations/${res.data.quotation._id}`);
     } catch (err) {
@@ -141,204 +153,212 @@ const CreateQuotation = () => {
     }
   };
 
-  const selectedClientSummary = useMemo(() => {
-    if (!selectedClient) return null;
-    return {
-      name: selectedClient.clientName,
-      mobile: selectedClient.mobileNumber,
-      email: selectedClient.email,
-      address: selectedClient.address,
-      leadCount: leads.length,
-    };
-  }, [selectedClient, leads]);
-
   return (
     <DashboardLayout activeMenu="Quotations">
       <form onSubmit={submit} className="p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Create Quotation</h1>
-          <p className="text-sm text-gray-500">Quotation totals are calculated from the selected leads for the chosen client.</p>
+          <p className="text-sm text-gray-500">Select an associate and client, then pick the leads to include.</p>
         </div>
 
+        {/* ── Associate + Client + Leads ── */}
         <section className="bg-white border border-gray-100 rounded-lg p-5 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Associate *</label>
-            <select className="w-full rounded-lg border p-3" value={form.associate} onChange={(e) => setForm({ ...form, associate: e.target.value })} required>
+            <select className="w-full rounded-lg border p-3" value={form.associate}
+              onChange={(e) => setForm({ ...form, associate: e.target.value })} required>
               <option value="">Select associate</option>
               {associates.map((a) => (
-                <option key={a._id} value={a._id}>
-                  {a.name} ({a.email})
-                </option>
+                <option key={a._id} value={a._id}>{a.name} ({a.email})</option>
               ))}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Client *</label>
-            <select
-              className="w-full rounded-lg border p-3"
-              value={form.clientId}
+            <select className="w-full rounded-lg border p-3" value={form.clientId}
               onChange={(e) => setForm({ ...form, clientId: e.target.value })}
-              required
-              disabled={!form.associate || loadingClients}
-            >
-              <option value="">{loadingClients ? "Loading clients..." : "Select client"}</option>
-              {clients.map((client) => (
-                <option key={client.clientKey} value={client.clientId || client.clientKey}>
-                  {client.clientName} {client.mobileNumber ? `(${client.mobileNumber})` : ""}
+              required disabled={!form.associate || loadingClients}>
+              <option value="">{loadingClients ? "Loading…" : "Select client"}</option>
+              {clients.map((c) => (
+                <option key={c.clientKey} value={c.clientId || c.clientKey}>
+                  {c.clientName}{c.mobileNumber ? ` (${c.mobileNumber})` : ""}
                 </option>
               ))}
             </select>
           </div>
+
+          {/* Leads checklist */}
           <div className="md:col-span-2">
             <label className="mb-1 block text-sm font-medium text-gray-700">Select Leads</label>
-            <div className="rounded-lg border bg-white p-3 min-h-[120px]">
+            <div className="rounded-lg border bg-white p-3 min-h-[100px]">
               {loadingLeads ? (
-                <div className="text-sm text-gray-500">Loading leads...</div>
+                <p className="text-sm text-gray-500">Loading leads…</p>
               ) : leads.length ? (
-                <>
-                  <div className="mb-3 text-sm text-gray-600">{leads.length} lead(s) found for this client. Create the quotation from leads only.</div>
-                  <div className="space-y-2">
-                    {leads.map((lead) => (
-                    <label key={lead._id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50">
-                      <input
-                        type="checkbox"
-                        checked={selectedLeadIds.includes(lead._id)}
-                        onChange={(e) => {
-                          const next = e.target.checked
-                            ? [...selectedLeadIds, lead._id]
-                            : selectedLeadIds.filter((id) => id !== lead._id);
-                          setSelectedLeadIds(next);
-                        }}
-                      />
-                      <div className="text-sm">
-                        <div className="font-medium text-gray-900">{lead.leadId} — {lead.clientDetails?.clientName}</div>
-                        <div className="text-xs text-gray-500">{lead.service?.name || "No service"} · {lead.clientDetails?.mobileNumber || "No mobile"}</div>
-                      </div>
-                    </label>
-                  ))}
+                <div className="space-y-2">
+                  {leads.map((lead) => {
+                    const isMulti = Array.isArray(lead.services) && lead.services.length > 0;
+                    const svcCount = isMulti ? lead.services.length : 1;
+                    const svcNames = isMulti
+                      ? lead.services.map((s) => s.name).join(", ")
+                      : lead.service?.name || "No service";
+                    return (
+                      <label key={lead._id} className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50 cursor-pointer">
+                        <input type="checkbox" className="mt-0.5"
+                          checked={selectedLeadIds.includes(lead._id)}
+                          onChange={(e) => {
+                            setSelectedLeadIds(e.target.checked
+                              ? [...selectedLeadIds, lead._id]
+                              : selectedLeadIds.filter((id) => id !== lead._id));
+                          }} />
+                        <div className="text-sm">
+                          <div className="font-medium text-gray-900">
+                            {lead.leadId} — {lead.clientDetails?.clientName}
+                            {isMulti && <span className="ml-2 text-xs bg-blue-100 text-blue-700 rounded px-1.5 py-0.5">{svcCount} services</span>}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">{svcNames}</div>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
-                </>
               ) : (
-                <div className="text-sm text-gray-500">No leads found for this associate and client.</div>
+                <p className="text-sm text-gray-500">No leads found for this client.</p>
               )}
             </div>
           </div>
+
+          {/* Customer fields */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Valid Until</label>
-            <input type="date" className="w-full rounded-lg border p-3" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} />
+            <input type="date" className="w-full rounded-lg border p-3" value={form.validUntil}
+              onChange={(e) => setForm({ ...form, validUntil: e.target.value })} />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Customer Name *</label>
-            <input className="w-full rounded-lg border p-3" value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} required />
+            <input className="w-full rounded-lg border p-3" value={form.customerName}
+              onChange={(e) => setForm({ ...form, customerName: e.target.value })} required />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Customer Email</label>
-            <input type="email" className="w-full rounded-lg border p-3" value={form.customerEmail} onChange={(e) => setForm({ ...form, customerEmail: e.target.value })} />
+            <input type="email" className="w-full rounded-lg border p-3" value={form.customerEmail}
+              onChange={(e) => setForm({ ...form, customerEmail: e.target.value })} />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Customer Phone</label>
-            <input className="w-full rounded-lg border p-3" value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })} />
+            <input className="w-full rounded-lg border p-3" value={form.customerPhone}
+              onChange={(e) => setForm({ ...form, customerPhone: e.target.value })} />
           </div>
         </section>
 
-        {selectedClientSummary && (
-          <section className="bg-white border border-gray-100 rounded-lg p-5 space-y-4">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <div>
-                <h2 className="font-semibold text-gray-900">Selected Client</h2>
-                <p className="text-sm text-gray-500">Client details are filled automatically from the selected associate and client leads.</p>
-              </div>
-              <div className="text-sm text-gray-600">
-                Leads found: <span className="font-semibold text-gray-900">{selectedClientSummary.leadCount}</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-              <Info label="Client Name" value={selectedClientSummary.name} />
-              <Info label="Mobile" value={selectedClientSummary.mobile} />
-              <Info label="Email" value={selectedClientSummary.email} />
-              <Info label="Address" value={selectedClientSummary.address} />
-            </div>
-          </section>
-        )}
-
-
+        {/* ── Service lines preview ── */}
         {serviceLines.length > 0 && (
-          <section className="bg-white border border-gray-100 rounded-lg p-5 space-y-4">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <section className="bg-white border border-gray-100 rounded-lg overflow-hidden">
+            <div className="p-5 border-b flex items-center justify-between">
               <div>
-                <h2 className="font-semibold text-gray-900">Selected Leads Included</h2>
-                <p className="text-sm text-gray-500">Each selected lead contributes one service line to the quotation subtotal.</p>
+                <h2 className="font-semibold text-gray-900">Services Preview</h2>
+                <p className="text-sm text-gray-500">Each service from the selected leads — individual amounts and commissions.</p>
               </div>
-              <div className="text-sm text-gray-600">
-                Service lines: <span className="font-semibold text-gray-900">{serviceLines.length}</span>
-              </div>
+              <span className="text-sm text-gray-600 font-medium">{serviceLines.length} service(s)</span>
             </div>
-            <div className="overflow-x-auto rounded-lg border border-gray-100">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-left text-gray-500">
                   <tr>
                     <th className="p-3">Lead</th>
                     <th className="p-3">Service</th>
                     <th className="p-3 text-right">Price</th>
+                    <th className="p-3 text-right">Qty</th>
+                    <th className="p-3 text-right">Amount</th>
+                    <th className="p-3 text-right text-green-700">Commission</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {serviceLines.map((line, index) => (
-                    <tr key={`${line.description || line.name}-${index}`} className="border-t">
-                      <td className="p-3 text-gray-700">{line.description || "-"}</td>
+                  {serviceLines.map((line, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="p-3 text-gray-500 text-xs">{line.leadRef}</td>
                       <td className="p-3 font-medium text-gray-900">{line.name}</td>
-                      <td className="p-3 text-right text-gray-700">{formatMoney(line.amount)}</td>
+                      <td className="p-3 text-right text-gray-700">{formatMoney(line.price)}</td>
+                      <td className="p-3 text-right text-gray-700">{line.quantity}</td>
+                      <td className="p-3 text-right text-gray-900 font-medium">{formatMoney(line.amount)}</td>
+                      <td className="p-3 text-right text-green-700 font-medium">
+                        {line.associateEarningAmount > 0
+                          ? formatMoney(line.associateEarningAmount)
+                          : line.associateEarningPercent > 0
+                          ? `${line.associateEarningPercent}%`
+                          : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
+                <tfoot className="border-t-2 border-gray-300 bg-gray-50 font-semibold text-sm">
+                  <tr>
+                    <td className="p-3 text-gray-700" colSpan={4}>Total</td>
+                    <td className="p-3 text-right text-gray-900">{formatMoney(subtotal)}</td>
+                    <td className="p-3 text-right text-green-700">{formatMoney(totalCommission)}</td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </section>
         )}
 
+        {/* ── Discount / Tax / Notes ── */}
         <section className="bg-white border border-gray-100 rounded-lg p-5 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
-            <select className="w-full border rounded-lg p-3" value={discount.type} onChange={(e) => setDiscount({ ...discount, type: e.target.value })}>
+            <select className="w-full border rounded-lg p-3" value={discount.type}
+              onChange={(e) => setDiscount({ ...discount, type: e.target.value })}>
               <option value="flat">Flat (Rs.)</option>
               <option value="percentage">Percentage (%)</option>
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Discount Value</label>
-            <input type="number" min="0" className="w-full border rounded-lg p-3" value={discount.value} onChange={(e) => setDiscount({ ...discount, value: e.target.value })} />
+            <input type="number" min="0" className="w-full border rounded-lg p-3" value={discount.value}
+              onChange={(e) => setDiscount({ ...discount, value: e.target.value })} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Tax (%)</label>
-            <input type="number" min="0" max="100" className="w-full border rounded-lg p-3" value={tax.percent} onChange={(e) => setTax({ percent: e.target.value })} />
+            <input type="number" min="0" max="100" className="w-full border rounded-lg p-3" value={tax.percent}
+              onChange={(e) => setTax({ percent: e.target.value })} />
           </div>
           <div className="md:col-span-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea className="w-full border rounded-lg p-3" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            <textarea className="w-full border rounded-lg p-3" rows={2} value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </div>
           <div className="md:col-span-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">Terms & Conditions</label>
-            <textarea className="w-full border rounded-lg p-3" rows={2} value={form.terms} onChange={(e) => setForm({ ...form, terms: e.target.value })} />
+            <textarea className="w-full border rounded-lg p-3" rows={2} value={form.terms}
+              onChange={(e) => setForm({ ...form, terms: e.target.value })} />
           </div>
         </section>
 
+        {/* ── Grand total summary ── */}
         <section className="bg-white border border-gray-100 rounded-lg p-5">
           <div className="flex justify-end">
-            <div className="w-72 space-y-2 text-sm">
+            <div className="w-80 space-y-2 text-sm">
               <Row label="Subtotal" value={formatMoney(subtotal)} />
-              <Row label="Discount" value={`- ${formatMoney(discountAmt)}`} />
-              <Row label={`Tax (${tax.percent || 0}%)`} value={formatMoney(taxAmt)} />
+              {discountAmt > 0 && <Row label={`Discount${discount.type === "percentage" ? ` (${discount.value}%)` : ""}`} value={`- ${formatMoney(discountAmt)}`} />}
+              {taxAmt > 0 && <Row label={`Tax (${tax.percent}%)`} value={formatMoney(taxAmt)} />}
               <div className="border-t pt-2 flex justify-between font-bold text-base">
                 <span>Total</span>
                 <span>{formatMoney(total)}</span>
               </div>
+              {totalCommission > 0 && (
+                <div className="border-t pt-2 flex justify-between text-sm font-semibold text-green-700">
+                  <span>Total Commission</span>
+                  <span>{formatMoney(totalCommission)}</span>
+                </div>
+              )}
             </div>
           </div>
         </section>
 
         <div className="flex gap-3">
-          <button type="submit" disabled={loading} className="rounded-lg bg-gray-900 px-6 py-3 text-white disabled:opacity-50">
-            {loading ? "Saving..." : "Save as Draft"}
+          <button type="submit" disabled={loading}
+            className="rounded-lg bg-gray-900 px-6 py-3 text-white disabled:opacity-50">
+            {loading ? "Saving…" : "Save as Draft"}
           </button>
         </div>
       </form>
@@ -349,7 +369,7 @@ const CreateQuotation = () => {
 const Info = ({ label, value }) => (
   <div className="rounded-lg bg-gray-50 p-3">
     <p className="text-xs uppercase text-gray-500">{label}</p>
-    <p className="font-medium text-gray-900">{value || "-"}</p>
+    <p className="font-medium text-gray-900">{value || "—"}</p>
   </div>
 );
 

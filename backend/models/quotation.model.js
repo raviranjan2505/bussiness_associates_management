@@ -25,6 +25,9 @@ const quotationSchema = new mongoose.Schema(
     associate: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     leadId: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", index: true },
     leadIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Lead", index: true }],
+    // Parallel to services[] — serviceLeadIds[i] is the leadId that services[i] belongs to.
+    // Used by acceptQuotation to reconstruct per-lead service groupings.
+    serviceLeadIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Lead" }],
     client: { type: mongoose.Schema.Types.ObjectId, ref: "Client", index: true },
 
     customerName: { type: String, required: true, trim: true, index: true },
@@ -69,6 +72,8 @@ const quotationSchema = new mongoose.Schema(
     validUntil: { type: Date },
     sentAt: { type: Date },
     respondedAt: { type: Date },
+    clientEmailSentAt: { type: Date },
+    invoiceId: { type: mongoose.Schema.Types.ObjectId, ref: "Invoice" },  // linked after acceptance
 
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },

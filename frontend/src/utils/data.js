@@ -36,13 +36,14 @@ export const ASSOCIATE_SIDE_MENU_DATA = [
   { id: 1, label: "Dashboard",     icon: MdDashboardCustomize, path: "/associate/dashboard" },
   { id: 2, label: "Submit Work",   icon: MdOutlineTaskAlt,     path: "/associate/submit-work" },
   { id: 3, label: "My Leads",      icon: MdCampaign,           path: "/associate/leads" },
-  { id: 4, label: "Client List",    icon: MdManageHistory,      path: "/associate/clients" },
-  { id: 4, label: "Quotations",    icon: MdRequestQuote,       path: "/associate/quotations" },
-  { id: 5, label: "Invoices",      icon: MdReceiptLong,        path: "/associate/invoices" },
-  { id: 6, label: "Payments",      icon: MdPayments,           path: "/associate/payments" },
-  { id: 7, label: "Complaints",    icon: MdBugReport,          path: "/associate/complaints" },
-  { id: 8, label: "Notifications", icon: MdNotifications,      path: "/associate/notifications" },
-  { id: 9, label: "Logout",        icon: MdLogout,             path: "logout" },
+  { id: 4, label: "Works",         icon: MdFolderOpen,         path: "/associate/works" },
+  { id: 5, label: "Client List",   icon: MdManageHistory,      path: "/associate/clients" },
+  { id: 6, label: "Quotations",    icon: MdRequestQuote,       path: "/associate/quotations" },
+  { id: 7, label: "Invoices",      icon: MdReceiptLong,        path: "/associate/invoices" },
+  { id: 8, label: "Payments",      icon: MdPayments,           path: "/associate/payments" },
+  { id: 9, label: "Complaints",    icon: MdBugReport,          path: "/associate/complaints" },
+  { id: 10, label: "Notifications", icon: MdNotifications,      path: "/associate/notifications" },
+  { id: 11, label: "Logout",        icon: MdLogout,             path: "logout" },
 ];
 
 // ── Work submission statuses ──────────────────────────────────────────────
