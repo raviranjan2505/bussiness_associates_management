@@ -504,10 +504,55 @@ export const listClients = async (req, res, next) => {
     const isAdmin = req.user.role === "admin";
     const allClients = isAdmin && req.query.allClients === "true";
 
-    // If admin wants all clients, return flat list of all clients
+    // If admin wants all clients, return flat list enriched with lead/work counts
     if (allClients) {
-      const clients = await Client.find().populate("associate", "name email").sort({ createdAt: -1 });
-      return res.status(200).json({ clients });
+      const clients = await Client.find()
+        .populate("associate", "name email")
+        .sort({ createdAt: -1 })
+        .lean();
+
+      // Aggregate lead counts per clientId
+      const leadCounts = await Lead.aggregate([
+        { $group: { _id: "$clientId", count: { $sum: 1 } } },
+      ]);
+      const leadCountMap = new Map(leadCounts.map((r) => [String(r._id), r.count]));
+
+      // Aggregate work counts per client name+mobile (works store clientDetails, not clientId ref)
+      // Build a lookup: clientId → { clientName, mobileNumber } from Client docs, then match works
+      const clientIds = clients.map((c) => String(c._id));
+      const workAgg = await WorkSubmission.aggregate([
+        {
+          $lookup: {
+            from: "clients",
+            let: { cn: "$clientDetails.clientName", mob: "$clientDetails.mobileNumber" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$clientName", "$$cn"] },
+                      { $eq: ["$mobileNumber", "$$mob"] },
+                    ],
+                  },
+                },
+              },
+              { $project: { _id: 1 } },
+            ],
+            as: "matchedClient",
+          },
+        },
+        { $unwind: { path: "$matchedClient", preserveNullAndEmpty: false } },
+        { $group: { _id: "$matchedClient._id", count: { $sum: 1 } } },
+      ]);
+      const workCountMap = new Map(workAgg.map((r) => [String(r._id), r.count]));
+
+      const enriched = clients.map((c) => ({
+        ...c,
+        leadsCount: leadCountMap.get(String(c._id)) || 0,
+        worksCount: workCountMap.get(String(c._id)) || 0,
+      }));
+
+      return res.status(200).json({ clients: enriched });
     }
 
     // Otherwise, return grouped clients by associate (existing logic)

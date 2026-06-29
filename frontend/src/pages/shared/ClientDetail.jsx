@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
 import axiosInstance from "../../utils/axioInstance";
 
-const fmt = (v) => (Number.isFinite(Number(v)) ? `Rs. ${Number(v).toFixed(2)}` : "—");
+const isObjectId = (s) => /^[a-f\d]{24}$/i.test(s);
 
 const StatusPill = ({ status }) => {
   const map = {
@@ -20,8 +20,11 @@ const StatusPill = ({ status }) => {
     Draft: "bg-gray-50 text-gray-600",
     Sent: "bg-blue-50 text-blue-700",
   };
-  const cls = map[status] || "bg-gray-50 text-gray-500";
-  return <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{status || "—"}</span>;
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${map[status] || "bg-gray-50 text-gray-500"}`}>
+      {status || "—"}
+    </span>
+  );
 };
 
 const ClientDetail = () => {
@@ -39,45 +42,63 @@ const ClientDetail = () => {
 
   useEffect(() => {
     if (!clientId) return;
+
     (async () => {
       try {
         setLoading(true);
-        const decodedId = decodeURIComponent(clientId);
+        const raw = decodeURIComponent(clientId);
 
-        // Load leads for this client
-        const leadsRes = await axiosInstance.get("/leads", {
-          params: isAdmin ? { clientId: decodedId } : { clientId: decodedId },
-        });
+        let leadsParams = {};
+        let clientName = "";
+        let mobileNumber = "";
+
+        if (isObjectId(raw)) {
+          // Standard MongoDB _id — query leads by clientId
+          leadsParams = { clientId: raw };
+        } else if (raw.startsWith("nm_")) {
+          // Encoded name+mobile fallback: "nm_<encodedName>_<encodedMobile>"
+          const parts = raw.slice(3).split("_");
+          clientName = decodeURIComponent(parts[0] || "");
+          mobileNumber = decodeURIComponent(parts[1] || "");
+          // Query leads by clientName search
+          leadsParams = { search: clientName };
+        } else {
+          // Legacy clientKey (composite string) — search by name part
+          const namePart = raw.split("|")[1] || "";
+          clientName = namePart;
+          leadsParams = { search: namePart };
+        }
+
+        // 1. Load leads
+        const leadsRes = await axiosInstance.get("/leads", { params: leadsParams });
         const clientLeads = leadsRes.data.leads || [];
         setLeads(clientLeads);
 
-        // Derive client info from leads first
-        const firstLead = clientLeads[0];
-        const cd = firstLead?.clientDetails || {};
+        // 2. Derive client info from first lead
+        const cd = clientLeads[0]?.clientDetails || {};
+        if (!clientName) clientName = cd.clientName || "";
+        if (!mobileNumber) mobileNumber = cd.mobileNumber || "";
 
-        // Load works using clientName + mobileNumber as identifiers
+        // 3. Load works by clientName + mobileNumber
         let clientWorks = [];
-        if (cd.clientName) {
+        if (clientName) {
           try {
-            const worksRes = await axiosInstance.get("/business/works", {
-              params: {
-                clientName: cd.clientName,
-                ...(cd.mobileNumber ? { mobileNumber: cd.mobileNumber } : {}),
-              },
-            });
+            const params = { clientName };
+            if (mobileNumber) params.mobileNumber = mobileNumber;
+            const worksRes = await axiosInstance.get("/business/works", { params });
             clientWorks = worksRes.data.works || [];
           } catch { /* no works is fine */ }
         }
         setWorks(clientWorks);
 
-        const firstWork = clientWorks[0];
-        const wcd = firstWork?.clientDetails || {};
+        // 4. Set client display info
+        const wcd = clientWorks[0]?.clientDetails || {};
         setClient({
-          clientName: cd.clientName || wcd.clientName || "Client",
-          mobileNumber: cd.mobileNumber || wcd.mobileNumber || "",
+          clientName: cd.clientName || wcd.clientName || clientName || "Client",
+          mobileNumber: cd.mobileNumber || wcd.mobileNumber || mobileNumber || "",
           email: cd.email || wcd.email || "",
           address: cd.address || wcd.address || "",
-          associate: firstLead?.associate || firstWork?.associate,
+          associate: clientLeads[0]?.associate || clientWorks[0]?.associate,
         });
       } catch (e) {
         toast.error(e.response?.data?.message || "Unable to load client details");
@@ -85,7 +106,7 @@ const ClientDetail = () => {
         setLoading(false);
       }
     })();
-  }, [clientId, isAdmin]);
+  }, [clientId]);
 
   if (loading) {
     return (
@@ -102,10 +123,7 @@ const ClientDetail = () => {
         {/* Header */}
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <button
-              onClick={() => navigate(`${base}/clients`)}
-              className="text-sm text-gray-400 hover:text-gray-700"
-            >
+            <button onClick={() => navigate(`${base}/clients`)} className="text-sm text-gray-400 hover:text-gray-700">
               ← {isAdmin ? "All Clients" : "My Clients"}
             </button>
             <h1 className="mt-2 text-2xl font-bold text-gray-900">{client?.clientName || "Client"}</h1>
@@ -116,42 +134,35 @@ const ClientDetail = () => {
             </div>
             {isAdmin && client?.associate && (
               <p className="mt-1 text-sm text-gray-500">
-                Associate: <span className="font-medium text-gray-700">{client.associate.name || client.associate}</span>
+                Associate: <span className="font-medium text-gray-700">{client.associate?.name || client.associate}</span>
               </p>
             )}
           </div>
-
-          {/* Summary counters */}
-          <div className="flex gap-3">
-            <div className="rounded-lg border border-blue-100 bg-blue-50 px-5 py-3 text-center">
+          <div className="flex gap-3 shrink-0">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-5 py-3 text-center min-w-[64px]">
               <p className="text-2xl font-bold text-blue-700">{leads.length}</p>
               <p className="text-xs text-blue-600 font-medium">Leads</p>
             </div>
-            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-5 py-3 text-center">
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-5 py-3 text-center min-w-[64px]">
               <p className="text-2xl font-bold text-emerald-700">{works.length}</p>
               <p className="text-xs text-emerald-600 font-medium">Works</p>
             </div>
           </div>
         </div>
 
-        {/* Tab switcher */}
+        {/* Tabs */}
         <div className="flex gap-1 rounded-lg border border-gray-100 bg-gray-50 p-1 w-fit">
           {["leads", "works"].map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
+            <button key={t} onClick={() => setTab(t)}
               className={`rounded-md px-5 py-2 text-sm font-medium capitalize transition-colors ${
-                tab === t
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
+                tab === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              }`}>
               {t === "leads" ? `Leads (${leads.length})` : `Works (${works.length})`}
             </button>
           ))}
         </div>
 
-        {/* ── Leads tab ── */}
+        {/* Leads tab */}
         {tab === "leads" && (
           <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
             <div className="overflow-x-auto">
@@ -170,60 +181,45 @@ const ClientDetail = () => {
                 <tbody>
                   {leads.length === 0 ? (
                     <tr><td colSpan={7} className="py-10 text-center text-gray-400">No leads found for this client.</td></tr>
-                  ) : (
-                    leads.map((lead) => {
-                      const isMulti = Array.isArray(lead.services) && lead.services.length > 0;
-                      const svcName = isMulti
-                        ? `${lead.services.length} Services`
-                        : lead.service?.name || lead.title || "—";
-                      const qId = lead.quotationId?._id || lead.quotationId;
-                      const invId = lead.invoiceId?._id || lead.invoiceId;
-                      return (
-                        <tr
-                          key={lead._id}
-                          onClick={() => navigate(`${base}/leads/${lead._id}`)}
-                          className="border-t cursor-pointer hover:bg-blue-50 transition-colors"
-                        >
-                          <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-800">{lead.leadId}</td>
-                          <td className="px-4 py-3 text-gray-700">{svcName}</td>
-                          <td className="px-4 py-3"><StatusPill status={lead.leadStatus} /></td>
-                          <td className="px-4 py-3">
-                            {qId ? (
-                              <Link
-                                to={`${base}/quotations/${qId}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-xs font-medium text-blue-700 hover:underline"
-                              >
+                  ) : leads.map((lead) => {
+                    const isMulti = Array.isArray(lead.services) && lead.services.length > 0;
+                    const svcName = isMulti ? `${lead.services.length} Services` : lead.service?.name || lead.title || "—";
+                    const qId = lead.quotationId?._id || lead.quotationId;
+                    const invId = lead.invoiceId?._id || lead.invoiceId;
+                    return (
+                      <tr key={lead._id} onClick={() => navigate(`${base}/leads/${lead._id}`)}
+                        className="border-t cursor-pointer hover:bg-blue-50 transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-800">{lead.leadId}</td>
+                        <td className="px-4 py-3 text-gray-700">{svcName}</td>
+                        <td className="px-4 py-3"><StatusPill status={lead.leadStatus} /></td>
+                        <td className="px-4 py-3">
+                          {qId
+                            ? <Link to={`${base}/quotations/${qId}`} onClick={(e) => e.stopPropagation()}
+                                className="text-xs font-medium text-blue-700 hover:underline">
                                 {lead.quotationId?.quotationNumber || "View"}
                               </Link>
-                            ) : <span className="text-gray-400 text-xs">—</span>}
-                          </td>
-                          <td className="px-4 py-3">
-                            {invId ? (
-                              <Link
-                                to={`${base}/invoices/${invId}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-xs font-medium text-emerald-700 hover:underline"
-                              >
+                            : <span className="text-xs text-gray-400">—</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {invId
+                            ? <Link to={`${base}/invoices/${invId}`} onClick={(e) => e.stopPropagation()}
+                                className="text-xs font-medium text-emerald-700 hover:underline">
                                 {lead.invoiceId?.invoiceNumber || "View"}
                               </Link>
-                            ) : <span className="text-gray-400 text-xs">—</span>}
-                          </td>
-                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                            {moment(lead.createdAt).format("DD MMM YYYY")}
-                          </td>
-                          <td className="px-4 py-3 text-gray-400 text-right">›</td>
-                        </tr>
-                      );
-                    })
-                  )}
+                            : <span className="text-xs text-gray-400">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{moment(lead.createdAt).format("DD MMM YYYY")}</td>
+                        <td className="px-4 py-3 text-gray-400 text-right">›</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </section>
         )}
 
-        {/* ── Works tab ── */}
+        {/* Works tab */}
         {tab === "works" && (
           <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
             <div className="overflow-x-auto">
@@ -242,23 +238,18 @@ const ClientDetail = () => {
                 <tbody>
                   {works.length === 0 ? (
                     <tr><td colSpan={isAdmin ? 7 : 6} className="py-10 text-center text-gray-400">No works found for this client.</td></tr>
-                  ) : (
-                    works.map((work) => (
-                      <tr
-                        key={work._id}
-                        onClick={() => navigate(`${base}/work/${work._id}`)}
-                        className="border-t cursor-pointer hover:bg-blue-50 transition-colors"
-                      >
-                        <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-800">{work.workId}</td>
-                        <td className="px-4 py-3 text-gray-700">{work.service?.name || "—"}</td>
-                        {isAdmin && <td className="px-4 py-3 text-gray-600">{work.associate?.name || "—"}</td>}
-                        <td className="px-4 py-3"><StatusPill status={work.status} /></td>
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{moment(work.createdAt).format("DD MMM YYYY")}</td>
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{moment(work.updatedAt).format("DD MMM YYYY")}</td>
-                        <td className="px-4 py-3 text-gray-400 text-right">›</td>
-                      </tr>
-                    ))
-                  )}
+                  ) : works.map((work) => (
+                    <tr key={work._id} onClick={() => navigate(`${base}/work/${work._id}`)}
+                      className="border-t cursor-pointer hover:bg-blue-50 transition-colors">
+                      <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-800">{work.workId}</td>
+                      <td className="px-4 py-3 text-gray-700">{work.service?.name || "—"}</td>
+                      {isAdmin && <td className="px-4 py-3 text-gray-600">{work.associate?.name || "—"}</td>}
+                      <td className="px-4 py-3"><StatusPill status={work.status} /></td>
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{moment(work.createdAt).format("DD MMM YYYY")}</td>
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{moment(work.updatedAt).format("DD MMM YYYY")}</td>
+                      <td className="px-4 py-3 text-gray-400 text-right">›</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
