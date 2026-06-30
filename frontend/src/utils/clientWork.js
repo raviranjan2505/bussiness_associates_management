@@ -72,5 +72,5 @@ export const groupWorksByClient = (works = [], scope = "admin") => {
 
 export const buildClientRoute = (role, clientKey) => {
   const prefix = role === "admin" ? "/admin" : "/associate";
-  return `${prefix}/clients/${encodeURIComponent(clientKey || "")}`;
+  return `${prefix}/clients/${encodeURIComponent(clientKey || "")}/works`;
 };
