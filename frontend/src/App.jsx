@@ -14,6 +14,8 @@ import ReviewWorks from "./pages/admin/ReviewWorks";
 import AllClients from "./pages/admin/AllClients";
 import MyClients from "./pages/associate/MyClients";
 import ClientDetail from "./pages/shared/ClientDetail";
+import ClientLeads from "./pages/shared/ClientLeads";
+import ClientWorksList from "./pages/shared/ClientWorksList";
 import ManageUsers from "./pages/admin/ManageUsers";
 import AssociateWorks from "./pages/admin/AssociateWorks";
 import AdminQuotations from "./pages/admin/Quotations";
@@ -62,6 +64,8 @@ const App = () => {
             <Route path="/admin/works" element={<ReviewWorks />} />
             <Route path="/admin/clients" element={<AllClients />} />
             <Route path="/admin/clients/:clientId" element={<ClientDetail />} />
+            <Route path="/admin/clients/:clientId/leads" element={<ClientLeads />} />
+            <Route path="/admin/clients/:clientId/works" element={<ClientWorksList />} />
             <Route path="/admin/work/:id" element={<WorkDetails />} />
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/admin/users/:id" element={<AssociateWorks />} />
@@ -95,6 +99,8 @@ const App = () => {
             <Route path="/associate/works" element={<MyWorks />} />
             <Route path="/associate/clients" element={<MyClients />} />
             <Route path="/associate/clients/:clientId" element={<ClientDetail />} />
+            <Route path="/associate/clients/:clientId/leads" element={<ClientLeads />} />
+            <Route path="/associate/clients/:clientId/works" element={<ClientWorksList />} />
             <Route path="/associate/work/:id" element={<WorkDetails />} />
             <Route path="/associate/notifications" element={<Notifications />} />
             {/* Quotations */}

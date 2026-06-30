@@ -22,7 +22,9 @@ const populateQuotation = (query) =>
   query
     .populate("associate", "name email profileImageUrl")
     .populate("services.service", "name price")
-    .populate("invoiceId", "invoiceNumber totalAmount invoiceStatus");
+    .populate("invoiceId", "invoiceNumber totalAmount invoiceStatus")
+    .populate("leadId", "leadId leadStatus clientDetails")
+    .populate("leadIds", "leadId leadStatus");
 
 // Build/refresh the embedded services array (and let the pre-validate hook recompute totals)
 const buildServiceLines = async (services = []) => {

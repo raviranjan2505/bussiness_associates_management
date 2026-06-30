@@ -41,6 +41,8 @@ export const listLeads = async (req, res, next) => {
       .populate("associate", "name email profileImageUrl")
       .populate("division", "name")
       .populate("service", "name price")
+      .populate("quotationId", "quotationNumber status")
+      .populate("invoiceId", "invoiceNumber invoiceStatus")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ leads });

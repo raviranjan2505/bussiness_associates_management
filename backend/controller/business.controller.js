@@ -504,47 +504,53 @@ export const listClients = async (req, res, next) => {
     const isAdmin = req.user.role === "admin";
     const allClients = isAdmin && req.query.allClients === "true";
 
-    // If admin wants all clients, return flat list enriched with lead/work counts
     if (allClients) {
+      // ── Admin: flat Client docs enriched with real lead + work counts ──────
       const clients = await Client.find()
         .populate("associate", "name email")
         .sort({ createdAt: -1 })
         .lean();
 
-      // Aggregate lead counts per clientId
-      const leadCounts = await Lead.aggregate([
-        { $group: { _id: "$clientId", count: { $sum: 1 } } },
-      ]);
-      const leadCountMap = new Map(leadCounts.map((r) => [String(r._id), r.count]));
+      if (!clients.length) return res.status(200).json({ clients: [] });
 
-      // Aggregate work counts per client name+mobile (works store clientDetails, not clientId ref)
-      // Build a lookup: clientId → { clientName, mobileNumber } from Client docs, then match works
-      const clientIds = clients.map((c) => String(c._id));
-      const workAgg = await WorkSubmission.aggregate([
-        {
-          $lookup: {
-            from: "clients",
-            let: { cn: "$clientDetails.clientName", mob: "$clientDetails.mobileNumber" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $eq: ["$clientName", "$$cn"] },
-                      { $eq: ["$mobileNumber", "$$mob"] },
-                    ],
-                  },
-                },
-              },
-              { $project: { _id: 1 } },
-            ],
-            as: "matchedClient",
-          },
-        },
-        { $unwind: "$matchedClient" },
-        { $group: { _id: "$matchedClient._id", count: { $sum: 1 } } },
+      // Build name|mobile → clientId lookup
+      const clientByKey = new Map();
+      clients.forEach((c) => {
+        const k = `${normalizeClientPart(c.clientName)}|${normalizeClientPart(c.mobileNumber)}`;
+        clientByKey.set(k, String(c._id));
+        // also index by _id string directly for leads that have clientId ref
+        clientByKey.set(String(c._id), String(c._id));
+      });
+
+      const resolve = (clientId, clientDetails) => {
+        // Try direct ObjectId ref first
+        if (clientId) {
+          const cid = String(clientId);
+          if (clientByKey.has(cid)) return clientByKey.get(cid);
+        }
+        // Fall back to name+mobile match
+        const cd = clientDetails || {};
+        const k = `${normalizeClientPart(cd.clientName)}|${normalizeClientPart(cd.mobileNumber)}`;
+        return clientByKey.get(k) || null;
+      };
+
+      const leadCountMap = new Map();
+      const workCountMap  = new Map();
+
+      const [allLeads, allWorks] = await Promise.all([
+        Lead.find({}).select("clientId clientDetails").lean(),
+        WorkSubmission.find({}).select("clientDetails").lean(),
       ]);
-      const workCountMap = new Map(workAgg.map((r) => [String(r._id), r.count]));
+
+      allLeads.forEach((l) => {
+        const cid = resolve(l.clientId, l.clientDetails);
+        if (cid) leadCountMap.set(cid, (leadCountMap.get(cid) || 0) + 1);
+      });
+
+      allWorks.forEach((w) => {
+        const cid = resolve(null, w.clientDetails);
+        if (cid) workCountMap.set(cid, (workCountMap.get(cid) || 0) + 1);
+      });
 
       const enriched = clients.map((c) => ({
         ...c,
@@ -555,126 +561,123 @@ export const listClients = async (req, res, next) => {
       return res.status(200).json({ clients: enriched });
     }
 
-    // Otherwise, return grouped clients by associate (existing logic)
-    const selectedAssociate = isAdmin && req.query.associate ? req.query.associate : req.user.id;
-    const workFilter = { associate: selectedAssociate };
-    const clientFilter = { associate: selectedAssociate };
+    // ── Associate (or admin filtering by associate): grouped client list ─────
+    const selectedAssociate = isAdmin && req.query.associate
+      ? req.query.associate
+      : req.user.id;
 
-    const [works, clients] = await Promise.all([
-      WorkSubmission.find(workFilter)
+    const [leads, works, clientDocs] = await Promise.all([
+      Lead.find({ associate: selectedAssociate })
+        .select("clientDetails clientId leadStatus createdAt updatedAt")
+        .lean(),
+      WorkSubmission.find({ associate: selectedAssociate })
         .populate("associate", "name email")
         .populate("division", "name")
         .populate("service", "name")
-        .sort({ updatedAt: -1 }),
-      Client.find(clientFilter).populate("associate", "name email").sort({ createdAt: -1 }),
+        .sort({ updatedAt: -1 })
+        .lean(),
+      Client.find({ associate: selectedAssociate })
+        .populate("associate", "name email")
+        .lean(),
     ]);
 
+    // ── Build groups keyed by normalised name|mobile ─────────────────────────
+    // Key does NOT include associateId so leads/works/clients all hash the same way
     const groups = new Map();
 
-    const ensureGroup = ({ associateId, associateName, associateEmail, clientName, mobileNumber, email, address, clientId = null }) => {
-      const key = [
-        associateId,
-        clientName,
-        mobileNumber,
-        email,
-        address,
-      ].map(normalizeClientPart).join("|");
+    const groupKey = (clientName, mobileNumber) =>
+      `${normalizeClientPart(clientName)}|${normalizeClientPart(mobileNumber)}`;
 
+    const ensureGroup = ({ clientName, mobileNumber, email, address, clientId, associateName, associateEmail }) => {
+      const key = groupKey(clientName, mobileNumber);
       if (!groups.has(key)) {
         groups.set(key, {
           clientKey: key,
-          clientId,
+          clientId: clientId || null,
           clientName: clientName || "Unnamed client",
           mobileNumber: mobileNumber || "",
           email: email || "",
           address: address || "",
-          associateId,
-          associateName,
-          associateEmail,
+          associateId: selectedAssociate,
+          associateName: associateName || "",
+          associateEmail: associateEmail || "",
+          leadsCount: 0,
           worksCount: 0,
+          leadIds: [],
+          workIds: [],
           services: [],
           latestStatus: "",
           latestWorkId: "",
           latestUpdatedAt: null,
-          workIds: [],
         });
-      } else if (clientId) {
-        groups.get(key).clientId = clientId;
       }
-      return groups.get(key);
+      const g = groups.get(key);
+      // Upgrade fields if we now have more info
+      if (clientId && !g.clientId) g.clientId = clientId;
+      if (associateName && !g.associateName) g.associateName = associateName;
+      if (associateEmail && !g.associateEmail) g.associateEmail = associateEmail;
+      return g;
     };
 
-    works.forEach((work) => {
-      const group = ensureGroup({
-        associateId: String(work.associate?._id || work.associate || ""),
-        associateName: work.associate?.name || "",
-        associateEmail: work.associate?.email || "",
-        clientName: work.clientDetails?.clientName || "",
-        mobileNumber: work.clientDetails?.mobileNumber || "",
-        email: work.clientDetails?.email || "",
-        address: work.clientDetails?.address || "",
-      });
-
-      group.worksCount += 1;
-      group.workIds.push(work._id);
-
-      const serviceName = work.service?.name;
-      if (serviceName && !group.services.includes(serviceName)) {
-        group.services.push(serviceName);
-      }
-
-      const updatedAt = new Date(work.updatedAt || work.createdAt || 0).getTime();
-      const latestAt = new Date(group.latestUpdatedAt || 0).getTime();
-      if (updatedAt >= latestAt) {
-        group.latestUpdatedAt = work.updatedAt || work.createdAt || null;
-        group.latestStatus = work.status || "";
-        group.latestWorkId = work.workId || "";
-      }
-    });
-
-    clients.forEach((client) => {
-      const group = ensureGroup({
-        associateId: String(client.associate?._id || client.associate || ""),
-        associateName: client.associate?.name || "",
-        associateEmail: client.associate?.email || "",
-        clientName: client.clientName,
-        mobileNumber: client.mobileNumber,
-        email: client.email,
-        address: client.address,
-        clientId: client._id ? String(client._id) : null,
-      });
-      if (!group.associateName) group.associateName = client.associate?.name || "";
-      if (!group.associateEmail) group.associateEmail = client.associate?.email || "";
-    });
-
-    // Attach lead counts per client group
-    const leads = await Lead.find({ associate: selectedAssociate })
-      .select("clientDetails clientId leadStatus")
-      .lean();
-
+    // 1. Seed groups from leads (they appear first, before works exist)
     leads.forEach((lead) => {
       const cd = lead.clientDetails || {};
-      const key = [
-        selectedAssociate,
-        cd.clientName,
-        cd.mobileNumber,
-        cd.email,
-        cd.address,
-      ].map(normalizeClientPart).join("|");
-      const group = groups.get(key);
-      if (group) {
-        group.leadsCount = (group.leadsCount || 0) + 1;
-        group.leadIds = group.leadIds || [];
-        group.leadIds.push(lead._id);
+      const g = ensureGroup({
+        clientName: cd.clientName,
+        mobileNumber: cd.mobileNumber,
+        email: cd.email,
+        address: cd.address,
+        clientId: lead.clientId ? String(lead.clientId) : null,
+        associateName: "",
+        associateEmail: "",
+      });
+      g.leadsCount += 1;
+      g.leadIds.push(lead._id);
+      const at = new Date(lead.updatedAt || lead.createdAt || 0).getTime();
+      if (!g.latestUpdatedAt || at > new Date(g.latestUpdatedAt).getTime()) {
+        g.latestUpdatedAt = lead.updatedAt || lead.createdAt;
       }
     });
 
-    const clientList = Array.from(groups.values()).map((g) => ({
-      ...g,
-      leadsCount: g.leadsCount || 0,
-      leadIds: g.leadIds || [],
-    })).sort(
-      (a, b) => new Date(b.latestUpdatedAt || 0).getTime() - new Date(a.latestUpdatedAt || 0).getTime()
+    // 2. Enrich / extend groups from works
+    works.forEach((work) => {
+      const cd = work.clientDetails || {};
+      const g = ensureGroup({
+        clientName: cd.clientName,
+        mobileNumber: cd.mobileNumber,
+        email: cd.email,
+        address: cd.address,
+        clientId: null,
+        associateName: work.associate?.name || "",
+        associateEmail: work.associate?.email || "",
+      });
+      g.worksCount += 1;
+      g.workIds.push(work._id);
+      const svcName = work.service?.name;
+      if (svcName && !g.services.includes(svcName)) g.services.push(svcName);
+      const at = new Date(work.updatedAt || work.createdAt || 0).getTime();
+      if (!g.latestUpdatedAt || at > new Date(g.latestUpdatedAt).getTime()) {
+        g.latestUpdatedAt = work.updatedAt || work.createdAt;
+        g.latestStatus = work.status || "";
+        g.latestWorkId = work.workId || "";
+      }
+    });
+
+    // 3. Ensure Client docs create a group entry (handles clients with no leads/works yet)
+    clientDocs.forEach((c) => {
+      ensureGroup({
+        clientName: c.clientName,
+        mobileNumber: c.mobileNumber,
+        email: c.email,
+        address: c.address,
+        clientId: String(c._id),
+        associateName: c.associate?.name || "",
+        associateEmail: c.associate?.email || "",
+      });
+    });
+
+    const clientList = Array.from(groups.values()).sort(
+      (a, b) => new Date(b.latestUpdatedAt || 0) - new Date(a.latestUpdatedAt || 0)
     );
 
     res.status(200).json({ clients: clientList });
@@ -682,6 +685,7 @@ export const listClients = async (req, res, next) => {
     next(error);
   }
 };
+
 
 export const createClient = async (req, res, next) => {
   try {

@@ -286,6 +286,41 @@ const QuotationDetail = () => {
                 <Info label="Phone"         value={q.customerPhone} />
                 <Info label="Associate"     value={q.associate?.name} />
                 {q.validUntil && <Info label="Valid Until" value={moment(q.validUntil).format("DD MMM YYYY")} />}
+                {/* Linked Lead — clickable */}
+                {q.leadId && (
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-xs uppercase text-gray-500">Linked Lead</p>
+                    <Link
+                      to={`${base}/leads/${q.leadId._id || q.leadId}`}
+                      className="mt-1 inline-flex items-center gap-2 font-medium text-blue-700 hover:underline"
+                    >
+                      <span className="font-mono">{q.leadId.leadId || "View Lead"}</span>
+                      {q.leadId.leadStatus && (
+                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
+                          {q.leadId.leadStatus}
+                        </span>
+                      )}
+                    </Link>
+                  </div>
+                )}
+                {/* Multiple linked leads */}
+                {Array.isArray(q.leadIds) && q.leadIds.length > 0 && (
+                  <div className="rounded-lg bg-gray-50 p-3 md:col-span-2">
+                    <p className="text-xs uppercase text-gray-500 mb-2">Linked Leads</p>
+                    <div className="flex flex-wrap gap-2">
+                      {q.leadIds.map((l) => (
+                        <Link
+                          key={l._id || l}
+                          to={`${base}/leads/${l._id || l}`}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                        >
+                          <span className="font-mono">{l.leadId || "Lead"}</span>
+                          {l.leadStatus && <span className="text-blue-500">· {l.leadStatus}</span>}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -379,6 +414,27 @@ const QuotationDetail = () => {
               {q.respondedAt && <Info label="Responded" value={moment(q.respondedAt).format("DD MMM YYYY, h:mm A")} />}
               {q.clientEmailSentAt && <Info label="Emailed to client" value={moment(q.clientEmailSentAt).format("DD MMM YYYY, h:mm A")} />}
             </section>
+
+            {/* Linked Lead quick-jump */}
+            {q.leadId && (
+              <section className="bg-white border border-gray-100 rounded-lg p-5">
+                <h2 className="font-semibold text-gray-900 mb-3">Linked Lead</h2>
+                <Link
+                  to={`${base}/leads/${q.leadId._id || q.leadId}`}
+                  className="flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 hover:bg-blue-100 transition-colors"
+                >
+                  <div>
+                    <p className="font-mono font-semibold text-blue-800 text-sm">
+                      {q.leadId.leadId || "View Lead"}
+                    </p>
+                    {q.leadId.leadStatus && (
+                      <p className="text-xs text-blue-600 mt-0.5">{q.leadId.leadStatus}</p>
+                    )}
+                  </div>
+                  <span className="text-blue-400 text-lg">›</span>
+                </Link>
+              </section>
+            )}
           </aside>
         </div>
       </div>

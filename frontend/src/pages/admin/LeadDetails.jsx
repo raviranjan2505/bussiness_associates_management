@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
@@ -83,18 +83,31 @@ const LeadDetails = ({ activeMenu = "New Leads" }) => {
           </div>
           <div className="flex items-center gap-3">
             <div className="text-sm font-medium text-gray-600">{lead.leadId}</div>
-            <button
-              type="button"
-              onClick={handleCreateQuotation}
-              disabled={actionLoading}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {lead.quotationId
-                ? "View Quotation"
-                : actionLoading
-                ? "Creating…"
-                : "Create Quotation"}
-            </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              {lead.quotationId && (
+                <Link
+                  to={`/admin/quotations/${lead.quotationId._id || lead.quotationId}`}
+                  className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                >
+                  📋 {lead.quotationId.quotationNumber || "View Quotation"}
+                  {lead.quotationId.status && (
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs">{lead.quotationId.status}</span>
+                  )}
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={handleCreateQuotation}
+                disabled={actionLoading}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {lead.quotationId
+                  ? "Re-open Quotation"
+                  : actionLoading
+                  ? "Creating…"
+                  : "Create Quotation"}
+              </button>
+            </div>
           </div>
         </div>
 

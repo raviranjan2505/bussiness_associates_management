@@ -11,18 +11,23 @@ const MyClients = () => {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const load = async () => {
+    try {
+      setLoading(true);
+      const res = await axiosInstance.get("/business/clients");
+      setClients(res.data.clients || []);
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Unable to load clients");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await axiosInstance.get("/business/clients");
-        setClients(res.data.clients || []);
-      } catch (e) {
-        toast.error(e.response?.data?.message || "Unable to load clients");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    load();
+    const onVisible = () => { if (document.visibilityState === "visible") load(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   const filtered = useMemo(() => {
@@ -33,12 +38,9 @@ const MyClients = () => {
     );
   }, [clients, search]);
 
-  // Build the URL param for ClientDetail.
-  // If a real MongoDB _id exists on the group, use it (fastest).
-  // Otherwise encode name+mobile so ClientDetail can query by those.
+  // Build URL param: prefer MongoDB _id, fall back to encoded name+mobile
   const toParam = (client) => {
     if (client.clientId && client.clientId !== "null") return client.clientId;
-    // Encode as "name:<name>|mobile:<mobile>" so ClientDetail can detect and parse it
     const name = encodeURIComponent(client.clientName || "");
     const mobile = encodeURIComponent(client.mobileNumber || "");
     return `nm_${name}_${mobile}`;
@@ -50,9 +52,15 @@ const MyClients = () => {
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Clients</h1>
-            <p className="text-sm text-gray-500">Click any client to view their leads and works.</p>
+            <p className="text-sm text-gray-500">View leads or works for any client.</p>
           </div>
-          <div className="text-sm font-medium text-gray-500">{filtered.length} of {clients.length} clients</div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-500">{filtered.length} of {clients.length} clients</span>
+            <button onClick={load} disabled={loading}
+              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50">
+              {loading ? "Loading…" : "Refresh"}
+            </button>
+          </div>
         </div>
 
         <div className="rounded-lg border border-gray-100 bg-white p-4">
@@ -72,25 +80,20 @@ const MyClients = () => {
                   <th className="px-4 py-3">Client</th>
                   <th className="px-4 py-3">Contact</th>
                   <th className="px-4 py-3">Address</th>
-                  <th className="px-4 py-3 text-center">Leads</th>
-                  <th className="px-4 py-3 text-center">Works</th>
                   <th className="px-4 py-3">Last Activity</th>
-                  <th className="px-4 py-3" />
+                  <th className="px-4 py-3 text-center">View Leads</th>
+                  <th className="px-4 py-3 text-center">View Works</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="py-12 text-center text-gray-400">Loading clients…</td></tr>
+                  <tr><td colSpan={6} className="py-12 text-center text-gray-400">Loading clients…</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={7} className="py-12 text-center text-gray-400">
+                  <tr><td colSpan={6} className="py-12 text-center text-gray-400">
                     {search ? "No clients match your search." : "No clients yet. Submit a work to create one."}
                   </td></tr>
                 ) : filtered.map((client) => (
-                  <tr
-                    key={client.clientKey || client.clientId}
-                    onClick={() => navigate(`/associate/clients/${toParam(client)}`)}
-                    className="border-t cursor-pointer hover:bg-blue-50 transition-colors"
-                  >
+                  <tr key={client.clientKey || client.clientId} className="border-t hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <p className="font-semibold text-gray-900">{client.clientName}</p>
                       {client.pan && <p className="text-xs text-gray-400">PAN: {client.pan}</p>}
@@ -100,12 +103,25 @@ const MyClients = () => {
                       <p className="text-xs text-gray-400">{client.email || ""}</p>
                     </td>
                     <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate">{client.address || "—"}</td>
-                    <td className="px-4 py-3 text-center"><CountBadge count={client.leadsCount} color="blue" /></td>
-                    <td className="px-4 py-3 text-center"><CountBadge count={client.worksCount} color="emerald" /></td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                       {client.latestUpdatedAt ? moment(client.latestUpdatedAt).format("DD MMM YYYY") : "—"}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-right">›</td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => navigate(`/associate/clients/${toParam(client)}/leads`)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+                      >
+                        📋 View Leads
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => navigate(`/associate/clients/${toParam(client)}/works`)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                      >
+                        🗂️ View Works
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -114,15 +130,6 @@ const MyClients = () => {
         </section>
       </div>
     </DashboardLayout>
-  );
-};
-
-const CountBadge = ({ count, color }) => {
-  const colors = { blue: "bg-blue-50 text-blue-700", emerald: "bg-emerald-50 text-emerald-700" };
-  return (
-    <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold min-w-[28px] ${colors[color]}`}>
-      {count != null ? count : "—"}
-    </span>
   );
 };
 

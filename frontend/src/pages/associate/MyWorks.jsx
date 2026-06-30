@@ -31,14 +31,20 @@ const MyWorks = () => {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return works.filter((w) => {
-      const matchSearch = !q || [
-        w.workId,
-        w.clientDetails?.clientName,
-        w.clientDetails?.mobileNumber,
-        w.clientDetails?.email,
-        w.service?.name,
-        w.division?.name,
-      ].filter(Boolean).join(" ").toLowerCase().includes(q);
+      const matchSearch =
+        !q ||
+        [
+          w.workId,
+          w.clientDetails?.clientName,
+          w.clientDetails?.mobileNumber,
+          w.clientDetails?.email,
+          w.service?.name,
+          w.division?.name,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(q);
       const matchStatus = !status || w.status === status;
       return matchSearch && matchStatus;
     });
@@ -57,7 +63,9 @@ const MyWorks = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">{filtered.length} of {works.length}</span>
+            <span className="text-sm text-gray-500">
+              {filtered.length} of {works.length}
+            </span>
             <button
               onClick={load}
               className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
@@ -82,7 +90,9 @@ const MyWorks = () => {
           >
             <option value="">All Statuses</option>
             {STATUS_DATA.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
             ))}
           </select>
         </div>
@@ -106,44 +116,54 @@ const MyWorks = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-gray-400">Loading works…</td>
+                    <td colSpan={8} className="py-12 text-center text-gray-400">
+                      Loading works…
+                    </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-12 text-center text-gray-400">
-                      {search || status ? "No works match your filters." : "No works submitted yet."}
+                      {search || status
+                        ? "No works match your filters."
+                        : "No works submitted yet."}
                     </td>
                   </tr>
-                ) : filtered.map((work) => (
-                  <tr
-                    key={work._id}
-                    onClick={() => navigate(`/associate/work/${work._id}`)}
-                    className="border-t cursor-pointer hover:bg-blue-50 transition-colors"
-                  >
-                    <td className="p-3 font-mono text-xs font-semibold text-gray-800">
-                      {work.workId || "—"}
-                    </td>
-                    <td className="p-3">
-                      <p className="font-medium text-gray-900">{work.clientDetails?.clientName || "—"}</p>
-                      <p className="text-xs text-gray-400">
-                        {work.clientDetails?.mobileNumber || ""}
-                        {work.clientDetails?.email ? ` · ${work.clientDetails.email}` : ""}
-                      </p>
-                    </td>
-                    <td className="p-3 text-gray-700">{work.service?.name || "—"}</td>
-                    <td className="p-3 text-gray-600">{work.division?.name || "—"}</td>
-                    <td className="p-3">
-                      <StatusBadge status={work.status || "Pending"} />
-                    </td>
-                    <td className="p-3 text-gray-500 whitespace-nowrap">
-                      {moment(work.createdAt).format("DD MMM YYYY")}
-                    </td>
-                    <td className="p-3 text-gray-500 whitespace-nowrap">
-                      {moment(work.updatedAt).format("DD MMM YYYY")}
-                    </td>
-                    <td className="p-3 text-gray-400 text-right">›</td>
-                  </tr>
-                ))}
+                ) : (
+                  filtered.map((work) => (
+                    <tr
+                      key={work._id}
+                      onClick={() => navigate(`/associate/work/${work._id}`)}
+                      className="border-t cursor-pointer hover:bg-blue-50 transition-colors"
+                    >
+                      <td className="p-3 font-mono text-xs font-semibold text-gray-800">
+                        {work.workId || "—"}
+                      </td>
+                      <td className="p-3">
+                        <p className="font-medium text-gray-900">
+                          {work.clientDetails?.clientName || "—"}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {work.clientDetails?.mobileNumber || ""}
+                          {work.clientDetails?.email
+                            ? ` · ${work.clientDetails.email}`
+                            : ""}
+                        </p>
+                      </td>
+                      <td className="p-3 text-gray-700">{work.service?.name || "—"}</td>
+                      <td className="p-3 text-gray-600">{work.division?.name || "—"}</td>
+                      <td className="p-3">
+                        <StatusBadge status={work.status || "Pending"} />
+                      </td>
+                      <td className="p-3 text-gray-500 whitespace-nowrap">
+                        {moment(work.createdAt).format("DD MMM YYYY")}
+                      </td>
+                      <td className="p-3 text-gray-500 whitespace-nowrap">
+                        {moment(work.updatedAt).format("DD MMM YYYY")}
+                      </td>
+                      <td className="p-3 text-gray-400 text-right">›</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
