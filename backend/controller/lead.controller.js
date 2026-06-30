@@ -51,6 +51,54 @@ export const listLeads = async (req, res, next) => {
   }
 };
 
+// ── Group leads by client for one associate (admin) ──────────────────────────
+// Used by: Associates List → Leads count → Client Groups page
+// Performs the grouping in the database via aggregation instead of shipping
+// every lead row to the client and grouping in JS — avoids duplicate data
+// transfer and keeps the response small regardless of how many leads exist.
+export const groupLeadsByClient = async (req, res, next) => {
+  try {
+    const { associateId } = req.params;
+    if (!mongoose.isValidObjectId(associateId)) {
+      return next(errorHandler(400, "Invalid associate identifier"));
+    }
+    if (req.user.role !== "admin") return next(errorHandler(403, "Access denied"));
+
+    const groups = await Lead.aggregate([
+      { $match: { associate: new mongoose.Types.ObjectId(associateId), isConverted: false } },
+      {
+        $addFields: {
+          normName: { $trim: { input: { $toLower: { $ifNull: ["$clientDetails.clientName", ""] } } } },
+          normMobile: { $trim: { input: { $ifNull: ["$clientDetails.mobileNumber", ""] } } },
+        },
+      },
+      {
+        $group: {
+          _id: { name: "$normName", mobile: "$normMobile" },
+          clientName: { $first: "$clientDetails.clientName" },
+          mobileNumber: { $first: "$clientDetails.mobileNumber" },
+          email: { $first: "$clientDetails.email" },
+          totalLeads: { $sum: 1 },
+          latestUpdatedAt: { $max: { $ifNull: ["$updatedAt", "$createdAt"] } },
+        },
+      },
+      { $sort: { latestUpdatedAt: -1 } },
+    ]);
+
+    res.status(200).json({
+      clients: groups.map((g) => ({
+        clientName: g.clientName || "Unnamed client",
+        mobileNumber: g.mobileNumber || "",
+        email: g.email || "",
+        totalLeads: g.totalLeads,
+        latestUpdatedAt: g.latestUpdatedAt,
+      })),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getLead = async (req, res, next) => {
   try {
     const lead = await Lead.findById(req.params.id)

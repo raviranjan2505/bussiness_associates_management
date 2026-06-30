@@ -1,41 +1,42 @@
 import User from "../models/user.model.js";
 import WorkSubmission from "../models/workSubmission.model.js";
+import Lead from "../models/lead.model.js";
 import { errorHandler } from "../utils/error.js";
 
 // Get all associates (admin only)
 export const getUsers = async (req, res, next) => {
   try {
     const associates = await User.find({ role: "associate" }).select("-password").sort({ createdAt: -1 });
+    const associateIds = associates.map((a) => a._id);
 
-    // Get total income for each associate
-    const associatesWithIncome = await Promise.all(
-      associates.map(async (associate) => {
-        const incomeResult = await WorkSubmission.aggregate([
-          {
-            $match: {
-              status: "Completed"
-            }
-          },
-          {
-            $group: {
-              _id: "$associate",
-              totalIncome: {
-                $sum: "$associateEarningAmount"
-              }
-            }
-          }
-        ]);
+    // Single aggregation each — avoids N+1 queries (one per associate)
+    const [incomeAgg, leadsAgg, worksAgg] = await Promise.all([
+      WorkSubmission.aggregate([
+        { $match: { status: "Completed", associate: { $in: associateIds } } },
+        { $group: { _id: "$associate", totalIncome: { $sum: "$associateEarningAmount" } } },
+      ]),
+      Lead.aggregate([
+        { $match: { associate: { $in: associateIds } } },
+        { $group: { _id: "$associate", count: { $sum: 1 } } },
+      ]),
+      WorkSubmission.aggregate([
+        { $match: { associate: { $in: associateIds } } },
+        { $group: { _id: "$associate", count: { $sum: 1 } } },
+      ]),
+    ]);
 
-        const totalIncome = incomeResult.length > 0 ? incomeResult[0].totalIncome : 0;
+    const incomeMap = new Map(incomeAgg.map((r) => [String(r._id), r.totalIncome]));
+    const leadsMap = new Map(leadsAgg.map((r) => [String(r._id), r.count]));
+    const worksMap = new Map(worksAgg.map((r) => [String(r._id), r.count]));
 
-        return {
-          ...associate._doc,
-          totalIncome,
-        };
-      })
-    );
+    const associatesWithCounts = associates.map((associate) => ({
+      ...associate._doc,
+      totalIncome: incomeMap.get(String(associate._id)) || 0,
+      leadsCount: leadsMap.get(String(associate._id)) || 0,
+      worksCount: worksMap.get(String(associate._id)) || 0,
+    }));
 
-    res.status(200).json(associatesWithIncome);
+    res.status(200).json(associatesWithCounts);
   } catch (err) { next(err); }
 };
 

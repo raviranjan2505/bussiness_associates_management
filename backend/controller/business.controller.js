@@ -752,6 +752,54 @@ export const listWorks = async (req, res, next) => {
   }
 };
 
+// ── Group works by client for one associate (admin) ──────────────────────────
+// Used by: Associates List → Work count → Client Groups page
+// Server-side aggregation avoids shipping every work row and re-grouping in JS.
+export const groupWorksByClientForAssociate = async (req, res, next) => {
+  try {
+    const { associateId } = req.params;
+    if (!mongoose.isValidObjectId(associateId)) {
+      return next(errorHandler(400, "Invalid associate identifier"));
+    }
+    if (req.user.role !== "admin") return next(errorHandler(403, "Access denied"));
+
+    const groups = await WorkSubmission.aggregate([
+      { $match: { associate: new mongoose.Types.ObjectId(associateId) } },
+      {
+        $addFields: {
+          normName: { $trim: { input: { $toLower: { $ifNull: ["$clientDetails.clientName", ""] } } } },
+          normMobile: { $trim: { input: { $ifNull: ["$clientDetails.mobileNumber", ""] } } },
+        },
+      },
+      {
+        $group: {
+          _id: { name: "$normName", mobile: "$normMobile" },
+          clientName: { $first: "$clientDetails.clientName" },
+          mobileNumber: { $first: "$clientDetails.mobileNumber" },
+          email: { $first: "$clientDetails.email" },
+          totalWorks: { $sum: 1 },
+          latestStatus: { $last: "$status" },
+          latestUpdatedAt: { $max: { $ifNull: ["$updatedAt", "$createdAt"] } },
+        },
+      },
+      { $sort: { latestUpdatedAt: -1 } },
+    ]);
+
+    res.status(200).json({
+      clients: groups.map((g) => ({
+        clientName: g.clientName || "Unnamed client",
+        mobileNumber: g.mobileNumber || "",
+        email: g.email || "",
+        totalWorks: g.totalWorks,
+        latestStatus: g.latestStatus || "",
+        latestUpdatedAt: g.latestUpdatedAt,
+      })),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getWork = async (req, res, next) => {
   try {
     const work = await WorkSubmission.findById(req.params.id)

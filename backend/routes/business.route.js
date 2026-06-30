@@ -16,6 +16,7 @@ import {
   listNotifications,
   listServices,
   listWorks,
+  groupWorksByClientForAssociate,
   markNotificationRead,
   submitWork,
   submitMultiWork,
@@ -39,6 +40,7 @@ router.put("/services/:id", verifyToken, adminOnly, updateService);
 router.delete("/services/:id", verifyToken, adminOnly, deleteService);
 
 router.get("/works", verifyToken, listWorks);
+router.get("/works/by-associate/:associateId/grouped", verifyToken, adminOnly, groupWorksByClientForAssociate);
 router.post("/works", verifyToken, upload.array("documents", 20), submitWork);
 router.post("/works/multi", verifyToken, upload.any(), submitMultiWork);
 router.get("/works/:id", verifyToken, getWork);

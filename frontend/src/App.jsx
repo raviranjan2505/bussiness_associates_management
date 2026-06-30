@@ -18,6 +18,9 @@ import ClientLeads from "./pages/shared/ClientLeads";
 import ClientWorksList from "./pages/shared/ClientWorksList";
 import ManageUsers from "./pages/admin/ManageUsers";
 import AssociateWorks from "./pages/admin/AssociateWorks";
+import AssociateLeadGroups from "./pages/admin/AssociateLeadGroups";
+import AssociateClientLeads from "./pages/admin/AssociateClientLeads";
+import AssociateClientWorks from "./pages/admin/AssociateClientWorks";
 import AdminQuotations from "./pages/admin/Quotations";
 import CreateQuotation from "./pages/admin/CreateQuotation";
 import AdminInvoices from "./pages/admin/Invoices";
@@ -68,6 +71,10 @@ const App = () => {
             <Route path="/admin/clients/:clientId/works" element={<ClientWorksList />} />
             <Route path="/admin/work/:id" element={<WorkDetails />} />
             <Route path="/admin/users" element={<ManageUsers />} />
+            <Route path="/admin/users/:id/leads" element={<AssociateLeadGroups />} />
+            <Route path="/admin/users/:id/leads/:clientKey" element={<AssociateClientLeads />} />
+            <Route path="/admin/users/:id/works" element={<AssociateWorks />} />
+            <Route path="/admin/users/:id/works/:clientKey" element={<AssociateClientWorks />} />
             <Route path="/admin/users/:id" element={<AssociateWorks />} />
             <Route path="/admin/notifications" element={<Notifications />} />
             {/* Quotations */}
