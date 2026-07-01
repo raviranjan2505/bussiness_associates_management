@@ -40,6 +40,7 @@ import AssociateInvoices from "./pages/associate/AssociateInvoices";
 import AssociatePayments from "./pages/associate/AssociatePayments";
 import AssociateComplaints from "./pages/associate/AssociateComplaints";
 import MyLeads from "./pages/associate/MyLeads";
+import Announcements from "./pages/associate/Announcements";
 import AssociateLeadDetails from "./pages/associate/LeadDetails";
 
 // Shared pages
@@ -109,6 +110,7 @@ const App = () => {
             <Route path="/associate/clients/:clientId/leads" element={<ClientLeads />} />
             <Route path="/associate/clients/:clientId/works" element={<ClientWorksList />} />
             <Route path="/associate/work/:id" element={<WorkDetails />} />
+            <Route path="/associate/announcements" element={<Announcements />} />
             <Route path="/associate/notifications" element={<Notifications />} />
             {/* Quotations */}
             <Route path="/associate/quotations" element={<AssociateQuotations />} />
