@@ -139,3 +139,34 @@ export const sendInvoiceToClient = async (req, res, next) => {
     next(error);
   }
 };
+// ── Cancel Invoice (admin only) ────────────────────────────────────────────
+export const cancelInvoice = async (req, res, next) => {
+  try {
+    const invoice = await populateInvoice(Invoice.findById(req.params.id));
+    if (!invoice) return next(errorHandler(404, "Invoice not found"));
+    if (req.user.role !== "admin") return next(errorHandler(403, "Only admins can cancel invoices"));
+    if (invoice.invoiceStatus === "Cancelled") {
+      return next(errorHandler(400, "Invoice is already cancelled"));
+    }
+    if (invoice.invoiceStatus === "Paid") {
+      return next(errorHandler(400, "A fully paid invoice cannot be cancelled"));
+    }
+
+    const previousStatus = invoice.invoiceStatus;
+    invoice.invoiceStatus = "Cancelled";
+    await invoice.save();
+
+    // Notify the associate
+    await notify({
+      user: invoice.associate,
+      title: "Invoice cancelled",
+      message: `Invoice ${invoice.invoiceNumber} has been cancelled by admin`,
+      type: "Invoice Cancelled",
+      invoice: invoice._id,
+    });
+
+    res.status(200).json({ message: "Invoice cancelled", invoice });
+  } catch (error) {
+    next(error);
+  }
+};

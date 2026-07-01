@@ -20,6 +20,7 @@ const InvoiceDetail = () => {
   const [sendingToClient, setSendingToClient] = useState(false);
   const [showEmailOverride, setShowEmailOverride] = useState(false);
   const [overrideEmail, setOverrideEmail] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const load = async () => {
     const [invRes, payRes, worksRes] = await Promise.all([
@@ -71,6 +72,20 @@ const InvoiceDetail = () => {
     }
   };
 
+  const cancelInvoice = async () => {
+    if (!window.confirm(`Cancel invoice ${invoice.invoiceNumber}? This action cannot be undone.`)) return;
+    setCancelling(true);
+    try {
+      await axiosInstance.patch(`/invoices/${id}/cancel`);
+      toast.success("Invoice cancelled successfully");
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Failed to cancel invoice");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (!invoice)
     return (
       <DashboardLayout activeMenu="Invoices">
@@ -119,6 +134,15 @@ const InvoiceDetail = () => {
             >
               {sendingToClient ? "Sending…" : "📧 Send to Client"}
             </button>
+            {isAdmin && !["Cancelled", "Paid"].includes(invoice.invoiceStatus) && (
+              <button
+                onClick={cancelInvoice}
+                disabled={cancelling}
+                className="border border-red-300 bg-red-50 text-red-700 rounded-lg px-3 py-2 text-sm hover:bg-red-100 disabled:opacity-50 flex items-center gap-1"
+              >
+                {cancelling ? "Cancelling…" : "🚫 Cancel Invoice"}
+              </button>
+            )}
           </div>
         </div>
 
