@@ -5,10 +5,10 @@
  */
 
 const COMPANY = {
-  name: process.env.COMPANY_NAME || "Your CA & Business Services Firm",
-  address: process.env.COMPANY_ADDRESS || "123 Business Avenue, New Delhi, India - 110001",
-  email: process.env.COMPANY_EMAIL || "contact@yourfirm.com",
-  phone: process.env.COMPANY_PHONE || "+91-00000-00000",
+  name: process.env.COMPANY_NAME || "Indian Money Master",
+  address: process.env.COMPANY_ADDRESS || "781, 7th Floor, Gaur City Mall, Noida Ext, Greater Noida Sector 4, Delhi NCR - 201318",
+  email: process.env.COMPANY_EMAIL || "info@indianmoneymaster.com",
+  phone: process.env.COMPANY_PHONE || "+91 9867673434",
 };
 
 export const formatMoney = (value) => `Rs. ${Number(value || 0).toFixed(2)}`;
@@ -97,8 +97,8 @@ const buildHtml = ({ title, docNumber, docDate, status, partyLines, tableRows, t
     </thead>
     <tbody>
       ${tableRows
-        .map(
-          (r) => `
+    .map(
+      (r) => `
         <tr>
           <td>${r.name}${r.description ? `<br/><span style="color:#6b7280;font-size:10px">${r.description}</span>` : ""}</td>
           <td>${r.quantity || 1}</td>
@@ -106,8 +106,8 @@ const buildHtml = ({ title, docNumber, docDate, status, partyLines, tableRows, t
           <td>${formatMoney(r.amount)}</td>
           ${showCommission ? `<td style="color:#15803d;font-weight:600">${r.associateEarningAmount > 0 ? formatMoney(r.associateEarningAmount) : (r.associateEarningPercent > 0 ? `${r.associateEarningPercent}%` : "—")}</td>` : ""}
         </tr>`
-        )
-        .join("")}
+    )
+    .join("")}
     </tbody>
     <tfoot>
       <tr style="background:#f3f4f6;font-weight:700;font-size:11px">

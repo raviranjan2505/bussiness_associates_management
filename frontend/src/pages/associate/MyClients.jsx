@@ -47,7 +47,7 @@ const MyClients = () => {
   };
 
   return (
-    <DashboardLayout activeMenu="My Clients">
+    <DashboardLayout activeMenu="Client List">
       <div className="p-6 space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
