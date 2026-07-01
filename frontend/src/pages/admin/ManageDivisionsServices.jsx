@@ -77,7 +77,7 @@ const ManageDivisionsServices = () => {
   };
 
   return (
-    <DashboardLayout activeMenu="Divisions & Services">
+    <DashboardLayout activeMenu="Services">
       <div className="p-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section className="bg-white border border-gray-100 rounded-lg p-5">
           <h1 className="text-xl font-bold text-gray-900">Division Management</h1>

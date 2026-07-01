@@ -43,7 +43,7 @@ const Leads = () => {
   }, [leads, search]);
 
   return (
-    <DashboardLayout activeMenu="Leads">
+    <DashboardLayout activeMenu="New Leads">
       <div className="p-6 space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>

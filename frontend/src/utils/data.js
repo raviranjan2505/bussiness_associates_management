@@ -17,9 +17,9 @@ import {
 // ── Admin side menu ────────────────────────────────────────────────────────
 export const SIDE_MENU_DATA = [
   { id: 1,  label: "Dashboard",          icon: MdDashboardCustomize, path: "/admin/dashboard" },
-  { id: 2,  label: "Divisions & Services",icon: MdDomain,            path: "/admin/divisions-services" },
+  { id: 2,  label: "Services",           icon: MdDomain,             path: "/admin/divisions-services" },
   { id: 3,  label: "Associates",         icon: MdPeopleAlt,          path: "/admin/users" },
-  { id: 4,  label: "Client List",        icon: MdManageHistory,      path: "/admin/clients" },
+  { id: 4,  label: "All Clients",        icon: MdManageHistory,      path: "/admin/clients" },
   { id: 5,  label: "New Leads",          icon: MdCampaign,           path: "/admin/leads" },
   { id: 6,  label: "Quotations",         icon: MdRequestQuote,       path: "/admin/quotations" },
   { id: 7,  label: "Invoices",           icon: MdReceiptLong,        path: "/admin/invoices" },
@@ -39,7 +39,7 @@ export const ASSOCIATE_SIDE_MENU_DATA = [
   { id: 4,  label: "Quotations",    icon: MdRequestQuote,       path: "/associate/quotations" },
   { id: 5,  label: "Invoices",      icon: MdReceiptLong,        path: "/associate/invoices" },
   { id: 6,  label: "Payments",      icon: MdPayments,           path: "/associate/payments" },
-  { id: 7,  label: "Works",         icon: MdFolderOpen,         path: "/associate/works" },
+  { id: 7,  label: "My Works",         icon: MdFolderOpen,         path: "/associate/works" },
   { id: 8,  label: "Submit Work",   icon: MdOutlineTaskAlt,     path: "/associate/submit-work" },
   { id: 9,  label: "Announcements", icon: MdCampaign,           path: "/associate/announcements" },
   { id: 10, label: "Notifications", icon: MdNotifications,      path: "/associate/notifications" },
