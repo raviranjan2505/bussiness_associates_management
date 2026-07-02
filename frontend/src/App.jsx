@@ -16,6 +16,7 @@ import MyClients from "./pages/associate/MyClients";
 import ClientDetail from "./pages/shared/ClientDetail";
 import ClientLeads from "./pages/shared/ClientLeads";
 import ClientWorksList from "./pages/shared/ClientWorksList";
+import ClientForm from "./pages/shared/ClientForm";
 import ManageUsers from "./pages/admin/ManageUsers";
 import AssociateWorks from "./pages/admin/AssociateWorks";
 import AssociateLeadGroups from "./pages/admin/AssociateLeadGroups";
@@ -67,6 +68,8 @@ const App = () => {
             <Route path="/admin/divisions-services" element={<ManageDivisionsServices />} />
             <Route path="/admin/works" element={<ReviewWorks />} />
             <Route path="/admin/clients" element={<AllClients />} />
+            <Route path="/admin/clients/add" element={<ClientForm />} />
+            <Route path="/admin/clients/:id/edit" element={<ClientForm />} />
             <Route path="/admin/clients/:clientId" element={<ClientDetail />} />
             <Route path="/admin/clients/:clientId/leads" element={<ClientLeads />} />
             <Route path="/admin/clients/:clientId/works" element={<ClientWorksList />} />
@@ -106,6 +109,8 @@ const App = () => {
             <Route path="/associate/leads/:id" element={<AssociateLeadDetails />} />
             <Route path="/associate/works" element={<MyWorks />} />
             <Route path="/associate/clients" element={<MyClients />} />
+            <Route path="/associate/clients/add" element={<ClientForm />} />
+            <Route path="/associate/clients/:id/edit" element={<ClientForm />} />
             <Route path="/associate/clients/:clientId" element={<ClientDetail />} />
             <Route path="/associate/clients/:clientId/leads" element={<ClientLeads />} />
             <Route path="/associate/clients/:clientId/works" element={<ClientWorksList />} />

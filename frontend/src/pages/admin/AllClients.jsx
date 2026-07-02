@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
@@ -10,6 +10,7 @@ const AllClients = () => {
   const [clients, setClients] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
 
   const load = async () => {
     try {
@@ -39,8 +40,22 @@ const AllClients = () => {
     );
   }, [clients, search]);
 
+  const handleDelete = async (clientId, clientName) => {
+    if (!window.confirm(`Delete client "${clientName}"? This cannot be undone.`)) return;
+    setDeletingId(clientId);
+    try {
+      await axiosInstance.delete(`/business/clients/${clientId}`);
+      toast.success("Client deleted");
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Failed to delete client");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
-    <DashboardLayout activeMenu="All Clients">
+    <DashboardLayout activeMenu="Client List">
       <div className="p-6 space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -50,9 +65,13 @@ const AllClients = () => {
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-500">{filtered.length} of {clients.length} clients</span>
             <button onClick={load} disabled={loading}
-              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50">
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
               {loading ? "Loading…" : "Refresh"}
             </button>
+            <Link to="/admin/clients/add"
+              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
+              + Add Client
+            </Link>
           </div>
         </div>
 
@@ -72,28 +91,37 @@ const AllClients = () => {
                 <tr>
                   <th className="px-4 py-3">Client</th>
                   <th className="px-4 py-3">Contact</th>
+                  <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Associate</th>
                   <th className="px-4 py-3">Joined</th>
                   <th className="px-4 py-3 text-center">View Leads</th>
                   <th className="px-4 py-3 text-center">View Works</th>
+                  <th className="px-4 py-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} className="py-12 text-center text-gray-400">Loading clients…</td></tr>
+                  <tr><td colSpan={8} className="py-12 text-center text-gray-400">Loading clients…</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={6} className="py-12 text-center text-gray-400">No clients found.</td></tr>
+                  <tr><td colSpan={8} className="py-12 text-center text-gray-400">No clients found.</td></tr>
                 ) : filtered.map((client) => (
                   <tr key={client._id} className="border-t hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <p className="font-semibold text-gray-900">{client.clientName}</p>
-                      {client.address && (
-                        <p className="text-xs text-gray-400 truncate max-w-[180px]">{client.address}</p>
-                      )}
+                      {client.pan && <p className="text-xs text-gray-400">PAN: {client.pan}</p>}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       <p>{client.mobileNumber || "—"}</p>
                       <p className="text-xs text-gray-400">{client.email || ""}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                        client.clientType === "Business"
+                          ? "bg-purple-50 text-purple-700"
+                          : "bg-blue-50 text-blue-700"
+                      }`}>
+                        {client.clientType || "Individual"}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-900">{client.associate?.name || "—"}</p>
@@ -105,18 +133,31 @@ const AllClients = () => {
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => navigate(`/admin/clients/${client._id}/leads`)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
-                      >
+                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100">
                         📋 View Leads
                       </button>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => navigate(`/admin/clients/${client._id}/works`)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
-                      >
+                        className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">
                         🗂️ View Works
                       </button>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-3">
+                        <Link
+                          to={`/admin/clients/${client._id}/edit`}
+                          className="text-xs font-medium text-blue-700 hover:underline">
+                          Edit
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(client._id, client.clientName)}
+                          disabled={deletingId === client._id}
+                          className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50">
+                          {deletingId === client._id ? "Deleting…" : "Delete"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

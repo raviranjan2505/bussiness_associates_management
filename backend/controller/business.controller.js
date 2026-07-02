@@ -689,12 +689,110 @@ export const listClients = async (req, res, next) => {
 
 export const createClient = async (req, res, next) => {
   try {
-    const { clientName, mobileNumber, email, address, associateId } = req.body;
-    if (!clientName) return next(errorHandler(400, "Client name is required"));
+    const { clientName, mobileNumber, email, address, clientType, aadhaarNumber, pan, associateId } = req.body;
+
+    // Validation
+    if (!clientName?.trim()) return next(errorHandler(400, "Full name is required"));
+    if (!mobileNumber?.trim()) return next(errorHandler(400, "Mobile number is required"));
+    if (!/^[0-9]{10}$/.test(mobileNumber.trim())) return next(errorHandler(400, "Mobile number must be exactly 10 digits"));
+    if (!aadhaarNumber?.trim()) return next(errorHandler(400, "Aadhaar number is required"));
+    if (!/^[0-9]{12}$/.test(aadhaarNumber.trim())) return next(errorHandler(400, "Aadhaar number must be exactly 12 digits"));
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return next(errorHandler(400, "Invalid email address"));
+    if (pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan.trim().toUpperCase())) return next(errorHandler(400, "Invalid PAN number format (e.g. ABCDE1234F)"));
 
     const ownerId = req.user.role === "admin" && associateId ? associateId : req.user.id;
-    const client = await upsertClientRecord(ownerId, { clientName, mobileNumber, email, address });
-    res.status(201).json({ message: "Client saved", client });
+
+    // Check mobile uniqueness per associate
+    const existing = await Client.findOne({ associate: ownerId, mobileNumber: mobileNumber.trim() });
+    if (existing) return next(errorHandler(409, "A client with this mobile number already exists"));
+
+    const client = await Client.create({
+      associate: ownerId,
+      clientName: clientName.trim(),
+      mobileNumber: mobileNumber.trim(),
+      email: email?.trim().toLowerCase() || undefined,
+      address: address?.trim() || undefined,
+      clientType: clientType || "Individual",
+      aadhaarNumber: aadhaarNumber.trim(),
+      pan: pan ? pan.trim().toUpperCase() : null,
+    });
+
+    await client.populate("associate", "name email");
+    res.status(201).json({ message: "Client saved successfully", client });
+  } catch (error) {
+    if (error.code === 11000) return next(errorHandler(409, "A client with this mobile number already exists"));
+    next(error);
+  }
+};
+
+export const getClient = async (req, res, next) => {
+  try {
+    const client = await Client.findById(req.params.id).populate("associate", "name email");
+    if (!client) return next(errorHandler(404, "Client not found"));
+    // Associates can only view their own clients; admins can view all
+    if (req.user.role !== "admin" && String(client.associate._id || client.associate) !== req.user.id) {
+      return next(errorHandler(403, "Access denied"));
+    }
+    res.status(200).json({ client });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateClient = async (req, res, next) => {
+  try {
+    const client = await Client.findById(req.params.id);
+    if (!client) return next(errorHandler(404, "Client not found"));
+
+    // Only the creating associate (or admin) can edit
+    if (req.user.role !== "admin" && String(client.associate) !== req.user.id) {
+      return next(errorHandler(403, "You can only edit clients you have created"));
+    }
+
+    const { clientName, mobileNumber, email, address, clientType, aadhaarNumber, pan } = req.body;
+
+    // Validation
+    if (clientName !== undefined && !clientName?.trim()) return next(errorHandler(400, "Full name is required"));
+    if (mobileNumber !== undefined && !/^[0-9]{10}$/.test(mobileNumber.trim())) return next(errorHandler(400, "Mobile number must be exactly 10 digits"));
+    if (aadhaarNumber !== undefined && !/^[0-9]{12}$/.test(aadhaarNumber.trim())) return next(errorHandler(400, "Aadhaar number must be exactly 12 digits"));
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return next(errorHandler(400, "Invalid email address"));
+    if (pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan.trim().toUpperCase())) return next(errorHandler(400, "Invalid PAN number format"));
+
+    // Check mobile uniqueness if changed
+    if (mobileNumber && mobileNumber.trim() !== client.mobileNumber) {
+      const dup = await Client.findOne({ associate: client.associate, mobileNumber: mobileNumber.trim(), _id: { $ne: client._id } });
+      if (dup) return next(errorHandler(409, "A client with this mobile number already exists"));
+    }
+
+    if (clientName !== undefined) client.clientName = clientName.trim();
+    if (mobileNumber !== undefined) client.mobileNumber = mobileNumber.trim();
+    if (email !== undefined) client.email = email?.trim().toLowerCase() || undefined;
+    if (address !== undefined) client.address = address?.trim() || undefined;
+    if (clientType !== undefined) client.clientType = clientType;
+    if (aadhaarNumber !== undefined) client.aadhaarNumber = aadhaarNumber.trim();
+    if (pan !== undefined) client.pan = pan ? pan.trim().toUpperCase() : null;
+
+    await client.save();
+    await client.populate("associate", "name email");
+    res.status(200).json({ message: "Client updated successfully", client });
+  } catch (error) {
+    if (error.code === 11000) return next(errorHandler(409, "A client with this mobile number already exists"));
+    next(error);
+  }
+};
+
+export const deleteClient = async (req, res, next) => {
+  try {
+    const client = await Client.findById(req.params.id);
+    if (!client) return next(errorHandler(404, "Client not found"));
+
+    // Only the creating associate (or admin) can delete
+    if (req.user.role !== "admin" && String(client.associate) !== req.user.id) {
+      return next(errorHandler(403, "You can only delete clients you have created"));
+    }
+
+    await client.deleteOne();
+    res.status(200).json({ message: "Client deleted successfully" });
   } catch (error) {
     next(error);
   }
