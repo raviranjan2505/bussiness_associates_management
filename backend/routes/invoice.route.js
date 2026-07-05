@@ -2,6 +2,7 @@ import express from "express";
 import { verifyToken, adminOnly } from "../utils/verifyUser.js";
 import {
   listInvoices,
+  getInvoiceSummary,
   getInvoice,
   downloadInvoicePdf,
   downloadClientInvoicePdf,
@@ -13,6 +14,7 @@ import {
 const router = express.Router();
 
 router.get("/", verifyToken, listInvoices);
+router.get("/summary", verifyToken, getInvoiceSummary);
 router.get("/:id", verifyToken, getInvoice);
 router.get("/:id/pdf", verifyToken, downloadInvoicePdf);
 router.get("/:id/pdf/client", verifyToken, downloadClientInvoicePdf);

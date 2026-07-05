@@ -17,6 +17,7 @@ import {
   listDivisions,
   listClients,
   listNotifications,
+  getUnreadNotificationCount,
   listServices,
   listWorks,
   groupWorksByClientForAssociate,
@@ -60,6 +61,7 @@ router.get("/dashboard/admin", verifyToken, adminOnly, adminDashboard);
 router.get("/dashboard/associate", verifyToken, associateDashboard);
 
 router.get("/notifications", verifyToken, listNotifications);
+router.get("/notifications/unread-count", verifyToken, getUnreadNotificationCount);
 router.patch("/notifications/:id/read", verifyToken, markNotificationRead);
 
 export default router;

@@ -15,16 +15,26 @@ const populateInvoice = (query) =>
     .populate("associate", "name email profileImageUrl")
     .populate("quotation", "quotationNumber");
 
+// Shared by listInvoices and getInvoiceSummary so the date range applied to
+// the table and to the summary cards always stays perfectly in sync.
+const buildInvoiceBaseFilter = (req) => {
+  const { from, to } = req.query;
+  const filter = {};
+
+  if (req.user.role !== "admin") filter.associate = req.user.id;
+  if (from || to) filter.createdAt = {};
+  if (from) filter.createdAt.$gte = new Date(from);
+  if (to) filter.createdAt.$lte = new Date(to);
+
+  return filter;
+};
+
 export const listInvoices = async (req, res, next) => {
   try {
-    const { invoiceStatus, search, from, to } = req.query;
-    const filter = {};
+    const { invoiceStatus, search } = req.query;
+    const filter = buildInvoiceBaseFilter(req);
 
-    if (req.user.role !== "admin") filter.associate = req.user.id;
     if (invoiceStatus && INVOICE_STATUSES.includes(invoiceStatus)) filter.invoiceStatus = invoiceStatus;
-    if (from || to) filter.createdAt = {};
-    if (from) filter.createdAt.$gte = new Date(from);
-    if (to) filter.createdAt.$lte = new Date(to);
     if (search) {
       filter.$or = [
         { invoiceNumber: new RegExp(search, "i") },
@@ -35,6 +45,31 @@ export const listInvoices = async (req, res, next) => {
 
     const invoices = await populateInvoice(Invoice.find(filter)).sort({ createdAt: -1 });
     res.status(200).json({ invoices });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Summary cards for the Admin Invoices page (Total / Paid / Partially Paid /
+// Pending). Only the date range (from/to) affects this — search and status
+// filters on the list stay independent, exactly as before.
+export const getInvoiceSummary = async (req, res, next) => {
+  try {
+    const filter = buildInvoiceBaseFilter(req);
+
+    const [totalInvoices, paidInvoices, partiallyPaidInvoices, pendingInvoices] = await Promise.all([
+      Invoice.countDocuments(filter),
+      Invoice.countDocuments({ ...filter, invoiceStatus: "Paid" }),
+      Invoice.countDocuments({ ...filter, invoiceStatus: "Partially Paid" }),
+      Invoice.countDocuments({
+        ...filter,
+        invoiceStatus: { $in: ["Generated", "Waiting For Payment", "Overdue"] },
+      }),
+    ]);
+
+    res.status(200).json({
+      summary: { totalInvoices, paidInvoices, partiallyPaidInvoices, pendingInvoices },
+    });
   } catch (error) {
     next(error);
   }

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { MdClose, MdMenu } from "react-icons/md";
 import SideMenu from "./SideMenu";
+import NotificationBell from "./NotificationBell";
 
 const Navbar = ({ activeMenu }) => {
   const [openSideMenu, setOpenSideMenu] = useState(false);
@@ -21,7 +22,7 @@ const Navbar = ({ activeMenu }) => {
           Indian Money Master
         </h2>
 
-        <div className="w-10"></div>
+        <NotificationBell />
       </div>
 
       {openSideMenu && (
@@ -40,7 +41,7 @@ const Navbar = ({ activeMenu }) => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-y-auto scroll-smooth">
               <SideMenu activeMenu={activeMenu} />
             </div>
           </div>

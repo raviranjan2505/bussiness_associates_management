@@ -30,9 +30,16 @@ const notificationSchema = new mongoose.Schema(
         "Complaint Created",
         "Complaint Replied",
         "Complaint Resolved",
+        // Already emitted by invoice.controller.js but was missing from this
+        // enum, which caused Notification.create() to fail validation.
+        "Invoice Cancelled",
       ],
       required: true,
     },
+    // Was already being passed by lead.controller.js's notify() calls but had
+    // no matching schema field, so it was silently dropped — this is what
+    // makes "Lead Submitted" / lead-related notifications clickable.
+    lead: { type: mongoose.Schema.Types.ObjectId, ref: "Lead" },
     workSubmission: { type: mongoose.Schema.Types.ObjectId, ref: "WorkSubmission" },
     quotation: { type: mongoose.Schema.Types.ObjectId, ref: "Quotation" },
     invoice: { type: mongoose.Schema.Types.ObjectId, ref: "Invoice" },

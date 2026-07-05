@@ -1283,6 +1283,17 @@ export const listNotifications = async (req, res, next) => {
   }
 };
 
+// Used by the notification bell badge — kept as a lightweight count-only
+// query so it can be polled frequently without pulling full notification data.
+export const getUnreadNotificationCount = async (req, res, next) => {
+  try {
+    const count = await Notification.countDocuments({ user: req.user.id, read: false });
+    res.status(200).json({ count });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const markNotificationRead = async (req, res, next) => {
   try {
     await Notification.findOneAndUpdate({ _id: req.params.id, user: req.user.id }, { read: true });
