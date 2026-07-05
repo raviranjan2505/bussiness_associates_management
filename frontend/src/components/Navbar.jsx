@@ -1,45 +1,53 @@
-import React, { useState } from "react"
-import { MdClose, MdMenu } from "react-icons/md"
-import SideMenu from "./SideMenu"
+import React, { useState } from "react";
+import { MdClose, MdMenu } from "react-icons/md";
+import SideMenu from "./SideMenu";
 
 const Navbar = ({ activeMenu }) => {
-  const [openSideMenu, setOpenSideMenu] = useState(false)
+  const [openSideMenu, setOpenSideMenu] = useState(false);
 
   return (
-    <div className="bg-white shadow-sm sticky top-0 z-10 p-4 flex items-center justify-between">
-      <div className="flex items-center space-x-4">
-        <button
-          className="p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors lg:hidden"
-          onClick={() => setOpenSideMenu(!openSideMenu)}
-        >
-          {openSideMenu ? (
-            <MdClose className="text-2xl" />
-          ) : (
+    <>
+      <div className="sticky top-0 z-40 h-16 bg-white shadow-sm flex items-center justify-between px-4">
+        <div className="flex items-center">
+          <button
+            className="lg:hidden p-2 rounded-md hover:bg-gray-100"
+            onClick={() => setOpenSideMenu(true)}
+          >
             <MdMenu className="text-2xl" />
-          )}
-        </button>
+          </button>
+        </div>
+
+        <h2 className="text-xl font-semibold text-gray-800">
+          Indian Money Master
+        </h2>
+
+        <div className="w-10"></div>
       </div>
 
-      <h2 className="text-xl font-semibold text-gray-800">Indian Money Master</h2>
-
       {openSideMenu && (
-        <div className="fixed inset-0 z-40 flex lg:hidden">
-          <div className="relative z-50 w-72 h-full bg-white shadow-xl">
-            <button
-              className="absolute top-4 right-4 p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors"
-              onClick={() => setOpenSideMenu(false)}
-            >
-              <MdClose className="text-2xl" />
-            </button>
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setOpenSideMenu(false)}
+          />
 
-            <div className="pt-16">
+          {/* Sidebar */}
+          <div className="relative w-64 h-full bg-white shadow-xl flex flex-col">
+            <div className="flex justify-end p-4 border-b">
+              <button onClick={() => setOpenSideMenu(false)}>
+                <MdClose className="text-2xl" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-hidden">
               <SideMenu activeMenu={activeMenu} />
             </div>
           </div>
         </div>
       )}
-    </div>
-  )
-}
+    </>
+  );
+};
 
-export default Navbar
+export default Navbar;
