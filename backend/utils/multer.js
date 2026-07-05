@@ -11,6 +11,8 @@ const storage = multer.diskStorage({
 
     if (req.originalUrl.includes("/create")) {
       uploadPath = path.join(__dirname, "uploads", "attachments");
+    } else if (req.originalUrl.includes("/submit") && req.originalUrl.includes("/kyc")) {
+      uploadPath = path.join(__dirname, "uploads", "kyc");
     } else if (req.originalUrl.includes("/submit")) {
       uploadPath = path.join(__dirname, "uploads", "userFiles");
     } else if(req.originalUrl.includes("/add-details") || req.originalUrl.includes("/business/works")) {

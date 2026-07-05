@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import axiosInstance from "../utils/axioInstance"
 import { signOutSuccess } from "../redux/slice/userSlice"
-import { ASSOCIATE_SIDE_MENU_DATA, SIDE_MENU_DATA } from "../utils/data"
+import { ASSOCIATE_SIDE_MENU_DATA, ASSOCIATE_KYC_ALLOWED_PATHS, SIDE_MENU_DATA } from "../utils/data"
 import ProfileDropdown from "./ProfileDropdown"
 
 const SideMenu = ({ activeMenu }) => {
@@ -35,7 +35,17 @@ const SideMenu = ({ activeMenu }) => {
         setSideMenuData(SIDE_MENU_DATA);
       }
       else if(currentUser.role === "associate"){
-        setSideMenuData(ASSOCIATE_SIDE_MENU_DATA);
+        // Until KYC is Approved, only show Dashboard, Commission Calculator,
+        // Submit KYC, and Logout — everything else stays locked.
+        if (currentUser.kycStatus && currentUser.kycStatus !== "Approved") {
+          setSideMenuData(
+            ASSOCIATE_SIDE_MENU_DATA.filter(
+              (item) => item.path === "logout" || ASSOCIATE_KYC_ALLOWED_PATHS.includes(item.path)
+            )
+          );
+        } else {
+          setSideMenuData(ASSOCIATE_SIDE_MENU_DATA);
+        }
       } else {
         setSideMenuData([]);
       }
@@ -53,9 +63,22 @@ const SideMenu = ({ activeMenu }) => {
         )}
 
         {currentUser?.role === "associate" && (
-          <div className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mt-2">
-            Associate
-          </div>
+          <>
+            <div className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mt-2">
+              Associate
+            </div>
+            {currentUser?.kycStatus && currentUser.kycStatus !== "Approved" && (
+              <div
+                className={`text-xs font-semibold px-2.5 py-0.5 rounded-full mt-2 ${
+                  currentUser.kycStatus === "Rejected"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-amber-100 text-amber-700"
+                }`}
+              >
+                KYC {currentUser.kycStatus}
+              </div>
+            )}
+          </>
         )}
 
         <h5 className="text-lg font-semibold text-gray-800 mt-1">

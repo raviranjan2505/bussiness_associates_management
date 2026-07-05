@@ -37,6 +37,8 @@ import AdminComplaints from "./pages/admin/Complaints";
 import Leads from "./pages/admin/Leads";
 import LeadDetails from "./pages/admin/LeadDetails";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
+import KycRequests from "./pages/admin/KycRequests";
+import KycDetails from "./pages/admin/KycDetails";
 
 // Associate pages
 import AssociateDashboard from "./pages/associate/AssociateDashboard";
@@ -49,6 +51,7 @@ import AssociateComplaints from "./pages/associate/AssociateComplaints";
 import MyLeads from "./pages/associate/MyLeads";
 import Announcements from "./pages/associate/Announcements";
 import AssociateLeadDetails from "./pages/associate/LeadDetails";
+import SubmitKyc from "./pages/associate/SubmitKyc";
 
 // Shared pages
 import WorkDetails from "./pages/shared/WorkDetails";
@@ -57,6 +60,7 @@ import Notifications from "./pages/shared/Notifications";
 import QuotationDetail from "./pages/shared/QuotationDetail";
 import InvoiceDetail from "./pages/shared/InvoiceDetail";
 import ComplaintDetail from "./pages/shared/ComplaintDetail";
+import CommissionCalculator from "./pages/shared/CommissionCalculator";
 
 import PrivateRoute from "./routes/PrivateRoute";
 
@@ -110,6 +114,11 @@ const App = () => {
             <Route path="/admin/complaints/:id" element={<ComplaintDetail />} />
             {/* Announcements */}
             <Route path="/admin/announcements" element={<ManageAnnouncements />} />
+            {/* Commission Calculator */}
+            <Route path="/admin/commission-calculator" element={<CommissionCalculator />} />
+            {/* KYC Requests */}
+            <Route path="/admin/kyc-requests" element={<KycRequests />} />
+            <Route path="/admin/kyc-requests/:userId" element={<KycDetails />} />
           </Route>
 
           {/* ── Associate routes ──────────────────────────── */}
@@ -142,6 +151,10 @@ const App = () => {
             {/* Complaints */}
             <Route path="/associate/complaints" element={<AssociateComplaints />} />
             <Route path="/associate/complaints/:id" element={<ComplaintDetail />} />
+            {/* Commission Calculator */}
+            <Route path="/associate/commission-calculator" element={<CommissionCalculator />} />
+            {/* Submit KYC */}
+            <Route path="/associate/submit-kyc" element={<SubmitKyc />} />
           </Route>
 
           <Route path="/" element={<Root />} />

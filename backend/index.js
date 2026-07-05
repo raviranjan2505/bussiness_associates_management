@@ -17,6 +17,7 @@ import payoutRoutes from "./routes/payout.route.js";
 import complaintRoutes from "./routes/complaint.route.js";
 import announcementRoutes from "./routes/announcement.route.js";
 import leadRoutes from "./routes/lead.route.js";
+import kycRoutes from "./routes/kyc.route.js";
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/payouts", payoutRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/announcements", announcementRoutes);
+app.use("/api/kyc", kycRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

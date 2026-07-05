@@ -42,6 +42,9 @@ export const signup = async (req, res, next) => {
     password: hashedPassword,
     profileImageUrl,
     role,
+    // Admins are auto-approved; new associates always start as "Pending KYC"
+    // until an admin reviews their KYC submission.
+    kycStatus: role === "admin" ? "Approved" : "Pending",
   })
 
   try {

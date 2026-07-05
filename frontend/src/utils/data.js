@@ -13,6 +13,9 @@ import {
   MdLogout,
   MdOutlineTaskAlt,
   MdCurrencyRupee,
+  MdCalculate,
+  MdAssignmentInd,
+  MdVerifiedUser,
 } from "react-icons/md";
 
 // ── Admin side menu ────────────────────────────────────────────────────────
@@ -20,34 +23,47 @@ export const SIDE_MENU_DATA = [
   { id: 1,  label: "Dashboard",           icon: MdDashboardCustomize, path: "/admin/dashboard" },
   { id: 2,  label: "Divisions & Services",icon: MdDomain,             path: "/admin/divisions-services" },
   { id: 3,  label: "Associates",          icon: MdPeopleAlt,          path: "/admin/users" },
-  { id: 4,  label: "Client List",         icon: MdManageHistory,      path: "/admin/clients" },
-  { id: 5,  label: "New Leads",           icon: MdCampaign,           path: "/admin/leads" },
-  { id: 6,  label: "Quotations",          icon: MdRequestQuote,       path: "/admin/quotations" },
-  { id: 7,  label: "Invoices",            icon: MdReceiptLong,        path: "/admin/invoices" },
-  { id: 8,  label: "Payments",            icon: MdPayments,           path: "/admin/payments" },
-  { id: 9,  label: "Income",              icon: MdCurrencyRupee,      path: "/admin/income" },
-  { id: 10, label: "Work",                icon: MdFolderOpen,         path: "/admin/projects" },
-  { id: 11, label: "Announcements",       icon: MdCampaign,           path: "/admin/announcements" },
-  { id: 12, label: "Notifications",       icon: MdNotifications,      path: "/admin/notifications" },
-  { id: 13, label: "Complaints",          icon: MdBugReport,          path: "/admin/complaints" },
-  { id: 14, label: "Logout",              icon: MdLogout,             path: "logout" },
+  { id: 4,  label: "KYC Requests",        icon: MdVerifiedUser,       path: "/admin/kyc-requests" },
+  { id: 5,  label: "Client List",         icon: MdManageHistory,      path: "/admin/clients" },
+  { id: 6,  label: "New Leads",           icon: MdCampaign,           path: "/admin/leads" },
+  { id: 7,  label: "Quotations",          icon: MdRequestQuote,       path: "/admin/quotations" },
+  { id: 8,  label: "Invoices",            icon: MdReceiptLong,        path: "/admin/invoices" },
+  { id: 9,  label: "Payments",            icon: MdPayments,           path: "/admin/payments" },
+  { id: 10, label: "Income",              icon: MdCurrencyRupee,      path: "/admin/income" },
+  { id: 11, label: "Work",                icon: MdFolderOpen,         path: "/admin/projects" },
+  { id: 12, label: "Commission Calculator", icon: MdCalculate,        path: "/admin/commission-calculator" },
+  { id: 13, label: "Announcements",       icon: MdCampaign,           path: "/admin/announcements" },
+  { id: 14, label: "Notifications",       icon: MdNotifications,      path: "/admin/notifications" },
+  { id: 15, label: "Complaints",          icon: MdBugReport,          path: "/admin/complaints" },
+  { id: 16, label: "Logout",              icon: MdLogout,             path: "logout" },
 ];
 
 // ── Associate side menu ───────────────────────────────────────────────────
 export const ASSOCIATE_SIDE_MENU_DATA = [
   { id: 1,  label: "Dashboard",     icon: MdDashboardCustomize, path: "/associate/dashboard" },
-  { id: 2,  label: "Client List",   icon: MdManageHistory,      path: "/associate/clients" },
-  { id: 3,  label: "My Leads",      icon: MdCampaign,           path: "/associate/leads" },
-  { id: 4,  label: "Quotations",    icon: MdRequestQuote,       path: "/associate/quotations" },
-  { id: 5,  label: "Invoices",      icon: MdReceiptLong,        path: "/associate/invoices" },
-  { id: 6,  label: "Payments",      icon: MdPayments,           path: "/associate/payments" },
-  { id: 7,  label: "Income",        icon: MdCurrencyRupee,      path: "/associate/income" },
-  { id: 8,  label: "Works",         icon: MdFolderOpen,         path: "/associate/works" },
-  { id: 9,  label: "Submit Work",   icon: MdOutlineTaskAlt,     path: "/associate/submit-work" },
-  { id: 10, label: "Announcements", icon: MdCampaign,           path: "/associate/announcements" },
-  { id: 11, label: "Notifications", icon: MdNotifications,      path: "/associate/notifications" },
-  { id: 12, label: "Complaints",    icon: MdBugReport,          path: "/associate/complaints" },
-  { id: 13, label: "Logout",        icon: MdLogout,             path: "logout" },
+  { id: 2,  label: "Submit KYC",    icon: MdAssignmentInd,      path: "/associate/submit-kyc" },
+  { id: 3,  label: "Client List",   icon: MdManageHistory,      path: "/associate/clients" },
+  { id: 4,  label: "My Leads",      icon: MdCampaign,           path: "/associate/leads" },
+  { id: 5,  label: "Quotations",    icon: MdRequestQuote,       path: "/associate/quotations" },
+  { id: 6,  label: "Invoices",      icon: MdReceiptLong,        path: "/associate/invoices" },
+  { id: 7,  label: "Payments",      icon: MdPayments,           path: "/associate/payments" },
+  { id: 8,  label: "Income",        icon: MdCurrencyRupee,      path: "/associate/income" },
+  { id: 9,  label: "Works",         icon: MdFolderOpen,         path: "/associate/works" },
+  { id: 10, label: "Submit Work",   icon: MdOutlineTaskAlt,     path: "/associate/submit-work" },
+  { id: 11, label: "Commission Calculator", icon: MdCalculate,  path: "/associate/commission-calculator" },
+  { id: 12, label: "Announcements", icon: MdCampaign,           path: "/associate/announcements" },
+  { id: 13, label: "Notifications", icon: MdNotifications,      path: "/associate/notifications" },
+  { id: 14, label: "Complaints",    icon: MdBugReport,          path: "/associate/complaints" },
+  { id: 15, label: "Logout",        icon: MdLogout,             path: "logout" },
+];
+
+// ── KYC access control ─────────────────────────────────────────────────────
+// Paths an associate may visit while their KYC is "Pending" or "Rejected".
+// Everything else redirects to the Submit KYC page until an admin approves it.
+export const ASSOCIATE_KYC_ALLOWED_PATHS = [
+  "/associate/dashboard",
+  "/associate/commission-calculator",
+  "/associate/submit-kyc",
 ];
 
 export const STATUS_DATA = [
