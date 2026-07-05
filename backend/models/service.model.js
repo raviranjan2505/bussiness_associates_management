@@ -36,6 +36,17 @@ const serviceSchema = new mongoose.Schema(
     description: { type: String, trim: true },
     division: { type: mongoose.Schema.Types.ObjectId, ref: "Division", required: true },
     price: { type: Number, required: true, min: 0 },
+    // Commission configuration (admin-controlled) ---------------------------
+    // - "Percentage"  -> commissionValue is a % of the service price
+    // - "Fixed Amount"-> commissionValue is a flat rupee amount
+    // - "Loan Based"  -> service price stays ₹0; commissionValue is a % that
+    //                    gets applied to the Loan Amount entered on the work
+    commissionType: {
+      type: String,
+      enum: ["Fixed Amount", "Percentage", "Loan Based"],
+      default: "Percentage",
+    },
+    commissionValue: { type: Number, default: 20, min: 0 },
     associateEarningPercent: { type: Number, default: 20, min: 0, max: 100 },
     associateEarningAmount: { type: Number, required: true, min: 0 },
     fields: [formFieldSchema],

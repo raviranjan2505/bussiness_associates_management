@@ -62,6 +62,9 @@ const workSubmissionSchema = new mongoose.Schema(
     servicePrice: { type: Number, min: 0 },
     associateEarningPercent: { type: Number, default: 20, min: 0, max: 100 },
     associateEarningAmount: { type: Number, min: 0 },
+    // Only set for "Loan Based" commission services — the Loan Amount the
+    // associate entered while creating the work. Service charge stays ₹0.
+    loanAmount: { type: Number, default: 0, min: 0 },
     leadId: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", index: true },
     quotationId: { type: mongoose.Schema.Types.ObjectId, ref: "Quotation", index: true },
     invoiceId: { type: mongoose.Schema.Types.ObjectId, ref: "Invoice", index: true },

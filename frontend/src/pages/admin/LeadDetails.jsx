@@ -153,6 +153,7 @@ const LeadDetails = ({ activeMenu = "New Leads" }) => {
                     <th className="p-3">#</th>
                     <th className="p-3">Service</th>
                     <th className="p-3 text-right">Price</th>
+                    <th className="p-3 text-right">Loan Amount</th>
                     <th className="p-3 text-right">Earning</th>
                     <th className="p-3">Documents</th>
                   </tr>
@@ -163,6 +164,9 @@ const LeadDetails = ({ activeMenu = "New Leads" }) => {
                       <td className="p-3 text-gray-500">{i + 1}</td>
                       <td className="p-3 font-medium text-gray-900">{svc.name}</td>
                       <td className="p-3 text-right text-gray-700">{formatMoney(svc.price)}</td>
+                      <td className="p-3 text-right text-gray-700">
+                        {svc.loanAmount > 0 ? formatMoney(svc.loanAmount) : "—"}
+                      </td>
                       <td className="p-3 text-right text-gray-700">{formatMoney(svc.associateEarningAmount)}</td>
                       <td className="p-3 text-gray-600">{svc.documents?.length || 0} file(s)</td>
                     </tr>
@@ -173,6 +177,9 @@ const LeadDetails = ({ activeMenu = "New Leads" }) => {
                     <td colSpan={2} className="p-3 text-gray-700">Total</td>
                     <td className="p-3 text-right text-gray-900">
                       {formatMoney(serviceList.reduce((s, x) => s + Number(x.price || 0), 0))}
+                    </td>
+                    <td className="p-3 text-right text-gray-900">
+                      {formatMoney(serviceList.reduce((s, x) => s + Number(x.loanAmount || 0), 0))}
                     </td>
                     <td className="p-3 text-right text-gray-900">
                       {formatMoney(serviceList.reduce((s, x) => s + Number(x.associateEarningAmount || 0), 0))}
@@ -194,6 +201,12 @@ const LeadDetails = ({ activeMenu = "New Leads" }) => {
                 <p className="text-xs uppercase text-gray-500">Service Price</p>
                 <p className="font-medium text-gray-900">{formatMoney(lead.servicePrice)}</p>
               </div>
+              {lead.loanAmount > 0 && (
+                <div className="rounded-lg bg-gray-50 p-3">
+                  <p className="text-xs uppercase text-gray-500">Loan Amount</p>
+                  <p className="font-medium text-gray-900">{formatMoney(lead.loanAmount)}</p>
+                </div>
+              )}
               <div className="rounded-lg bg-gray-50 p-3">
                 <p className="text-xs uppercase text-gray-500">Associate Earning</p>
                 <p className="font-medium text-gray-900">{formatMoney(lead.associateEarningAmount)}</p>

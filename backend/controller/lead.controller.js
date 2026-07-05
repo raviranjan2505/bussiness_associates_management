@@ -203,6 +203,7 @@ export const createLeadQuotation = async (req, res, next) => {
         amount: Number(svc.amount || svc.price || 0),
         associateEarningPercent: svc.associateEarningPercent ?? lead.associateEarningPercent ?? 0,
         associateEarningAmount: svc.associateEarningAmount ?? 0,
+        loanAmount: svc.loanAmount ?? 0,
       }));
     } else {
       // Legacy single-service lead — use body services if provided, else derive from lead
@@ -225,6 +226,7 @@ export const createLeadQuotation = async (req, res, next) => {
             amount: servicePrice,
             associateEarningPercent: lead.associateEarningPercent || 0,
             associateEarningAmount: lead.associateEarningAmount || 0,
+            loanAmount: lead.loanAmount || 0,
           },
         ];
       }

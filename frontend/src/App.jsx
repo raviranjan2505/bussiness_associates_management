@@ -23,6 +23,12 @@ import AssociateLeadGroups from "./pages/admin/AssociateLeadGroups";
 import AssociateClientLeads from "./pages/admin/AssociateClientLeads";
 import AssociateClientWorks from "./pages/admin/AssociateClientWorks";
 import AdminQuotations from "./pages/admin/Quotations";
+import AdminIncome from "./pages/admin/AdminIncome";
+import AdminIncomeClients from "./pages/admin/AdminIncomeClients";
+import AdminIncomeWorks from "./pages/admin/AdminIncomeWorks";
+import ManagePayout from "./pages/admin/ManagePayout";
+import AssociateIncome from "./pages/associate/AssociateIncome";
+import AssociateIncomeWorks from "./pages/associate/AssociateIncomeWorks";
 import CreateQuotation from "./pages/admin/CreateQuotation";
 import AdminInvoices from "./pages/admin/Invoices";
 import AdminPayments from "./pages/admin/Payments";
@@ -67,6 +73,11 @@ const App = () => {
             <Route path="/admin/dashboard" element={<BusinessDashboard />} />
             <Route path="/admin/divisions-services" element={<ManageDivisionsServices />} />
             <Route path="/admin/works" element={<ReviewWorks />} />
+            {/* Income & Payout */}
+            <Route path="/admin/income" element={<AdminIncome />} />
+            <Route path="/admin/income/:associateId/clients" element={<AdminIncomeClients />} />
+            <Route path="/admin/income/:associateId/clients/:clientName/works" element={<AdminIncomeWorks />} />
+            <Route path="/admin/income/payout/:invoiceId" element={<ManagePayout />} />
             <Route path="/admin/clients" element={<AllClients />} />
             <Route path="/admin/clients/add" element={<ClientForm />} />
             <Route path="/admin/clients/:id/edit" element={<ClientForm />} />
@@ -108,6 +119,9 @@ const App = () => {
             <Route path="/associate/leads" element={<MyLeads />} />
             <Route path="/associate/leads/:id" element={<AssociateLeadDetails />} />
             <Route path="/associate/works" element={<MyWorks />} />
+            {/* Income */}
+            <Route path="/associate/income" element={<AssociateIncome />} />
+            <Route path="/associate/income/:clientName/works" element={<AssociateIncomeWorks />} />
             <Route path="/associate/clients" element={<MyClients />} />
             <Route path="/associate/clients/add" element={<ClientForm />} />
             <Route path="/associate/clients/:id/edit" element={<ClientForm />} />

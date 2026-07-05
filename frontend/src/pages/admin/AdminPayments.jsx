@@ -131,6 +131,7 @@ const AdminPayments = () => {
                   <th className="p-3">Date</th>
                   <th className="p-3">Method</th>
                   <th className="p-3 text-right">Amount</th>
+                  <th className="p-3 text-right">Commission</th>
                   <th className="p-3">Txn ID</th>
                   <th className="p-3">Status</th>
                   <th className="p-3">Actions</th>
@@ -143,6 +144,9 @@ const AdminPayments = () => {
                     <td className="p-3">{moment(p.paymentDate).format("DD MMM YYYY")}</td>
                     <td className="p-3">{p.paymentMethod}</td>
                     <td className="p-3 text-right font-medium">{formatMoney(p.amount)}</td>
+                    <td className="p-3 text-right font-medium text-emerald-700">
+                      {formatMoney((p.invoice?.services || []).reduce((s, sv) => s + Number(sv.associateEarningAmount || 0), 0))}
+                    </td>
                     <td className="p-3 text-xs text-gray-500">{p.transactionId || "—"}</td>
                     <td className="p-3"><StatusBadge status={p.status} /></td>
                     <td className="p-3 flex gap-2 flex-wrap">
@@ -161,7 +165,7 @@ const AdminPayments = () => {
                   </tr>
                 ))}
                 {!payments.length && (
-                  <tr><td className="p-4 text-gray-500" colSpan={7}>No payments found.</td></tr>
+                  <tr><td className="p-4 text-gray-500" colSpan={8}>No payments found.</td></tr>
                 )}
               </tbody>
             </table>

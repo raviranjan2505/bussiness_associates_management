@@ -13,6 +13,7 @@ const AssociateQuotations = () => {
   const [quotations, setQuotations] = useState([]);
   const [filters, setFilters] = useState({ search: "", status: params.get("status") || "" });
   const [loading, setLoading] = useState(false);
+  const [actingId, setActingId] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -31,6 +32,43 @@ const AssociateQuotations = () => {
 
   const downloadPdf = (id) =>
     window.open(`${axiosInstance.defaults.baseURL}/quotations/${id}/pdf`, "_blank");
+
+  // ── Accept a quotation directly from the list ──────────────────────────
+  const acceptQuotation = async (id) => {
+    setActingId(id);
+    try {
+      const res = await axiosInstance.post(`/quotations/${id}/accept`);
+      toast.success("Quotation accepted — invoice generated");
+      const updated = res.data.quotation;
+      setQuotations((prev) =>
+        prev.map((q) => (q._id === id ? { ...q, status: updated?.status || "Accepted" } : q))
+      );
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Failed to accept quotation");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  // ── Reject a quotation directly from the list ──────────────────────────
+  const rejectQuotation = async (id) => {
+    const rejectionReason = window.prompt("Please provide a reason for rejecting this quotation:");
+    if (rejectionReason === null) return; // cancelled
+    if (!rejectionReason.trim()) return toast.error("Rejection reason is required");
+    setActingId(id);
+    try {
+      const res = await axiosInstance.post(`/quotations/${id}/reject`, { rejectionReason });
+      toast.success("Quotation rejected");
+      const updated = res.data.quotation;
+      setQuotations((prev) =>
+        prev.map((q) => (q._id === id ? { ...q, status: updated?.status || "Rejected" } : q))
+      );
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Failed to reject quotation");
+    } finally {
+      setActingId(null);
+    }
+  };
 
   return (
     <DashboardLayout activeMenu="Quotations">
@@ -103,6 +141,24 @@ const AssociateQuotations = () => {
                         <a href={`${axiosInstance.defaults.baseURL}/quotations/${q._id}/pdf/client`}
                           target="_blank" rel="noreferrer"
                           className="text-gray-600 text-xs font-medium hover:underline">Client PDF</a>
+                        {q.status === "Sent" && (
+                          <>
+                            <button
+                              onClick={() => acceptQuotation(q._id)}
+                              disabled={actingId === q._id}
+                              className="text-green-700 text-xs font-semibold hover:underline disabled:opacity-50"
+                            >
+                              ✓ Accept
+                            </button>
+                            <button
+                              onClick={() => rejectQuotation(q._id)}
+                              disabled={actingId === q._id}
+                              className="text-red-600 text-xs font-semibold hover:underline disabled:opacity-50"
+                            >
+                              ✕ Reject
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

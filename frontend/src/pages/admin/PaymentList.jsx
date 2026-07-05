@@ -59,6 +59,7 @@ const PaymentList = () => {
                   <th className="p-3">Invoice #</th><th className="p-3">Customer</th>
                   <th className="p-3">Associate</th><th className="p-3">Total</th>
                   <th className="p-3">Paid</th><th className="p-3">Balance</th>
+                  <th className="p-3">Commission</th>
                   <th className="p-3">Status</th><th className="p-3">Due Date</th>
                   <th className="p-3">Actions</th>
                 </tr>
@@ -74,6 +75,9 @@ const PaymentList = () => {
                     <td className={`p-3 font-medium ${inv.balanceDue > 0 ? "text-red-600" : "text-gray-600"}`}>
                       Rs. {(inv.balanceDue || 0).toFixed(2)}
                     </td>
+                    <td className="p-3 text-emerald-700 font-medium">
+                      Rs. {(inv.services || []).reduce((sum, s) => sum + Number(s.associateEarningAmount || 0), 0).toFixed(2)}
+                    </td>
                     <td className="p-3"><StatusBadge status={inv.invoiceStatus} /></td>
                     <td className="p-3">{inv.dueDate ? moment(inv.dueDate).format("DD MMM YYYY") : "—"}</td>
                     <td className="p-3 flex gap-2">
@@ -87,7 +91,7 @@ const PaymentList = () => {
                   </tr>
                 ))}
                 {!invoices.length && (
-                  <tr><td colSpan={9} className="p-4 text-gray-400 text-center">No records found.</td></tr>
+                  <tr><td colSpan={10} className="p-4 text-gray-400 text-center">No records found.</td></tr>
                 )}
               </tbody>
             </table>

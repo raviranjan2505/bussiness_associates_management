@@ -12,6 +12,7 @@ const quotationServiceSchema = new mongoose.Schema(
     amount: { type: Number, required: true, min: 0 },
     associateEarningPercent: { type: Number, default: 0, min: 0, max: 100 },
     associateEarningAmount: { type: Number, default: 0, min: 0 },
+    loanAmount: { type: Number, default: 0, min: 0 },
   },
   { _id: true }
 );

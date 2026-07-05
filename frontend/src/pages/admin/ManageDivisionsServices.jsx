@@ -15,9 +15,22 @@ const ManageDivisionsServices = () => {
     description: "",
     division: "",
     price: "",
+    commissionType: "Percentage",
+    commissionValue: "20",
     fields: [createBlankField()],
     requiredDocuments: [],
   });
+
+  const isLoanBased = serviceForm.commissionType === "Loan Based";
+
+  // Live preview of the commission for normal (non Loan Based) services
+  const commissionPreview = (() => {
+    const price = Number(serviceForm.price || 0);
+    const value = Number(serviceForm.commissionValue || 0);
+    if (serviceForm.commissionType === "Fixed Amount") return value;
+    if (serviceForm.commissionType === "Percentage") return (price * value) / 100;
+    return 0;
+  })();
 
   const load = async () => {
     const [divRes, serviceRes] = await Promise.all([
@@ -42,9 +55,13 @@ const ManageDivisionsServices = () => {
 
   const saveService = async (e) => {
     e.preventDefault();
+    const loanBased = serviceForm.commissionType === "Loan Based";
     const payload = {
       ...serviceForm,
-      price: serviceForm.price === "" ? "" : Number(serviceForm.price),
+      // Loan Based services always keep the service charge at ₹0 — the
+      // commission comes from the Loan Amount entered when the work is created.
+      price: loanBased ? 0 : serviceForm.price === "" ? "" : Number(serviceForm.price),
+      commissionValue: Number(serviceForm.commissionValue || 0),
       fields: serviceForm.fields.filter((f) => f.label && f.name).map((f, i) => ({ ...f, order: i })),
       requiredDocuments: serviceForm.requiredDocuments.filter((d) => d.name),
     };
@@ -54,6 +71,8 @@ const ManageDivisionsServices = () => {
       description: "",
       division: "",
       price: "",
+      commissionType: "Percentage",
+      commissionValue: "20",
       fields: [createBlankField()],
       requiredDocuments: [],
     });
@@ -130,23 +149,80 @@ const ManageDivisionsServices = () => {
               onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })}
               required
             />
+            {/* Commission configuration ------------------------------------ */}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                className="w-full border rounded-lg p-3"
-                placeholder="Service price"
-                value={serviceForm.price}
-                onChange={(e) => setServiceForm({ ...serviceForm, price: e.target.value })}
-                required
-              />
-              <input
-                className="w-full border rounded-lg p-3 bg-gray-50 text-gray-600"
-                placeholder="Associate earning (20%)"
-                value={formatMoney(Number(serviceForm.price || 0) * 0.2)}
-                disabled
-              />
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">Commission Type</label>
+                <select
+                  className="w-full border rounded-lg p-3"
+                  value={serviceForm.commissionType}
+                  onChange={(e) => setServiceForm({ ...serviceForm, commissionType: e.target.value })}
+                >
+                  <option value="Fixed Amount">Fixed Amount</option>
+                  <option value="Percentage">Percentage</option>
+                  <option value="Loan Based">Loan Based</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">
+                  {serviceForm.commissionType === "Fixed Amount"
+                    ? "Commission Amount (Rs.)"
+                    : serviceForm.commissionType === "Loan Based"
+                    ? "Commission on Loan Amount (%)"
+                    : "Commission (%)"}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="w-full border rounded-lg p-3"
+                  placeholder="Commission value"
+                  value={serviceForm.commissionValue}
+                  onChange={(e) => setServiceForm({ ...serviceForm, commissionValue: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {isLoanBased ? (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">Service Charge</label>
+                  <input
+                    className="w-full border rounded-lg p-3 bg-gray-50 text-gray-600"
+                    value="Rs. 0.00 (Loan Based — charge stays ₹0)"
+                    disabled
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">Service Price</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-full border rounded-lg p-3"
+                    placeholder="Service price"
+                    value={serviceForm.price}
+                    onChange={(e) => setServiceForm({ ...serviceForm, price: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">
+                  {isLoanBased ? "Commission (calculated per work)" : "Associate Earning"}
+                </label>
+                <input
+                  className="w-full border rounded-lg p-3 bg-gray-50 text-gray-600"
+                  value={
+                    isLoanBased
+                      ? `${Number(serviceForm.commissionValue || 0)}% of Loan Amount`
+                      : `Rs. ${formatMoney(commissionPreview)}`
+                  }
+                  disabled
+                />
+              </div>
             </div>
             <textarea
               className="w-full border rounded-lg p-3"
@@ -207,10 +283,29 @@ const ManageDivisionsServices = () => {
               <div key={service._id} className="border rounded-lg p-4">
                 <p className="font-semibold">{service.name}</p>
                 <p className="text-sm text-gray-500">{service.division?.name}</p>
-                <p className="text-xs text-gray-500 mt-2">Price: Rs. {formatMoney(service.price)}</p>
-                <p className="text-xs text-gray-500">
-                  Associate earning: Rs. {formatMoney(service.associateEarningAmount ?? Number(service.price || 0) * 0.2)}
-                </p>
+                <span className="inline-block mt-2 text-[11px] font-medium uppercase tracking-wide text-blue-700 bg-blue-50 rounded px-2 py-0.5">
+                  {service.commissionType || "Percentage"}
+                </span>
+                {service.commissionType === "Loan Based" ? (
+                  <>
+                    <p className="text-xs text-gray-500 mt-2">Service Charge: Rs. 0.00</p>
+                    <p className="text-xs text-gray-500">
+                      Commission: {Number(service.commissionValue ?? 0)}% of Loan Amount
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-500 mt-2">Price: Rs. {formatMoney(service.price)}</p>
+                    <p className="text-xs text-gray-500">
+                      Commission: {service.commissionType === "Fixed Amount"
+                        ? `Rs. ${formatMoney(service.commissionValue ?? service.associateEarningAmount ?? 0)} (Fixed)`
+                        : `${Number(service.commissionValue ?? service.associateEarningPercent ?? 20)}%`}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Associate earning: Rs. {formatMoney(service.associateEarningAmount ?? Number(service.price || 0) * 0.2)}
+                    </p>
+                  </>
+                )}
                 <p className="text-xs text-gray-500 mt-2">
                   {service.fields?.length || 0} fields, {service.requiredDocuments?.length || 0} documents
                 </p>

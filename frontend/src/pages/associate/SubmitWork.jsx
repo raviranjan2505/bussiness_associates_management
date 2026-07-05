@@ -18,6 +18,7 @@ const newServiceCard = () => ({
   selectedService: null, // full service doc
   formData: {},
   documents: [],
+  loanAmount: "",
 });
 
 // ─── Single Service Card ────────────────────────────────────────────────────
@@ -29,10 +30,15 @@ const ServiceCard = ({
   onRemove,
   canRemove,
 }) => {
+  const isLoanBased = card.selectedService?.commissionType === "Loan Based";
   const servicePrice = Number(card.selectedService?.price || 0);
-  const associateEarning = Number(
-    card.selectedService?.associateEarningAmount ?? servicePrice * 0.2
+  const loanAmount = Number(card.loanAmount || 0);
+  const commissionPercent = Number(
+    card.selectedService?.commissionValue ?? card.selectedService?.associateEarningPercent ?? 20
   );
+  const associateEarning = isLoanBased
+    ? (loanAmount * commissionPercent) / 100
+    : Number(card.selectedService?.associateEarningAmount ?? servicePrice * 0.2);
 
   const handleDivisionChange = (divisionId) => {
     onUpdate(card.id, {
@@ -136,16 +142,36 @@ const ServiceCard = ({
         {card.selectedService && (
           <>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {isLoanBased ? (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Loan Amount <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-full rounded-lg border p-3"
+                    placeholder="Enter loan amount"
+                    value={card.loanAmount}
+                    onChange={(e) => onUpdate(card.id, { loanAmount: e.target.value })}
+                    required
+                  />
+                </div>
+              ) : (
+                <div>
+                  <p className="mb-1 text-sm font-medium text-gray-700">Service Price</p>
+                  <input
+                    className="w-full rounded-lg border bg-gray-50 p-3 text-gray-600"
+                    value={`Rs. ${formatMoney(servicePrice)}`}
+                    disabled
+                  />
+                </div>
+              )}
               <div>
-                <p className="mb-1 text-sm font-medium text-gray-700">Service Price</p>
-                <input
-                  className="w-full rounded-lg border bg-gray-50 p-3 text-gray-600"
-                  value={`Rs. ${formatMoney(servicePrice)}`}
-                  disabled
-                />
-              </div>
-              <div>
-                <p className="mb-1 text-sm font-medium text-gray-700">Associate Earning (20%)</p>
+                <p className="mb-1 text-sm font-medium text-gray-700">
+                  {isLoanBased ? `Commission (${commissionPercent}% of Loan Amount)` : `Associate Earning (${commissionPercent}%)`}
+                </p>
                 <input
                   className="w-full rounded-lg border bg-gray-50 p-3 text-gray-600"
                   value={`Rs. ${formatMoney(associateEarning)}`}
@@ -244,6 +270,10 @@ const SubmitWork = () => {
         toast.error(`Service ${i + 1}: Please select both a division and a service`);
         return;
       }
+      if (card.selectedService?.commissionType === "Loan Based" && !(Number(card.loanAmount) > 0)) {
+        toast.error(`Service ${i + 1}: Please enter a valid Loan Amount`);
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -271,6 +301,7 @@ const SubmitWork = () => {
         division: card.division,
         service: card.service,
         formData: card.formData,
+        loanAmount: card.selectedService?.commissionType === "Loan Based" ? Number(card.loanAmount || 0) : undefined,
       }));
       payload.append("services", JSON.stringify(servicesMeta));
 

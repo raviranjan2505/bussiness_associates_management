@@ -17,6 +17,9 @@ const invoiceServiceSchema = new mongoose.Schema(
     price: { type: Number, required: true, min: 0 },
     quantity: { type: Number, default: 1, min: 1 },
     amount: { type: Number, required: true, min: 0 },
+    associateEarningPercent: { type: Number, default: 0, min: 0, max: 100 },
+    associateEarningAmount: { type: Number, default: 0, min: 0 },
+    loanAmount: { type: Number, default: 0, min: 0 },
   },
   { _id: true }
 );

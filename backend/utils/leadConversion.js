@@ -20,6 +20,7 @@ export const convertLeadToWork = async (lead, options = {}) => {
     servicePrice: lead.servicePrice,
     associateEarningPercent: lead.associateEarningPercent,
     associateEarningAmount: lead.associateEarningAmount,
+    loanAmount: lead.loanAmount || 0,
     clientDetails: lead.clientDetails,
     formData: lead.formData,
     documents: lead.documents,

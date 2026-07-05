@@ -13,6 +13,7 @@ import businessRoutes from "./routes/business.route.js";
 import quotationRoutes from "./routes/quotation.route.js";
 import invoiceRoutes from "./routes/invoice.route.js";
 import paymentRoutes from "./routes/payment.route.js";
+import payoutRoutes from "./routes/payout.route.js";
 import complaintRoutes from "./routes/complaint.route.js";
 import announcementRoutes from "./routes/announcement.route.js";
 import leadRoutes from "./routes/lead.route.js";
@@ -38,6 +39,7 @@ app.use("/api/quotations", quotationRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/leads", leadRoutes);
+app.use("/api/payouts", payoutRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/announcements", announcementRoutes);
 

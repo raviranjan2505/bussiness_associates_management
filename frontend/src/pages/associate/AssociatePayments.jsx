@@ -58,6 +58,7 @@ const AssociatePayments = () => {
                   <th className="p-3">Date</th>
                   <th className="p-3">Method</th>
                   <th className="p-3 text-right">Amount</th>
+                  <th className="p-3 text-right">Commission</th>
                   <th className="p-3">Status</th>
                   <th className="p-3">Txn ID</th>
                   <th className="p-3">Receipt</th>
@@ -65,7 +66,7 @@ const AssociatePayments = () => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="p-4 text-center text-gray-400">Loading…</td></tr>
+                  <tr><td colSpan={9} className="p-4 text-center text-gray-400">Loading…</td></tr>
                 ) : filtered.map((p) => (
                   <tr key={p._id} className="border-t hover:bg-gray-50">
                     <td className="p-3 font-medium">
@@ -84,6 +85,9 @@ const AssociatePayments = () => {
                     </td>
                     <td className="p-3 text-gray-600">{p.paymentMethod}</td>
                     <td className="p-3 text-right font-medium text-gray-900">{formatMoney(p.amount)}</td>
+                    <td className="p-3 text-right font-medium text-emerald-700">
+                      {formatMoney((p.invoice?.services || []).reduce((s, sv) => s + Number(sv.associateEarningAmount || 0), 0))}
+                    </td>
                     <td className="p-3"><StatusBadge status={p.status} /></td>
                     <td className="p-3 text-xs text-gray-500">{p.transactionId || "—"}</td>
                     <td className="p-3">
@@ -100,7 +104,7 @@ const AssociatePayments = () => {
                   </tr>
                 ))}
                 {!loading && !filtered.length && (
-                  <tr><td colSpan={8} className="p-4 text-center text-gray-500">
+                  <tr><td colSpan={9} className="p-4 text-center text-gray-500">
                     {search ? "No payments match your search." : "No payment records found."}
                   </td></tr>
                 )}

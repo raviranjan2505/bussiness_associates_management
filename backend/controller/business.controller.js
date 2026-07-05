@@ -12,6 +12,7 @@ import Complaint from "../models/complaint.model.js";
 import { errorHandler } from "../utils/error.js";
 import { toMoney } from "../utils/money.js";
 import { notify, notifyAdmins } from "../utils/notify.js";
+import { getTotalCommission } from "../utils/commission.js";
 
 const associateRoles = ["associate"];
 const SERVICE_EARNING_PERCENT = 20;
@@ -54,7 +55,35 @@ const upsertClientRecord = async (associateId, clientInput) => {
 
 const toFileUrl = (req, file) => `${req.protocol}://${req.get("host")}/uploads/documents/${file.filename}`;
 
+const COMMISSION_TYPES = ["Fixed Amount", "Percentage", "Loan Based"];
+
 const buildServicePricing = (body, existingService = null) => {
+  const commissionType = COMMISSION_TYPES.includes(body.commissionType)
+    ? body.commissionType
+    : existingService?.commissionType || "Percentage";
+
+  const rawCommissionValue =
+    body.commissionValue !== undefined && body.commissionValue !== null && body.commissionValue !== ""
+      ? body.commissionValue
+      : existingService?.commissionValue;
+  const commissionValue = Number(rawCommissionValue ?? SERVICE_EARNING_PERCENT);
+  if (!Number.isFinite(commissionValue) || commissionValue < 0) {
+    throw errorHandler(400, "A valid commission value is required");
+  }
+
+  // "Loan Based" services always keep the service charge at ₹0. The actual
+  // commission is computed later (at work-creation time) from the Loan
+  // Amount the associate enters, so we don't know the earning yet.
+  if (commissionType === "Loan Based") {
+    return {
+      price: 0,
+      commissionType,
+      commissionValue,
+      associateEarningPercent: commissionValue,
+      associateEarningAmount: 0,
+    };
+  }
+
   const rawPrice = body.price;
   const normalizedPriceSource =
     rawPrice !== undefined && rawPrice !== null && rawPrice !== ""
@@ -65,13 +94,43 @@ const buildServicePricing = (body, existingService = null) => {
     throw errorHandler(400, "A valid service price is required");
   }
 
-  const associateEarningPercent = SERVICE_EARNING_PERCENT;
+  if (commissionType === "Fixed Amount") {
+    const associateEarningAmount = toMoney(commissionValue);
+    const associateEarningPercent = price > 0 ? toMoney((associateEarningAmount / price) * 100) : 0;
+    return {
+      price,
+      commissionType,
+      commissionValue,
+      associateEarningPercent,
+      associateEarningAmount,
+    };
+  }
+
+  // Percentage (default / backward compatible with the old fixed-20% logic)
+  const associateEarningPercent = commissionValue;
   const associateEarningAmount = toMoney((price * associateEarningPercent) / 100);
 
   return {
     price,
+    commissionType,
+    commissionValue,
     associateEarningPercent,
     associateEarningAmount,
+  };
+};
+
+// Compute the commission for a "Loan Based" service from the Loan Amount the
+// associate entered while creating the work.
+const computeLoanCommission = (serviceDoc, loanAmount) => {
+  const amount = Number(loanAmount);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw errorHandler(400, `Loan Amount is required for "${serviceDoc.name}"`);
+  }
+  const percent = Number(serviceDoc.commissionValue ?? serviceDoc.associateEarningPercent ?? 0);
+  return {
+    loanAmount: amount,
+    associateEarningPercent: percent,
+    associateEarningAmount: toMoney((amount * percent) / 100),
   };
 };
 
@@ -216,6 +275,19 @@ export const submitWork = async (req, res, next) => {
     if (!serviceDoc) return next(errorHandler(404, "Service not found"));
     if (serviceDoc.price == null) return next(errorHandler(400, "Service price is not configured"));
 
+    // Loan Based services: service charge stays ₹0, commission is derived
+    // from the Loan Amount entered by the associate.
+    let loanAmount = 0;
+    let resolvedEarningPercent = serviceDoc.associateEarningPercent ?? SERVICE_EARNING_PERCENT;
+    let resolvedEarningAmount =
+      serviceDoc.associateEarningAmount ?? toMoney((serviceDoc.price * SERVICE_EARNING_PERCENT) / 100);
+    if (serviceDoc.commissionType === "Loan Based") {
+      const loanCalc = computeLoanCommission(serviceDoc, req.body.loanAmount);
+      loanAmount = loanCalc.loanAmount;
+      resolvedEarningPercent = loanCalc.associateEarningPercent;
+      resolvedEarningAmount = loanCalc.associateEarningAmount;
+    }
+
     let clientDoc = null;
     const clientIdValue = typeof clientId === "string" ? clientId.trim() : clientId;
     if (clientIdValue) {
@@ -267,8 +339,9 @@ export const submitWork = async (req, res, next) => {
       division,
       service,
       servicePrice: serviceDoc.price,
-      associateEarningPercent: serviceDoc.associateEarningPercent ?? SERVICE_EARNING_PERCENT,
-      associateEarningAmount: serviceDoc.associateEarningAmount ?? toMoney((serviceDoc.price * SERVICE_EARNING_PERCENT) / 100),
+      associateEarningPercent: resolvedEarningPercent,
+      associateEarningAmount: resolvedEarningAmount,
+      loanAmount,
       clientId: clientDoc?._id,
       clientDetails: resolvedClient,
       title: req.body.title || serviceDoc.name,
@@ -386,9 +459,11 @@ export const submitMultiWork = async (req, res, next) => {
     let totalAssociateEarning = 0;
     const firstDivision = serviceItems[0]?.division;
 
+    let totalLoanAmount = 0;
+
     for (let i = 0; i < serviceItems.length; i++) {
       const item = serviceItems[i];
-      const { division, service, formData: rawFormData } = item;
+      const { division, service, formData: rawFormData, loanAmount: rawLoanAmount } = item;
 
       if (!division || !service) {
         return next(errorHandler(400, `Service ${i + 1}: division and service are required`));
@@ -412,8 +487,17 @@ export const submitMultiWork = async (req, res, next) => {
         }
       }
 
-      const earningPercent = serviceDoc.associateEarningPercent ?? SERVICE_EARNING_PERCENT;
-      const earningAmount = serviceDoc.associateEarningAmount ?? toMoney((serviceDoc.price * earningPercent) / 100);
+      // Loan Based services: service charge stays ₹0, commission is derived
+      // from the Loan Amount the associate enters for this line.
+      let lineLoanAmount = 0;
+      let earningPercent = serviceDoc.associateEarningPercent ?? SERVICE_EARNING_PERCENT;
+      let earningAmount = serviceDoc.associateEarningAmount ?? toMoney((serviceDoc.price * earningPercent) / 100);
+      if (serviceDoc.commissionType === "Loan Based") {
+        const loanCalc = computeLoanCommission(serviceDoc, rawLoanAmount);
+        lineLoanAmount = loanCalc.loanAmount;
+        earningPercent = loanCalc.associateEarningPercent;
+        earningAmount = loanCalc.associateEarningAmount;
+      }
 
       const serviceDocs = (filesByIndex[i] || []).map((file) => ({
         name: file.originalname,
@@ -435,12 +519,14 @@ export const submitMultiWork = async (req, res, next) => {
         amount: serviceDoc.price,
         associateEarningPercent: earningPercent,
         associateEarningAmount: earningAmount,
+        loanAmount: lineLoanAmount,
         formData: parsedForm,
         documents: serviceDocs,
       });
 
       totalServicePrice += serviceDoc.price;
       totalAssociateEarning += earningAmount;
+      totalLoanAmount += lineLoanAmount;
     }
 
     // ── Build top-level documents (all files merged, for quick access) ────
@@ -457,6 +543,7 @@ export const submitMultiWork = async (req, res, next) => {
       servicePrice: totalServicePrice,
       associateEarningPercent: SERVICE_EARNING_PERCENT,
       associateEarningAmount: toMoney(totalAssociateEarning),
+      loanAmount: toMoney(totalLoanAmount),
       // Multi-service payload
       services: serviceLines,
       clientId: clientDoc?._id,
@@ -1040,26 +1127,9 @@ export const uploadAdditionalDocuments = async (req, res, next) => {
 export const adminDashboard = async (req, res, next) => {
   try {
     const statusCounts = await WorkSubmission.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]);
-    const incomeResult = await WorkSubmission.aggregate([
-      {
-        $match: {
-          status: "Completed",
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalIncome: {
-            $sum: "$associateEarningAmount",
-          },
-        },
-      },
-    ]);
-
-    const totalIncome =
-      incomeResult.length > 0
-        ? incomeResult[0].totalIncome
-        : 0;
+    // Total Commission — sirf completed work ki earning. Shared helper keeps
+    // this identical to the Income page's Total Commission card.
+    const totalIncome = await getTotalCommission();
 
     const byDivision = await WorkSubmission.aggregate([
       { $group: { _id: "$division", count: { $sum: 1 } } },
@@ -1144,28 +1214,9 @@ export const associateDashboard = async (req, res, next) => {
       { $match: { associate: userId } },
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ]);
-        // Total Income of Current Associate
-    const incomeResult = await WorkSubmission.aggregate([
-      {
-        $match: {
-          associate: userId,
-          status: "Completed", // sirf completed works ki earning
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalIncome: {
-            $sum: "$associateEarningAmount",
-          },
-        },
-      },
-    ]);
-
-    const totalIncome =
-      incomeResult.length > 0
-        ? incomeResult[0].totalIncome
-        : 0;
+    // Total Commission of current associate — sirf completed works ki earning.
+    // Shared helper keeps this identical to the Income page's Total Commission card.
+    const totalIncome = await getTotalCommission(userId);
 
     const statistics = {
       mySubmittedWork: await WorkSubmission.countDocuments({ associate: req.user.id }),

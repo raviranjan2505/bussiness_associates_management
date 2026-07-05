@@ -61,9 +61,16 @@ export const addPayment = async (req, res, next) => {
 
 export const listPayments = async (req, res, next) => {
   try {
-    const { invoiceId } = req.query;
+    const { invoiceId, from, to } = req.query;
     const filter = {};
     if (invoiceId) filter.invoice = invoiceId;
+
+    // Date range filter on paymentDate
+    if (from || to) {
+      filter.paymentDate = {};
+      if (from) filter.paymentDate.$gte = new Date(from);
+      if (to)   filter.paymentDate.$lte = new Date(new Date(to).setHours(23, 59, 59, 999));
+    }
 
     if (req.user.role !== "admin") {
       const myInvoiceIds = await Invoice.find({ associate: req.user.id }).distinct("_id");
@@ -72,13 +79,70 @@ export const listPayments = async (req, res, next) => {
         : { $in: myInvoiceIds };
     }
 
+    // Summary totals — computed server-side so the frontend never has to
+    // aggregate across pages or re-derive from filtered/paginated results.
+    // "Due" = balanceDue on invoices whose payments match the current filter.
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayEnd   = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
+
+    // For admin: summary is across all matching payments
+    // For associate: summary is scoped to their own invoices (already in filter)
+    const [
+      paidAgg,      // Total Paid Amount (filtered)
+      todayPaidAgg, // Today's Paid Amount
+    ] = await Promise.all([
+      Payment.aggregate([
+        { $match: { ...filter, status: "Verified" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      Payment.aggregate([
+        { $match: { ...filter, status: "Verified", paymentDate: { $gte: todayStart, $lte: todayEnd } } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+    ]);
+
+    // Due Amount — sum of balanceDue on invoices associated with the filtered payments
+    // We derive the relevant invoice IDs from the filtered payment set for accuracy.
+    const filteredPayments = await Payment.find(filter).distinct("invoice");
+    const [dueAgg, todayDueAgg] = await Promise.all([
+      Invoice.aggregate([
+        { $match: { _id: { $in: filteredPayments }, balanceDue: { $gt: 0 } } },
+        { $group: { _id: null, total: { $sum: "$balanceDue" } } },
+      ]),
+      // Today's Due = invoices where the most recent payment for that invoice
+      // was today and balance is still outstanding
+      Invoice.aggregate([
+        {
+          $lookup: {
+            from: "payments",
+            let: { invId: "$_id" },
+            pipeline: [
+              { $match: { $expr: { $eq: ["$invoice", "$$invId"] },
+                  paymentDate: { $gte: todayStart, $lte: todayEnd } } },
+            ],
+            as: "todayPayments",
+          },
+        },
+        { $match: { "todayPayments.0": { $exists: true }, balanceDue: { $gt: 0 } } },
+        { $group: { _id: null, total: { $sum: "$balanceDue" } } },
+      ]),
+    ]);
+
+    const summary = {
+      totalPaid:    paidAgg[0]?.total      || 0,
+      totalDue:     dueAgg[0]?.total       || 0,
+      todayPaid:    todayPaidAgg[0]?.total || 0,
+      todayDue:     todayDueAgg[0]?.total  || 0,
+    };
+
     const payments = await Payment.find(filter)
       .populate("recordedBy", "name")
       .populate("verifiedBy", "name")
-      .populate("invoice", "invoiceNumber customerName totalAmount amountPaid balanceDue")
+      .populate("invoice", "invoiceNumber customerName totalAmount amountPaid balanceDue services")
       .sort({ createdAt: -1 });
 
-    res.status(200).json({ payments });
+    res.status(200).json({ payments, summary });
   } catch (error) {
     next(error);
   }

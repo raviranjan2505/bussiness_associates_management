@@ -184,6 +184,7 @@ const AssociateLeadDetails = () => {
                     <th className="px-5 py-3">#</th>
                     <th className="px-5 py-3">Service</th>
                     <th className="px-5 py-3 text-right">Price</th>
+                    <th className="px-5 py-3 text-right">Loan Amount</th>
                     <th className="px-5 py-3 text-right">Your Earning</th>
                     <th className="px-5 py-3">Docs</th>
                   </tr>
@@ -194,6 +195,9 @@ const AssociateLeadDetails = () => {
                       <td className="px-5 py-3 text-gray-400">{i + 1}</td>
                       <td className="px-5 py-3 font-medium text-gray-900">{svc.name}</td>
                       <td className="px-5 py-3 text-right text-gray-700">{fmt(svc.price)}</td>
+                      <td className="px-5 py-3 text-right text-gray-700">
+                        {svc.loanAmount > 0 ? fmt(svc.loanAmount) : "—"}
+                      </td>
                       <td className="px-5 py-3 text-right font-medium text-green-700">{fmt(svc.associateEarningAmount)}</td>
                       <td className="px-5 py-3 text-gray-500">{svc.documents?.length || 0}</td>
                     </tr>
@@ -203,6 +207,9 @@ const AssociateLeadDetails = () => {
                   <tr>
                     <td colSpan={2} className="px-5 py-3 text-gray-700">Total</td>
                     <td className="px-5 py-3 text-right text-gray-900">{fmt(totalPrice)}</td>
+                    <td className="px-5 py-3 text-right text-gray-900">
+                      {fmt(lead.services.reduce((s, x) => s + Number(x.loanAmount || 0), 0))}
+                    </td>
                     <td className="px-5 py-3 text-right text-green-700">{fmt(totalEarning)}</td>
                     <td />
                   </tr>
@@ -220,6 +227,12 @@ const AssociateLeadDetails = () => {
                 <p className="text-xs uppercase tracking-wide text-gray-400">Service Price</p>
                 <p className="mt-1 text-lg font-bold text-gray-900">{fmt(lead.servicePrice)}</p>
               </div>
+              {lead.loanAmount > 0 && (
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-400">Loan Amount</p>
+                  <p className="mt-1 text-lg font-bold text-gray-900">{fmt(lead.loanAmount)}</p>
+                </div>
+              )}
               <div className="rounded-lg bg-green-50 p-4">
                 <p className="text-xs uppercase tracking-wide text-green-600">Your Commission</p>
                 <p className="mt-1 text-lg font-bold text-green-700">{fmt(lead.associateEarningAmount)}</p>

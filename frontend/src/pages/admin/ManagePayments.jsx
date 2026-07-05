@@ -40,10 +40,10 @@ const ManagePayments = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-left">
-                <tr><th className="p-3">Invoice</th><th className="p-3">Customer</th><th className="p-3">Total</th><th className="p-3">Paid</th><th className="p-3">Balance</th><th className="p-3">Status</th><th className="p-3">Due</th></tr>
+                <tr><th className="p-3">Invoice</th><th className="p-3">Customer</th><th className="p-3">Total</th><th className="p-3">Paid</th><th className="p-3">Balance</th><th className="p-3">Commission</th><th className="p-3">Status</th><th className="p-3">Due</th></tr>
               </thead>
               <tbody>
-                {loading ? <tr><td colSpan={7} className="p-4 text-center text-gray-500">Loading...</td></tr>
+                {loading ? <tr><td colSpan={8} className="p-4 text-center text-gray-500">Loading...</td></tr>
                   : invoices.map((inv) => (
                     <tr key={inv._id} className="border-t hover:bg-gray-50">
                       <td className="p-3 font-medium">{inv.invoiceNumber}</td>
@@ -51,6 +51,9 @@ const ManagePayments = () => {
                       <td className="p-3">{fmt(inv.totalAmount)}</td>
                       <td className="p-3 text-green-700">{fmt(inv.amountPaid)}</td>
                       <td className="p-3 text-red-600 font-medium">{fmt(inv.balanceDue)}</td>
+                      <td className="p-3 text-emerald-700 font-medium">
+                        {fmt((inv.services || []).reduce((s, sv) => s + Number(sv.associateEarningAmount || 0), 0))}
+                      </td>
                       <td className="p-3"><StatusBadge status={inv.invoiceStatus} /></td>
                       <td className="p-3 text-gray-500">{inv.dueDate ? moment(inv.dueDate).format("DD MMM YYYY") : "-"}</td>
                     </tr>

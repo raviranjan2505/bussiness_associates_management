@@ -54,6 +54,9 @@ const leadServiceSchema = new mongoose.Schema(
     amount: { type: Number, required: true, min: 0 },
     associateEarningPercent: { type: Number, default: 20, min: 0, max: 100 },
     associateEarningAmount: { type: Number, default: 0, min: 0 },
+    // Only used for "Loan Based" commission services — Loan Amount entered by
+    // the associate; the service charge itself stays ₹0.
+    loanAmount: { type: Number, default: 0, min: 0 },
     formData: { type: mongoose.Schema.Types.Mixed, default: {} },
     documents: [
       {
@@ -85,6 +88,8 @@ const leadSchema = new mongoose.Schema(
     servicePrice: { type: Number, min: 0 },
     associateEarningPercent: { type: Number, default: 20, min: 0, max: 100 },
     associateEarningAmount: { type: Number, min: 0 },
+    // Aggregate Loan Amount across "Loan Based" service line(s), if any.
+    loanAmount: { type: Number, default: 0, min: 0 },
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: "Client", index: true },
     clientDetails: {
       clientName: { type: String, required: true, trim: true, index: true },

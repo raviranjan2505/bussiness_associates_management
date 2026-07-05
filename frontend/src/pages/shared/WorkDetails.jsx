@@ -245,6 +245,7 @@ const WorkDetails = () => {
                           <th className="px-5 py-3 text-right">Price</th>
                           <th className="px-5 py-3 text-right">Qty</th>
                           <th className="px-5 py-3 text-right">Amount</th>
+                          <th className="px-5 py-3 text-right">Commission</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -270,6 +271,14 @@ const WorkDetails = () => {
                             <td className="px-5 py-3 text-right font-semibold text-gray-900 whitespace-nowrap">
                               {fmt(svc.amount)}
                             </td>
+                            <td className="px-5 py-3 text-right text-emerald-700 font-medium whitespace-nowrap">
+                              {fmt(svc.associateEarningAmount)}
+                              {svc.loanAmount > 0 && (
+                                <div className="text-[11px] text-gray-400 font-normal">
+                                  on loan {fmt(svc.loanAmount)}
+                                </div>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -278,7 +287,7 @@ const WorkDetails = () => {
                       <tfoot className="border-t-2 border-gray-200 bg-gray-50 text-sm">
                         {invoice?.discount?.amount > 0 && (
                           <tr>
-                            <td colSpan={5} className="px-5 py-2 text-right text-gray-500">Discount</td>
+                            <td colSpan={6} className="px-5 py-2 text-right text-gray-500">Discount</td>
                             <td className="px-5 py-2 text-right text-gray-700">
                               − {fmt(invoice.discount.amount)}
                             </td>
@@ -286,7 +295,7 @@ const WorkDetails = () => {
                         )}
                         {invoice?.tax?.amount > 0 && (
                           <tr>
-                            <td colSpan={5} className="px-5 py-2 text-right text-gray-500">
+                            <td colSpan={6} className="px-5 py-2 text-right text-gray-500">
                               Tax ({invoice.tax.percent}%)
                             </td>
                             <td className="px-5 py-2 text-right text-gray-700">
@@ -296,7 +305,7 @@ const WorkDetails = () => {
                         )}
                         {totalAmount != null && (
                           <tr>
-                            <td colSpan={5} className="px-5 py-2 text-right font-bold text-gray-900">
+                            <td colSpan={6} className="px-5 py-2 text-right font-bold text-gray-900">
                               Total
                             </td>
                             <td className="px-5 py-2 text-right font-bold text-gray-900 whitespace-nowrap">
@@ -306,7 +315,7 @@ const WorkDetails = () => {
                         )}
                         {amountPaid != null && (
                           <tr>
-                            <td colSpan={5} className="px-5 py-2 text-right text-green-700">
+                            <td colSpan={6} className="px-5 py-2 text-right text-green-700">
                               Amount Paid
                             </td>
                             <td className="px-5 py-2 text-right text-green-700 font-semibold whitespace-nowrap">
@@ -316,7 +325,7 @@ const WorkDetails = () => {
                         )}
                         {balanceDue != null && (
                           <tr>
-                            <td colSpan={5} className="px-5 py-2 text-right font-semibold text-red-600">
+                            <td colSpan={6} className="px-5 py-2 text-right font-semibold text-red-600">
                               Balance Due
                             </td>
                             <td className="px-5 py-2 text-right font-bold text-red-600 whitespace-nowrap">
@@ -346,16 +355,20 @@ const WorkDetails = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <InfoBox label="Service" value={work.service?.name} />
                   <InfoBox label="Division" value={work.division?.name} />
+                  {work.loanAmount > 0 ? (
+                    <InfoBox label="Loan Amount" value={fmt(work.loanAmount)} />
+                  ) : (
+                    <InfoBox
+                      label="Service Price"
+                      value={fmt(work.servicePrice ?? work.service?.price)}
+                    />
+                  )}
                   <InfoBox
-                    label="Service Price"
-                    value={fmt(work.servicePrice ?? work.service?.price)}
-                  />
-                  <InfoBox
-                    label="Associate Earning"
+                    label="Commission"
                     value={fmt(work.associateEarningAmount ?? work.service?.associateEarningAmount)}
                   />
                   {work.associateEarningPercent != null && (
-                    <InfoBox label="Earning %" value={`${work.associateEarningPercent}%`} />
+                    <InfoBox label="Commission %" value={`${work.associateEarningPercent}%`} />
                   )}
                   {work.expectedCompletionDate && (
                     <InfoBox
