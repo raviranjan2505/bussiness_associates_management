@@ -17,10 +17,21 @@ const AdminProjects = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  const load = async () => {
+  // Date range filter (applied only when "Filter" is clicked)
+  const [fromInput, setFromInput] = useState("");
+  const [toInput, setToInput] = useState("");
+  const [appliedRange, setAppliedRange] = useState({ from: "", to: "" });
+
+  // Summary cards
+  const [summary, setSummary] = useState({ total: 0, pending: 0, completed: 0, rejected: 0 });
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
+  const load = async (range = appliedRange) => {
     setLoading(true);
     try {
       const p = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
+      if (range.from) p.from = range.from;
+      if (range.to) p.to = range.to;
       const res = await axiosInstance.get("/business/works", { params: p });
       setWorks(res.data.works || []);
     } catch {
@@ -30,9 +41,46 @@ const AdminProjects = () => {
     }
   };
 
+  const loadSummary = async (range = appliedRange) => {
+    setSummaryLoading(true);
+    try {
+      const p = {};
+      if (range.from) p.from = range.from;
+      if (range.to) p.to = range.to;
+      const res = await axiosInstance.get("/business/works/summary", { params: p });
+      setSummary({
+        total: res.data.total || 0,
+        pending: res.data.pending || 0,
+        completed: res.data.completed || 0,
+        rejected: res.data.rejected || 0,
+      });
+    } catch {
+      toast.error("Failed to load work summary");
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
   useEffect(() => {
     load().catch(console.error);
+    loadSummary().catch(console.error);
   }, []);
+
+  const handleFilter = () => {
+    const range = { from: fromInput, to: toInput };
+    setAppliedRange(range);
+    load(range);
+    loadSummary(range);
+  };
+
+  const handleReset = () => {
+    setFromInput("");
+    setToInput("");
+    const range = { from: "", to: "" };
+    setAppliedRange(range);
+    load(range);
+    loadSummary(range);
+  };
 
   return (
     <DashboardLayout activeMenu="Work">
@@ -42,8 +90,56 @@ const AdminProjects = () => {
             <h1 className="text-2xl font-bold text-gray-900">Work List</h1>
             <p className="text-sm text-gray-500">Track every submitted work item from one screen.</p>
           </div>
-          <button onClick={load} className="bg-gray-900 text-white rounded-lg px-4 py-2 text-sm">
+          <button onClick={() => { load(); loadSummary(); }} className="bg-gray-900 text-white rounded-lg px-4 py-2 text-sm">
             Refresh
+          </button>
+        </div>
+
+        {/* Summary cards */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="rounded-lg border border-gray-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Total Work</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{summaryLoading ? "…" : summary.total}</p>
+          </div>
+          <div className="rounded-lg border border-gray-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Pending Work</p>
+            <p className="mt-1 text-2xl font-bold text-gray-600">{summaryLoading ? "…" : summary.pending}</p>
+          </div>
+          <div className="rounded-lg border border-gray-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Completed Work</p>
+            <p className="mt-1 text-2xl font-bold text-green-700">{summaryLoading ? "…" : summary.completed}</p>
+          </div>
+          <div className="rounded-lg border border-gray-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Rejected Work</p>
+            <p className="mt-1 text-2xl font-bold text-red-600">{summaryLoading ? "…" : summary.rejected}</p>
+          </div>
+        </div>
+
+        {/* Date Range Filter */}
+        <div className="grid gap-3 rounded-lg border border-gray-100 bg-white p-4 md:grid-cols-[180px_180px_100px_100px]">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">From Date</label>
+            <input
+              type="date"
+              className="w-full border rounded-lg p-2.5 text-sm"
+              value={fromInput}
+              onChange={(e) => setFromInput(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">To Date</label>
+            <input
+              type="date"
+              className="w-full border rounded-lg p-2.5 text-sm"
+              value={toInput}
+              onChange={(e) => setToInput(e.target.value)}
+            />
+          </div>
+          <button onClick={handleFilter} className="mt-5 bg-gray-900 text-white rounded-lg px-4 py-2.5 text-sm">
+            Filter
+          </button>
+          <button onClick={handleReset} className="mt-5 border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+            Reset
           </button>
         </div>
 
@@ -66,7 +162,7 @@ const AdminProjects = () => {
               </option>
             ))}
           </select>
-          <button onClick={load} className="bg-gray-900 text-white rounded-lg px-4 py-2 text-sm">
+          <button onClick={() => load()} className="bg-gray-900 text-white rounded-lg px-4 py-2 text-sm">
             Filter
           </button>
         </div>

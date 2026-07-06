@@ -25,6 +25,15 @@ const normalizeClientPart = (value) =>
 
 const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// Makes a "to" date filter inclusive of the entire selected day
+// (a bare date string like "2026-07-01" parses as 00:00:00 UTC otherwise,
+// which would exclude that day's own records from a range filter).
+const endOfDay = (dateStr) => {
+  const d = new Date(dateStr);
+  d.setHours(23, 59, 59, 999);
+  return d;
+};
+
 const upsertClientRecord = async (associateId, clientInput) => {
   const existingCandidates = await Client.find({
     associate: associateId,
@@ -892,6 +901,7 @@ export const listWorks = async (req, res, next) => {
       division,
       service,
       associate,
+      clientId,
       clientName,
       mobileNumber,
       email,
@@ -902,17 +912,41 @@ export const listWorks = async (req, res, next) => {
       completionTo,
     } = req.query;
     const filter = {};
+    // Associates are always scoped to their own works, regardless of any
+    // other filter applied below (e.g. clientId) — this keeps the
+    // Associate panel's "View Work" restricted to the logged-in associate.
     if (req.user.role !== "admin") filter.associate = req.user.id;
     if (status) filter.status = status;
     if (division) filter.division = division;
     if (service) filter.service = service;
     if (associate && req.user.role === "admin") filter.associate = associate;
+
+    // Filter by a specific client's Mongo _id (used by the "View Work" action
+    // from a Client List). WorkSubmission doesn't store a direct client
+    // reference, so we resolve the Client doc and match on its unique
+    // mobile number (or exact client name as a fallback) — this guarantees
+    // only that client's works are returned, never another client's.
+    if (clientId) {
+      if (!mongoose.isValidObjectId(clientId)) return next(errorHandler(400, "Invalid client identifier"));
+      const clientDoc = await Client.findById(clientId).select("clientName mobileNumber associate");
+      if (!clientDoc || (req.user.role !== "admin" && String(clientDoc.associate) !== req.user.id)) {
+        // No such client, or an associate trying to view another associate's
+        // client — return an empty result set instead of erroring, so the UI
+        // can show "No work found for this client."
+        filter._id = { $in: [] };
+      } else if (clientDoc.mobileNumber) {
+        filter["clientDetails.mobileNumber"] = new RegExp(`^${escapeRegex(clientDoc.mobileNumber)}$`, "i");
+      } else {
+        filter["clientDetails.clientName"] = new RegExp(`^${escapeRegex(clientDoc.clientName)}$`, "i");
+      }
+    }
+
     if (clientName) filter["clientDetails.clientName"] = new RegExp(clientName, "i");
     if (mobileNumber) filter["clientDetails.mobileNumber"] = new RegExp(mobileNumber, "i");
     if (email) filter["clientDetails.email"] = new RegExp(email, "i");
     if (from || to) filter.createdAt = {};
     if (from) filter.createdAt.$gte = new Date(from);
-    if (to) filter.createdAt.$lte = new Date(to);
+    if (to) filter.createdAt.$lte = endOfDay(to);
     if (completionFrom || completionTo) filter.completedAt = {};
     if (completionFrom) filter.completedAt.$gte = new Date(completionFrom);
     if (completionTo) filter.completedAt.$lte = new Date(completionTo);
@@ -932,6 +966,37 @@ export const listWorks = async (req, res, next) => {
       .sort({ createdAt: -1 });
 
     res.status(200).json({ works });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ── Work List summary cards (Total / Pending / Completed / Rejected) ─────
+// Backed by simple counts on the existing WorkSubmission collection —
+// no new collection, no duplicated data. Respects the same role scoping as
+// listWorks (associates only see their own works) and, when a date range
+// is supplied, restricts the counts to that range so the cards reflect
+// exactly what the date filter selects.
+export const getWorksSummary = async (req, res, next) => {
+  try {
+    const { from, to } = req.query;
+    const filter = {};
+    if (req.user.role !== "admin") filter.associate = req.user.id;
+    if (from || to) filter.createdAt = {};
+    if (from) filter.createdAt.$gte = new Date(from);
+    if (to) filter.createdAt.$lte = endOfDay(to);
+
+    const [total, completed, rejected] = await Promise.all([
+      WorkSubmission.countDocuments(filter),
+      WorkSubmission.countDocuments({ ...filter, status: "Completed" }),
+      WorkSubmission.countDocuments({ ...filter, status: "Rejected" }),
+    ]);
+    // "Pending" covers every work item that isn't finished yet (Pending,
+    // Under Review, Documents Required, In Process, Waiting For Payment),
+    // so the four cards always add up to the Total.
+    const pending = Math.max(total - completed - rejected, 0);
+
+    res.status(200).json({ total, pending, completed, rejected });
   } catch (error) {
     next(error);
   }

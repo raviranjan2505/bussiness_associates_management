@@ -45,15 +45,17 @@ const ClientWorksList = () => {
         let params = {};
 
         if (isObjectId(raw)) {
-          // Fetch by clientId — first get the client name then query works by name
+          // Filter strictly by the selected client's Mongo _id — the backend
+          // resolves this to that exact client's records only, so no other
+          // client's work can ever show up here.
+          params = { clientId: raw };
+          // Best-effort fetch of the client's name for the page header.
           try {
             const clientRes = await axiosInstance.get(`/business/clients/${raw}`);
-            const name = clientRes.data?.clientName || "";
-            const mobile = clientRes.data?.mobileNumber || "";
-            if (name) params = { clientName: name, ...(mobile ? { mobileNumber: mobile } : {}) };
+            const name = clientRes.data?.client?.clientName || "";
+            if (name) setClientName(name);
           } catch {
-            // fall through: try querying works directly by ID (backend may support it)
-            params = { clientId: raw };
+            // ignore — name will be derived from the work results below if any
           }
         } else if (raw.startsWith("nm_")) {
           const parts = raw.slice(3).split("_");

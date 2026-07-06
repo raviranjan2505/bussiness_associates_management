@@ -14,10 +14,22 @@ const MyWorks = () => {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  // Date range filter (applied only when "Filter" is clicked)
+  const [fromInput, setFromInput] = useState("");
+  const [toInput, setToInput] = useState("");
+  const [appliedRange, setAppliedRange] = useState({ from: "", to: "" });
+
+  // Summary cards
+  const [summary, setSummary] = useState({ total: 0, pending: 0, completed: 0, rejected: 0 });
+  const [summaryLoading, setSummaryLoading] = useState(true);
+
+  const load = async (range = appliedRange) => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get("/business/works");
+      const params = {};
+      if (range.from) params.from = range.from;
+      if (range.to) params.to = range.to;
+      const res = await axiosInstance.get("/business/works", { params });
       setWorks(res.data.works || []);
     } catch (e) {
       toast.error(e.response?.data?.message || "Unable to load works");
@@ -26,7 +38,46 @@ const MyWorks = () => {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  const loadSummary = async (range = appliedRange) => {
+    try {
+      setSummaryLoading(true);
+      const params = {};
+      if (range.from) params.from = range.from;
+      if (range.to) params.to = range.to;
+      const res = await axiosInstance.get("/business/works/summary", { params });
+      setSummary({
+        total: res.data.total || 0,
+        pending: res.data.pending || 0,
+        completed: res.data.completed || 0,
+        rejected: res.data.rejected || 0,
+      });
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Unable to load work summary");
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    loadSummary();
+  }, []);
+
+  const handleFilter = () => {
+    const range = { from: fromInput, to: toInput };
+    setAppliedRange(range);
+    load(range);
+    loadSummary(range);
+  };
+
+  const handleReset = () => {
+    setFromInput("");
+    setToInput("");
+    const range = { from: "", to: "" };
+    setAppliedRange(range);
+    load(range);
+    loadSummary(range);
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -67,12 +118,66 @@ const MyWorks = () => {
               {filtered.length} of {works.length}
             </span>
             <button
-              onClick={load}
+              onClick={() => { load(); loadSummary(); }}
               className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
             >
               Refresh
             </button>
           </div>
+        </div>
+
+        {/* Summary cards */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="rounded-lg border border-gray-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Total Work</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{summaryLoading ? "…" : summary.total}</p>
+          </div>
+          <div className="rounded-lg border border-gray-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Pending Work</p>
+            <p className="mt-1 text-2xl font-bold text-gray-600">{summaryLoading ? "…" : summary.pending}</p>
+          </div>
+          <div className="rounded-lg border border-gray-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Completed Work</p>
+            <p className="mt-1 text-2xl font-bold text-green-700">{summaryLoading ? "…" : summary.completed}</p>
+          </div>
+          <div className="rounded-lg border border-gray-100 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Rejected Work</p>
+            <p className="mt-1 text-2xl font-bold text-red-600">{summaryLoading ? "…" : summary.rejected}</p>
+          </div>
+        </div>
+
+        {/* Date Range Filter */}
+        <div className="grid gap-3 rounded-lg border border-gray-100 bg-white p-4 md:grid-cols-[180px_180px_100px_100px]">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">From Date</label>
+            <input
+              type="date"
+              className="w-full rounded-lg border p-2.5 text-sm focus:border-gray-400 focus:outline-none"
+              value={fromInput}
+              onChange={(e) => setFromInput(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">To Date</label>
+            <input
+              type="date"
+              className="w-full rounded-lg border p-2.5 text-sm focus:border-gray-400 focus:outline-none"
+              value={toInput}
+              onChange={(e) => setToInput(e.target.value)}
+            />
+          </div>
+          <button
+            onClick={handleFilter}
+            className="mt-5 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            Filter
+          </button>
+          <button
+            onClick={handleReset}
+            className="mt-5 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Reset
+          </button>
         </div>
 
         {/* Filters */}
