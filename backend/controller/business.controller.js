@@ -1209,12 +1209,14 @@ export const adminDashboard = async (req, res, next) => {
       { $project: { name: "$service.name", count: 1 } },
     ]);
     const totalAssociates = await User.countDocuments({ role: { $in: associateRoles } });
+    // Fetched wider than one page so the dashboard's Recent Activities table
+    // can be paginated client-side without a separate endpoint.
     const recentWorks = await WorkSubmission.find()
       .populate("associate", "name")
       .populate("division", "name")
       .populate("service", "name")
       .sort({ updatedAt: -1 })
-      .limit(10);
+      .limit(50);
 
     // ---------------- Module 6: Dashboard Counters (Admin) ----------------
     const [
@@ -1265,6 +1267,14 @@ export const adminDashboard = async (req, res, next) => {
     statusCounts.forEach((item) => {
       statistics[item._id] = item.count;
     });
+    // Keep "Pending Works" consistent with the Work List page's summary card:
+    // both represent every work item that isn't Completed or Rejected yet
+    // (Pending, Under Review, Documents Required, In Process), rather than
+    // only the literal "Pending" status.
+    statistics.Pending = Math.max(
+      statistics.totalWorkRequests - statistics.Completed - statistics.Rejected,
+      0
+    );
 
     res.status(200).json({ statistics, byDivision, byService, recentWorks });
   } catch (error) {
@@ -1296,6 +1306,13 @@ export const associateDashboard = async (req, res, next) => {
       if (item._id === "Documents Required") statistics.requestedDocuments = item.count;
       statistics[item._id] = item.count;
     });
+    // Keep "Pending" consistent with the associate's Work List summary card:
+    // both represent every work item that isn't Completed or Rejected yet,
+    // rather than only the literal "Pending" status.
+    statistics.Pending = Math.max(
+      statistics.mySubmittedWork - statistics.Completed - statistics.Rejected,
+      0
+    );
 
     // ---------------- Module 6: Dashboard Counters (Associate) ----------------
     const [
@@ -1328,11 +1345,13 @@ export const associateDashboard = async (req, res, next) => {
       activeProjects,
       myComplaints,
     });
+    // Fetched wider than one page so the dashboard's Recent Activity table
+    // can be paginated client-side without a separate endpoint.
     const recentWorks = await WorkSubmission.find({ associate: req.user.id })
       .populate("division", "name")
       .populate("service", "name")
       .sort({ updatedAt: -1 })
-      .limit(10);
+      .limit(50);
     res.status(200).json({ statistics, recentWorks });
   } catch (error) {
     next(error);

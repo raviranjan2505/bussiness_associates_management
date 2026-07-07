@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
@@ -9,9 +9,10 @@ import { STATUS_DATA } from "../../utils/data";
 
 const MyWorks = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [works, setWorks] = useState([]);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(searchParams.get("status") || "");
   const [loading, setLoading] = useState(true);
 
   // Date range filter (applied only when "Filter" is clicked)
