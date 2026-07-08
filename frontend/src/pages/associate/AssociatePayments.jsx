@@ -6,8 +6,18 @@ import StatusBadge from "../../components/StatusBadge";
 import axiosInstance from "../../utils/axioInstance";
 import { formatMoney } from "../../utils/helper";
 
+const EMPTY_SUMMARY = { totalPaid: 0, totalDue: 0, todayPaid: 0, todayDue: 0 };
+
+const SummaryCard = ({ label, value, color, bg, border }) => (
+  <div className={`rounded-xl border p-5 shadow-sm ${bg} ${border}`}>
+    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
+    <p className={`mt-1 text-2xl font-bold ${color}`}>{formatMoney(value)}</p>
+  </div>
+);
+
 const AssociatePayments = () => {
   const [payments, setPayments] = useState([]);
+  const [summary, setSummary] = useState(EMPTY_SUMMARY);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -16,6 +26,9 @@ const AssociatePayments = () => {
     try {
       const res = await axiosInstance.get("/payments");
       setPayments(res.data.payments || []);
+      // /payments already scopes this summary to the logged-in associate's
+      // own invoices, same as it does for the payments list itself.
+      setSummary(res.data.summary || EMPTY_SUMMARY);
     } catch (e) {
       toast.error("Failed to load payments");
     } finally {
@@ -38,6 +51,14 @@ const AssociatePayments = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Payments</h1>
           <p className="text-sm text-gray-500">View payment history and download receipts.</p>
+        </div>
+
+        {/* Summary cards */}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <SummaryCard label="Total Paid Amount" value={summary.totalPaid} color="text-green-700" bg="bg-green-50" border="border-green-100" />
+          <SummaryCard label="Total Due Amount" value={summary.totalDue} color="text-red-600" bg="bg-red-50" border="border-red-100" />
+          <SummaryCard label="Today's Paid Amount" value={summary.todayPaid} color="text-blue-700" bg="bg-blue-50" border="border-blue-100" />
+          <SummaryCard label="Today's Due Amount" value={summary.todayDue} color="text-orange-600" bg="bg-orange-50" border="border-orange-100" />
         </div>
 
         {/* Filter */}

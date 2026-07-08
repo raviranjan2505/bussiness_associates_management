@@ -22,6 +22,9 @@ const BusinessDashboard = () => {
 
   const s = data.statistics || {};
   const pieData = statusKeys.map((status) => ({ status, count: s[status] || 0 }));
+  const hasPieData = pieData.some((d) => d.count > 0);
+  const barData = (data.byDivision || []).map((x) => ({ priority: x.name, count: x.count }));
+  const hasBarData = barData.length > 0;
 
   const recentWorks = data.recentWorks || [];
   const totalPages = Math.max(Math.ceil(recentWorks.length / pageSize), 1);
@@ -52,17 +55,25 @@ const BusinessDashboard = () => {
         </section>
 
         {/* ── Charts ─────────────────────────────────────── */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <section className="bg-white p-5 rounded-lg border border-gray-100">
-            <h2 className="font-semibold text-gray-900 mb-4">Work Status Distribution</h2>
-            <div className="h-64">
-              <CustomPieChart data={pieData} colors={["#f59e0b","#0ea5e9","#e11d48","#4f46e5","#10b981","#dc2626"]} />
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <section className="min-w-0 overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br from-white to-gray-50/60 p-4 shadow-sm sm:p-5">
+            <h2 className="mb-4 font-semibold text-gray-900">Work Status Distribution</h2>
+            <div className="h-72 w-full sm:h-80 md:h-96">
+              {hasPieData ? (
+                <CustomPieChart data={pieData} colors={["#f59e0b","#0ea5e9","#e11d48","#4f46e5","#10b981","#dc2626"]} />
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-gray-400">No work data yet.</div>
+              )}
             </div>
           </section>
-          <section className="bg-white p-5 rounded-lg border border-gray-100">
-            <h2 className="font-semibold text-gray-900 mb-4">Division-wise Statistics</h2>
-            <div className="h-64">
-              <CustomBarChart data={data.byDivision.map((x) => ({ priority: x.name, count: x.count }))} />
+          <section className="min-w-0 overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br from-white to-gray-50/60 p-4 shadow-sm sm:p-5">
+            <h2 className="mb-4 font-semibold text-gray-900">Division-wise Statistics</h2>
+            <div className="h-72 w-full sm:h-80 md:h-96">
+              {hasBarData ? (
+                <CustomBarChart data={barData} />
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-gray-400">No division data yet.</div>
+              )}
             </div>
           </section>
         </div>

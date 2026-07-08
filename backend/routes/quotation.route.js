@@ -3,6 +3,7 @@ import { verifyToken, adminOnly } from "../utils/verifyUser.js";
 import {
   createQuotation,
   listQuotations,
+  getQuotationsSummary,
   getQuotation,
   updateQuotation,
   deleteQuotation,
@@ -18,6 +19,7 @@ const router = express.Router();
 
 router.get("/", verifyToken, listQuotations);
 router.post("/", verifyToken, createQuotation);
+router.get("/summary", verifyToken, getQuotationsSummary);
 router.get("/:id", verifyToken, getQuotation);
 router.put("/:id", verifyToken, adminOnly, updateQuotation);
 router.delete("/:id", verifyToken, deleteQuotation);

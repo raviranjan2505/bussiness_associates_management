@@ -8,11 +8,21 @@ import axiosInstance from "../../utils/axioInstance";
 import { INVOICE_STATUSES } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
 
+const emptySummary = { totalInvoices: 0, paidInvoices: 0, partiallyPaidInvoices: 0, pendingInvoices: 0 };
+
+const SummaryCard = ({ label, value, accent }) => (
+  <div className="bg-white border border-gray-100 rounded-lg p-4">
+    <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
+    <p className={`mt-1 text-2xl font-bold ${accent || "text-gray-900"}`}>{value}</p>
+  </div>
+);
+
 const AssociateInvoices = () => {
   const [params] = useSearchParams();
   const [invoices, setInvoices] = useState([]);
   const [filters, setFilters] = useState({ search: "", invoiceStatus: params.get("invoiceStatus") || "" });
   const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState(emptySummary);
 
   const load = async () => {
     setLoading(true);
@@ -27,7 +37,18 @@ const AssociateInvoices = () => {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  // Summary cards reflect the associate's own invoices only — the backend
+  // scopes /invoices/summary the same way it scopes the list itself.
+  const loadSummary = async () => {
+    try {
+      const res = await axiosInstance.get("/invoices/summary");
+      setSummary(res.data.summary || emptySummary);
+    } catch (e) {
+      // supplementary — don't block the page if this fails
+    }
+  };
+
+  useEffect(() => { load(); loadSummary(); }, []);
 
   return (
     <DashboardLayout activeMenu="Invoices">
@@ -35,6 +56,14 @@ const AssociateInvoices = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Invoices</h1>
           <p className="text-sm text-gray-500">Track your invoices, payments and project progress.</p>
+        </div>
+
+        {/* Summary cards */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SummaryCard label="Total Invoices" value={summary.totalInvoices} />
+          <SummaryCard label="Paid Invoices" value={summary.paidInvoices} accent="text-emerald-600" />
+          <SummaryCard label="Partial Paid Invoices" value={summary.partiallyPaidInvoices} accent="text-amber-600" />
+          <SummaryCard label="Pending Invoices" value={summary.pendingInvoices} accent="text-red-600" />
         </div>
 
         {/* Filters */}

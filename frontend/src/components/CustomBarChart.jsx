@@ -13,19 +13,19 @@ import {
 } from "recharts"
 
 const CustomBarChart = ({ data }) => {
-  // Fuction to alternate colors
-  const getBarColor = (entry) => {
+  // Cycles through a small theme-consistent palette per bar so a
+  // division/service breakdown reads clearly even without a "priority" field.
+  const PALETTE = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"]
+  const getBarColor = (entry, index) => {
     switch (entry?.priority) {
       case "Low":
         return "#4CAF50"
-
       case "Medium":
         return "#FF9800"
-
       case "High":
         return "#F44336"
       default:
-        return "4CAF50"
+        return PALETTE[index % PALETTE.length]
     }
   }
 
@@ -50,37 +50,59 @@ const CustomBarChart = ({ data }) => {
     return null
   }
 
+  const hasData = data?.some((d) => Number(d.count) > 0)
+
+  if (!hasData) {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-sm text-gray-400">
+        No data yet
+      </div>
+    )
+  }
+
+  // Categories are unbounded (division/service names), so on narrow screens
+  // give each bar a minimum width and let the card scroll horizontally
+  // instead of squashing every label into unreadable slivers.
+  const minChartWidth = Math.max((data?.length || 0) * 72, 280)
+
   return (
-    <div className="bg-white mt-6">
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data}>
-          <CartesianGrid stroke="none" />
+    <div className="h-full w-full overflow-x-auto">
+      <div className="h-full" style={{ minWidth: `${minChartWidth}px` }}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+          <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+            <CartesianGrid stroke="none" />
 
-          <XAxis
-            dataKey="priority"
-            tick={{ fill: "#555", fontSize: 12 }}
-            stroke="none"
-          />
+            <XAxis
+              dataKey="priority"
+              tick={{ fill: "#555", fontSize: 12 }}
+              stroke="none"
+              interval={0}
+              angle={-20}
+              textAnchor="end"
+              height={50}
+            />
 
-          <YAxis tick={{ fill: "#555", fontSize: 12 }} stroke="none" />
+            <YAxis tick={{ fill: "#555", fontSize: 12 }} stroke="none" allowDecimals={false} width={36} />
 
-          <Tooltip
-            content={<CustomToolTip />}
-            cursor={{ fill: "transparent" }}
-          />
+            <Tooltip
+              content={<CustomToolTip />}
+              cursor={{ fill: "rgba(0,0,0,0.04)" }}
+            />
 
-          <Bar
-            dataKey="count"
-            name={"priority"}
-            fill="#FF8042"
-            radius={[10, 10, 0, 0]}
-          >
-            {data?.map((entry, index) => (
-              <Cell key={index} fill={getBarColor(entry)} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+            <Bar
+              dataKey="count"
+              name={"priority"}
+              fill="#4f46e5"
+              radius={[10, 10, 0, 0]}
+              maxBarSize={48}
+            >
+              {data?.map((entry, index) => (
+                <Cell key={index} fill={getBarColor(entry, index)} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }

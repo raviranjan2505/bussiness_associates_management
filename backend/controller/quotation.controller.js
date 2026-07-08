@@ -251,6 +251,26 @@ export const listQuotations = async (req, res, next) => {
   }
 };
 
+// Summary cards for the Quotations list (Total / Draft / Accepted / Rejected),
+// scoped the same way as listQuotations (associates only see their own).
+export const getQuotationsSummary = async (req, res, next) => {
+  try {
+    const filter = {};
+    if (req.user.role !== "admin") filter.associate = req.user.id;
+
+    const [total, draft, accepted, rejected] = await Promise.all([
+      Quotation.countDocuments(filter),
+      Quotation.countDocuments({ ...filter, status: "Draft" }),
+      Quotation.countDocuments({ ...filter, status: "Accepted" }),
+      Quotation.countDocuments({ ...filter, status: "Rejected" }),
+    ]);
+
+    res.status(200).json({ summary: { total, draft, accepted, rejected } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getQuotation = async (req, res, next) => {
   try {
     const quotation = await populateQuotation(Quotation.findById(req.params.id));
