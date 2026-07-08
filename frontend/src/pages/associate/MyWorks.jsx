@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
+import { Briefcase, Clock, CheckCircle2, XCircle } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import { StatCard } from "../../components/StatCard";
 import axiosInstance from "../../utils/axioInstance";
 import { STATUS_DATA } from "../../utils/data";
 
@@ -128,23 +130,11 @@ const MyWorks = () => {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded-lg border border-gray-100 bg-white p-4">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Total Work</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{summaryLoading ? "…" : summary.total}</p>
-          </div>
-          <div className="rounded-lg border border-gray-100 bg-white p-4">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Pending Work</p>
-            <p className="mt-1 text-2xl font-bold text-gray-600">{summaryLoading ? "…" : summary.pending}</p>
-          </div>
-          <div className="rounded-lg border border-gray-100 bg-white p-4">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Completed Work</p>
-            <p className="mt-1 text-2xl font-bold text-green-700">{summaryLoading ? "…" : summary.completed}</p>
-          </div>
-          <div className="rounded-lg border border-gray-100 bg-white p-4">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Rejected Work</p>
-            <p className="mt-1 text-2xl font-bold text-red-600">{summaryLoading ? "…" : summary.rejected}</p>
-          </div>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <StatCard icon={Briefcase}    title="Total Work"     value={summaryLoading ? "…" : summary.total}     color="blue" />
+          <StatCard icon={Clock}        title="Pending Work"   value={summaryLoading ? "…" : summary.pending}   color="amber" />
+          <StatCard icon={CheckCircle2} title="Completed Work" value={summaryLoading ? "…" : summary.completed} color="emerald" />
+          <StatCard icon={XCircle}      title="Rejected Work"  value={summaryLoading ? "…" : summary.rejected}  color="red" />
         </div>
 
         {/* Date Range Filter */}

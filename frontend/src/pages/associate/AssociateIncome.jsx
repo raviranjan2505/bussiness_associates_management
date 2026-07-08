@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { TrendingUp, Receipt, CheckCircle2, Wallet } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
+import { StatCard } from "../../components/StatCard";
 import axiosInstance from "../../utils/axioInstance";
 
 const fmt = (v) => `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -69,24 +71,19 @@ const AssociateIncome = () => {
 
         {/* Total Commission — headline card, sourced from completed work only,
             identical to the "My Income" figure shown on the Associate Dashboard. */}
-        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Total Commission</p>
-          <p className="mt-2 text-3xl font-bold text-emerald-700">{fmt(summary.totalCommission)}</p>
-          <p className="mt-1 text-xs text-gray-400">Sum of commission earned from all completed work.</p>
-        </div>
+        <StatCard
+          icon={TrendingUp}
+          title="Total Commission"
+          value={fmt(summary.totalCommission)}
+          color="emerald"
+          subtitle="Sum of commission earned from all completed work."
+        />
 
         {/* Summary cards */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {[
-            { label: "Total Service Charge",      value: summary.totalIncome,   color: "text-blue-700",   bg: "bg-blue-50"   },
-            { label: "Total Payout Paid", value: summary.totalPayout,   color: "text-green-700",  bg: "bg-green-50"  },
-            { label: "Withdrawal Amount",    value: summary.pendingPayout, color: "text-orange-600", bg: "bg-orange-50" },
-          ].map((c) => (
-            <div key={c.label} className={`rounded-xl border border-gray-100 p-5 shadow-sm ${c.bg}`}>
-              <p className="text-xs uppercase tracking-wide text-gray-500">{c.label}</p>
-              <p className={`mt-1 text-2xl font-bold ${c.color}`}>{fmt(c.value)}</p>
-            </div>
-          ))}
+          <StatCard icon={Receipt}      title="Total Service Charge" value={fmt(summary.totalIncome)}   color="blue" />
+          <StatCard icon={CheckCircle2} title="Total Payout Paid"    value={fmt(summary.totalPayout)}   color="green" />
+          <StatCard icon={Wallet}       title="Withdrawal Amount"    value={fmt(summary.pendingPayout)} color="orange" />
         </div>
 
         {/* Filters */}

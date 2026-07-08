@@ -2,20 +2,15 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
+import { Wallet, AlertCircle, CalendarCheck, CalendarClock } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import { StatCard } from "../../components/StatCard";
 import axiosInstance from "../../utils/axioInstance";
 import { PAYMENT_METHODS } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
 
 const EMPTY_SUMMARY = { totalPaid: 0, totalDue: 0, todayPaid: 0, todayDue: 0 };
-
-const SummaryCard = ({ label, value, color, bg, border }) => (
-  <div className={`rounded-xl border p-5 shadow-sm ${bg} ${border}`}>
-    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
-    <p className={`mt-1 text-2xl font-bold ${color}`}>{formatMoney(value)}</p>
-  </div>
-);
 
 const AdminPayments = () => {
   const [params] = useSearchParams();
@@ -128,34 +123,10 @@ const AdminPayments = () => {
 
         {/* ── Summary Cards ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <SummaryCard
-            label="Total Paid Amount"
-            value={summary.totalPaid}
-            color="text-green-700"
-            bg="bg-green-50"
-            border="border-green-100"
-          />
-          <SummaryCard
-            label="Total Due Amount"
-            value={summary.totalDue}
-            color="text-red-600"
-            bg="bg-red-50"
-            border="border-red-100"
-          />
-          <SummaryCard
-            label="Today's Paid Amount"
-            value={summary.todayPaid}
-            color="text-blue-700"
-            bg="bg-blue-50"
-            border="border-blue-100"
-          />
-          <SummaryCard
-            label="Today's Due Amount"
-            value={summary.todayDue}
-            color="text-orange-600"
-            bg="bg-orange-50"
-            border="border-orange-100"
-          />
+          <StatCard icon={Wallet}         title="Total Paid Amount" value={formatMoney(summary.totalPaid)} color="green" />
+          <StatCard icon={AlertCircle}    title="Total Due Amount" value={formatMoney(summary.totalDue)} color="red" />
+          <StatCard icon={CalendarCheck}  title="Today's Paid Amount" value={formatMoney(summary.todayPaid)} color="blue" />
+          <StatCard icon={CalendarClock}  title="Today's Due Amount" value={formatMoney(summary.todayDue)} color="orange" />
         </div>
 
         {/* ── Add Payment Form (unchanged) ──────────────────────────────── */}

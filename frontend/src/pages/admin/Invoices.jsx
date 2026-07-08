@@ -1,20 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import moment from "moment";
+import { FileText, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import { StatCard } from "../../components/StatCard";
 import axiosInstance from "../../utils/axioInstance";
 import { INVOICE_STATUSES } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
 
 const emptySummary = { totalInvoices: 0, paidInvoices: 0, partiallyPaidInvoices: 0, pendingInvoices: 0 };
-
-const SummaryCard = ({ label, value, accent }) => (
-  <div className="bg-white border border-gray-100 rounded-lg p-4">
-    <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
-    <p className={`mt-1 text-2xl font-bold ${accent || "text-gray-900"}`}>{value}</p>
-  </div>
-);
 
 const AdminInvoices = () => {
   const [params] = useSearchParams();
@@ -71,11 +66,11 @@ const AdminInvoices = () => {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Total Invoices" value={summary.totalInvoices} />
-          <SummaryCard label="Paid Invoices" value={summary.paidInvoices} accent="text-emerald-600" />
-          <SummaryCard label="Partial Paid Invoices" value={summary.partiallyPaidInvoices} accent="text-amber-600" />
-          <SummaryCard label="Pending Invoices" value={summary.pendingInvoices} accent="text-red-600" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard icon={FileText}     title="Total Invoices" value={summary.totalInvoices} color="blue" />
+          <StatCard icon={CheckCircle2} title="Paid Invoices" value={summary.paidInvoices} color="emerald" />
+          <StatCard icon={Clock}        title="Partial Paid Invoices" value={summary.partiallyPaidInvoices} color="amber" />
+          <StatCard icon={AlertCircle}  title="Pending Invoices" value={summary.pendingInvoices} color="red" />
         </div>
 
         {/* Date range filter (new) */}

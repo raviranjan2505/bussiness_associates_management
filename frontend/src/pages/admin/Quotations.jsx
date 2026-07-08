@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { FileText, PenLine, CheckCircle2, XCircle } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import { StatCardLink } from "../../components/StatCard";
 import axiosInstance from "../../utils/axioInstance";
 import { QUOTATION_STATUSES } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
@@ -65,10 +66,10 @@ const AdminQuotations = () => {
 <section>
           <h2 className="text-sm font-semibold text-gray-500 uppercase mb-3">Quotations</h2>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <StatLink icon={FileText}     title="Total Quotations"    value={s.totalQuotations || 0}    to="/admin/quotations"            color="purple" />
-            <StatLink icon={PenLine}      title="Draft"               value={s.draftQuotations || 0}    to="/admin/quotations?status=Draft"    color="gray" />
-            <StatLink icon={CheckCircle2} title="Accepted"            value={s.acceptedQuotations || 0} to="/admin/quotations?status=Accepted" color="green" />
-            <StatLink icon={XCircle}      title="Rejected"            value={s.rejectedQuotations || 0} to="/admin/quotations?status=Rejected" color="red" />
+            <StatCardLink icon={FileText}     title="Total Quotations"    value={s.totalQuotations || 0}    to="/admin/quotations"            color="purple" />
+            <StatCardLink icon={PenLine}      title="Draft"               value={s.draftQuotations || 0}    to="/admin/quotations?status=Draft"    color="gray" />
+            <StatCardLink icon={CheckCircle2} title="Accepted"            value={s.acceptedQuotations || 0} to="/admin/quotations?status=Accepted" color="green" />
+            <StatCardLink icon={XCircle}      title="Rejected"            value={s.rejectedQuotations || 0} to="/admin/quotations?status=Rejected" color="red" />
           </div>
         </section>
 
@@ -137,43 +138,4 @@ const AdminQuotations = () => {
   );
 };
 
-const STAT_COLORS = {
-  blue:    { bg: "from-blue-50 to-white",    icon: "bg-blue-600/10 text-blue-600",    value: "text-blue-950",    ring: "hover:ring-blue-100" },
-  indigo:  { bg: "from-indigo-50 to-white",  icon: "bg-indigo-600/10 text-indigo-600", value: "text-indigo-950", ring: "hover:ring-indigo-100" },
-  amber:   { bg: "from-amber-50 to-white",   icon: "bg-amber-500/15 text-amber-600",  value: "text-amber-950",  ring: "hover:ring-amber-100" },
-  emerald: { bg: "from-emerald-50 to-white", icon: "bg-emerald-600/10 text-emerald-600", value: "text-emerald-950", ring: "hover:ring-emerald-100" },
-  green:   { bg: "from-green-50 to-white",   icon: "bg-green-600/10 text-green-600",  value: "text-green-950",  ring: "hover:ring-green-100" },
-  purple:  { bg: "from-purple-50 to-white",  icon: "bg-purple-600/10 text-purple-600", value: "text-purple-950", ring: "hover:ring-purple-100" },
-  rose:    { bg: "from-rose-50 to-white",    icon: "bg-rose-600/10 text-rose-600",    value: "text-rose-950",   ring: "hover:ring-rose-100" },
-  gray:    { bg: "from-gray-50 to-white",    icon: "bg-gray-600/10 text-gray-600",    value: "text-gray-900",   ring: "hover:ring-gray-100" },
-  red:     { bg: "from-red-50 to-white",     icon: "bg-red-600/10 text-red-600",      value: "text-red-950",    ring: "hover:ring-red-100" },
-};
-
-const Stat = ({ title, value, color = "blue", icon: Icon, clickable = false }) => {
-  const c = STAT_COLORS[color] || STAT_COLORS.blue;
-  return (
-    <div
-      className={`group relative overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br ${c.bg} p-5 shadow-sm ring-1 ring-transparent transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${c.ring} ${clickable ? "cursor-pointer" : ""}`}
-    >
-      {Icon && (
-        <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg ${c.icon}`}>
-          <Icon className="h-5 w-5" strokeWidth={2.25} />
-        </div>
-      )}
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</p>
-      <p className={`mt-1 text-3xl font-bold tracking-tight ${c.value}`}>{value}</p>
-      {clickable && (
-        <span className="pointer-events-none absolute right-4 top-4 text-gray-300 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          →
-        </span>
-      )}
-    </div>
-  );
-};
-
-const StatLink = ({ title, value, to, color, icon }) => (
-  <Link to={to} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-300 rounded-xl">
-    <Stat title={title} value={value} color={color} icon={icon} clickable />
-  </Link>
-);
 export default AdminQuotations;
