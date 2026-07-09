@@ -6,6 +6,7 @@ import { Wallet, AlertCircle, CalendarCheck, CalendarClock } from "lucide-react"
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import { StatCard } from "../../components/StatCard";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { PAYMENT_METHODS } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
@@ -19,6 +20,7 @@ const AdminPayments = () => {
   const [payments, setPayments] = useState([]);
   const [summary, setSummary] = useState(EMPTY_SUMMARY);
   const [loading, setLoading] = useState(false);
+  const { page, totalPages, paged: pagedPayments, resetPage, onPrev, onNext } = usePagination(payments, 10);
 
   // Filters
   const [invoiceId, setInvoiceId] = useState(params.get("invoiceId") || "");
@@ -39,6 +41,7 @@ const AdminPayments = () => {
   // ── Load ──────────────────────────────────────────────────────────────────
   const load = async (filters = {}) => {
     setLoading(true);
+    resetPage();
     try {
       const p = {};
       if (filters.invoiceId ?? invoiceId) p.invoiceId = filters.invoiceId ?? invoiceId;
@@ -281,7 +284,7 @@ const AdminPayments = () => {
               <tbody>
                 {loading ? (
                   <tr><td colSpan={9} className="py-12 text-center text-gray-400">Loading…</td></tr>
-                ) : payments.map((p) => (
+                ) : pagedPayments.map((p) => (
                   <tr key={p._id} className="border-t hover:bg-gray-50">
                     <td className="p-3 font-medium">{p.invoice?.invoiceNumber}</td>
                     <td className="p-3 text-gray-700">{p.invoice?.customerName || "—"}</td>
@@ -321,6 +324,7 @@ const AdminPayments = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={payments.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

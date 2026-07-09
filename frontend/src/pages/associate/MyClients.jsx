@@ -4,6 +4,7 @@ import moment from "moment";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const MyClients = () => {
@@ -40,6 +41,9 @@ const MyClients = () => {
       `${c.clientName} ${c.mobileNumber} ${c.email} ${c.address}`.toLowerCase().includes(q)
     );
   }, [clients, search]);
+
+  const { page, totalPages, paged: pagedClients, resetPage, onPrev, onNext } = usePagination(filtered, 10);
+  useEffect(() => { resetPage(); }, [search]);
 
   // Build the URL param for sub-pages
   const toParam = (client) => {
@@ -116,7 +120,7 @@ const MyClients = () => {
                   <tr><td colSpan={7} className="py-12 text-center text-gray-400">
                     {search ? "No clients match your search." : "No clients yet. Add one or submit a work."}
                   </td></tr>
-                ) : filtered.map((client) => {
+                ) : pagedClients.map((client) => {
                   const ownedClient = canEdit(client);
                   return (
                     <tr key={client.clientKey || client.clientId} className="border-t hover:bg-gray-50 transition-colors">
@@ -179,6 +183,7 @@ const MyClients = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={filtered.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

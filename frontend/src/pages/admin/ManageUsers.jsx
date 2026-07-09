@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const ManageUsers = () => {
@@ -28,6 +29,9 @@ const ManageUsers = () => {
     const text = `${user.name || ""} ${user.email || ""}`.toLowerCase();
     return text.includes(search.toLowerCase());
   });
+
+  const { page, totalPages, paged: pagedUsers, resetPage, onPrev, onNext } = usePagination(filteredUsers, 10);
+  useEffect(() => { resetPage(); }, [search]);
 
   return (
     <DashboardLayout activeMenu="Associates">
@@ -66,7 +70,7 @@ const ManageUsers = () => {
                     </td>
                   </tr>
                 ) : filteredUsers.length ? (
-                  filteredUsers.map((user) => (
+                  pagedUsers.map((user) => (
                     <tr key={user._id} className="border-t hover:bg-gray-50">
                       <td className="p-3 font-medium text-gray-900">{user.name}</td>
                       <td className="p-3 text-gray-600">{user.email}</td>
@@ -102,6 +106,7 @@ const ManageUsers = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={filteredUsers.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

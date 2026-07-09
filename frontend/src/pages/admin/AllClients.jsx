@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const AllClients = () => {
@@ -39,6 +40,9 @@ const AllClients = () => {
         .toLowerCase().includes(q)
     );
   }, [clients, search]);
+
+  const { page, totalPages, paged: pagedClients, resetPage, onPrev, onNext } = usePagination(filtered, 10);
+  useEffect(() => { resetPage(); }, [search]);
 
   const handleDelete = async (clientId, clientName) => {
     if (!window.confirm(`Delete client "${clientName}"? This cannot be undone.`)) return;
@@ -104,7 +108,7 @@ const AllClients = () => {
                   <tr><td colSpan={8} className="py-12 text-center text-gray-400">Loading clients…</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={8} className="py-12 text-center text-gray-400">No clients found.</td></tr>
-                ) : filtered.map((client) => (
+                ) : pagedClients.map((client) => (
                   <tr key={client._id} className="border-t hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <p className="font-semibold text-gray-900">{client.clientName}</p>
@@ -164,6 +168,7 @@ const AllClients = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={filtered.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

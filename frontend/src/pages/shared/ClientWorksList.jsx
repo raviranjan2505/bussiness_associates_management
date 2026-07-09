@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const isObjectId = (s) => /^[a-f\d]{24}$/i.test(s);
@@ -86,6 +87,9 @@ const ClientWorksList = () => {
     })();
   }, [clientId]);
 
+  const { page, totalPages, paged: pagedWorks, resetPage, onPrev, onNext } = usePagination(works, 10);
+  useEffect(() => { resetPage(); }, [clientId]);
+
   return (
     <DashboardLayout activeMenu={isAdmin ? "All Clients" : "My Clients"}>
       <div className="p-6 space-y-5">
@@ -135,7 +139,7 @@ const ClientWorksList = () => {
                   <tr><td colSpan={isAdmin ? 9 : 8} className="py-12 text-center text-gray-400">Loading works…</td></tr>
                 ) : works.length === 0 ? (
                   <tr><td colSpan={isAdmin ? 9 : 8} className="py-12 text-center text-gray-400">No works found for this client.</td></tr>
-                ) : works.map((work) => (
+                ) : pagedWorks.map((work) => (
                   <tr
                     key={work._id}
                     onClick={() => navigate(`${base}/work/${work._id}`)}
@@ -158,6 +162,7 @@ const ClientWorksList = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={works.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

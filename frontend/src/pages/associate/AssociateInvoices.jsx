@@ -6,6 +6,7 @@ import { FileText, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import { StatCard } from "../../components/StatCard";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { INVOICE_STATUSES } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
@@ -18,9 +19,11 @@ const AssociateInvoices = () => {
   const [filters, setFilters] = useState({ search: "", invoiceStatus: params.get("invoiceStatus") || "" });
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(emptySummary);
+  const { page, totalPages, paged: pagedInvoices, resetPage, onPrev, onNext } = usePagination(invoices, 10);
 
   const load = async () => {
     setLoading(true);
+    resetPage();
     try {
       const p = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
       const res = await axiosInstance.get("/invoices", { params: p });
@@ -92,7 +95,7 @@ const AssociateInvoices = () => {
               <tbody>
                 {loading ? (
                   <tr><td colSpan={8} className="p-4 text-center text-gray-400">Loading…</td></tr>
-                ) : invoices.map((inv) => (
+                ) : pagedInvoices.map((inv) => (
                   <tr key={inv._id} className="border-t hover:bg-gray-50">
                     <td className="p-3 font-medium">
                       <Link to={`/associate/invoices/${inv._id}`} className="text-blue-700 hover:underline">
@@ -130,6 +133,7 @@ const AssociateInvoices = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={invoices.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

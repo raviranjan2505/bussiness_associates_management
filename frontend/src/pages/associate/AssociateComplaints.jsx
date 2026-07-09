@@ -4,6 +4,7 @@ import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { COMPLAINT_STATUSES } from "../../utils/data";
 
@@ -13,11 +14,13 @@ const AssociateComplaints = () => {
   const [form, setForm] = useState({ subject: "", description: "" });
   const [files, setFiles] = useState([]);
   const [filters, setFilters] = useState({ status: "" });
+  const { page, totalPages, paged: pagedComplaints, resetPage, onPrev, onNext } = usePagination(complaints, 10);
 
   const load = async () => {
     const p = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
     const res = await axiosInstance.get("/complaints", { params: p });
     setComplaints(res.data.complaints || []);
+    resetPage();
   };
 
   useEffect(() => { load(); }, []);
@@ -89,7 +92,7 @@ const AssociateComplaints = () => {
         </div>
 
         <div className="space-y-3">
-          {complaints.map((c) => (
+          {pagedComplaints.map((c) => (
             <Link key={c._id} to={`/associate/complaints/${c._id}`}
               className="flex items-center justify-between bg-white border border-gray-100 rounded-lg p-4 hover:shadow-sm hover:border-gray-300 transition-all">
               <div>
@@ -103,6 +106,11 @@ const AssociateComplaints = () => {
             <div className="text-center py-12 text-gray-500">No complaints found.</div>
           )}
         </div>
+        {complaints.length > 0 && (
+          <div className="rounded-lg border border-gray-100 bg-white">
+            <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={complaints.length} pageSize={10} />
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

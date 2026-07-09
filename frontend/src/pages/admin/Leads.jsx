@@ -3,6 +3,7 @@ import moment from "moment";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const Leads = () => {
@@ -41,6 +42,9 @@ const Leads = () => {
       return haystack.includes(q);
     });
   }, [leads, search]);
+
+  const { page, totalPages, paged: pagedLeads, resetPage, onPrev, onNext } = usePagination(filteredLeads, 10);
+  useEffect(() => { resetPage(); }, [search, selectedAssociateId]);
 
   return (
     <DashboardLayout activeMenu="New Leads">
@@ -87,7 +91,7 @@ const Leads = () => {
                     </td>
                   </tr>
                 ) : filteredLeads.length > 0 ? (
-                  filteredLeads.map((lead) => (
+                  pagedLeads.map((lead) => (
                     <tr
                       key={lead._id}
                       className="border-t cursor-pointer hover:bg-gray-50"
@@ -120,6 +124,7 @@ const Leads = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={filteredLeads.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

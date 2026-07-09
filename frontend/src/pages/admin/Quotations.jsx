@@ -6,6 +6,7 @@ import { FileText, PenLine, CheckCircle2, XCircle } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import { StatCardLink } from "../../components/StatCard";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { QUOTATION_STATUSES } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
@@ -24,8 +25,11 @@ const AdminQuotations = () => {
   }, []);
 
   const s = data.statistics || {};
+  const { page, totalPages, paged: pagedQuotations, resetPage, onPrev, onNext } = usePagination(quotations, 10);
+
   const load = async () => {
     setLoading(true);
+    resetPage();
     try {
       const p = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
       const res = await axiosInstance.get("/quotations", { params: p });
@@ -102,7 +106,7 @@ const AdminQuotations = () => {
                 </tr>
               </thead>
               <tbody>
-                {quotations.map((q) => (
+                {pagedQuotations.map((q) => (
                   <tr key={q._id} className="border-t hover:bg-gray-50">
                     <td className="p-3 font-medium">
                       <Link to={`/admin/quotations/${q._id}`} className="text-blue-700 hover:underline">
@@ -132,6 +136,7 @@ const AdminQuotations = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={quotations.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

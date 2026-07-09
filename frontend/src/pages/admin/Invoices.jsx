@@ -5,6 +5,7 @@ import { FileText, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import { StatCard } from "../../components/StatCard";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { INVOICE_STATUSES } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
@@ -20,9 +21,11 @@ const AdminInvoices = () => {
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [summary, setSummary] = useState(emptySummary);
   const [loading, setLoading] = useState(false);
+  const { page, totalPages, paged: pagedInvoices, resetPage, onPrev, onNext } = usePagination(invoices, 10);
 
   const load = async (activeDateRange = dateRange) => {
     setLoading(true);
+    resetPage();
     try {
       const p = Object.fromEntries(
         Object.entries({ ...filters, ...activeDateRange }).filter(([, v]) => v)
@@ -135,7 +138,7 @@ const AdminInvoices = () => {
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((inv) => (
+                {pagedInvoices.map((inv) => (
                   <tr key={inv._id} className="border-t hover:bg-gray-50">
                     <td className="p-3 font-medium">
                       <Link to={`/admin/invoices/${inv._id}`} className="text-blue-700 hover:underline">
@@ -165,6 +168,7 @@ const AdminInvoices = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={invoices.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const fmt = (v) => `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -21,6 +22,7 @@ const AdminIncomeClients = () => {
         params: { search, payoutStatus },
       });
       setData(res.data);
+      resetPage();
     } catch (e) {
       toast.error(e.response?.data?.message || "Unable to load client income");
     } finally {
@@ -32,6 +34,7 @@ const AdminIncomeClients = () => {
 
   const clients = data.clients || [];
   const associate = data.associate;
+  const { page, totalPages, paged: pagedClients, resetPage, onPrev, onNext } = usePagination(clients, 10);
 
   const totals = {
     income:     clients.reduce((s, c) => s + c.totalIncome, 0),
@@ -114,7 +117,7 @@ const AdminIncomeClients = () => {
                   <tr><td colSpan={6} className="py-12 text-center text-gray-400">Loading…</td></tr>
                 ) : clients.length === 0 ? (
                   <tr><td colSpan={6} className="py-12 text-center text-gray-400">No clients found.</td></tr>
-                ) : clients.map((c) => (
+                ) : pagedClients.map((c) => (
                   <tr key={c.clientName} className="border-t hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <p className="font-semibold text-gray-900">{c.clientName}</p>
@@ -140,6 +143,7 @@ const AdminIncomeClients = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={clients.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

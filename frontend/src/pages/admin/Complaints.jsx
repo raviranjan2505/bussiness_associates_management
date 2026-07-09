@@ -3,17 +3,20 @@ import { Link } from "react-router-dom";
 import moment from "moment";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { COMPLAINT_STATUSES } from "../../utils/data";
 
 const AdminComplaints = () => {
   const [complaints, setComplaints] = useState([]);
   const [filters, setFilters] = useState({ status: "", search: "" });
+  const { page, totalPages, paged: pagedComplaints, resetPage, onPrev, onNext } = usePagination(complaints, 10);
 
   const load = async () => {
     const p = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
     const res = await axiosInstance.get("/complaints", { params: p });
     setComplaints(res.data.complaints || []);
+    resetPage();
   };
 
   useEffect(() => { load(); }, []);
@@ -51,7 +54,7 @@ const AdminComplaints = () => {
                 </tr>
               </thead>
               <tbody>
-                {complaints.map((c) => (
+                {pagedComplaints.map((c) => (
                   <tr key={c._id} className="border-t hover:bg-gray-50">
                     <td className="p-3 font-medium">{c.complaintNumber}</td>
                     <td className="p-3 max-w-[250px] truncate">{c.subject}</td>
@@ -71,6 +74,7 @@ const AdminComplaints = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={complaints.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

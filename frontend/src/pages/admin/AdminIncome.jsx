@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { TrendingUp, Receipt, CheckCircle2, Wallet } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import { StatCard } from "../../components/StatCard";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const fmt = (v) => `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -16,9 +17,11 @@ const AdminIncome = () => {
   const [search, setSearch] = useState("");
   const [payoutStatus, setPayoutStatus] = useState("");
   const [loading, setLoading] = useState(true);
+  const { page, totalPages, paged: pagedAssociates, resetPage, onPrev, onNext } = usePagination(associates, 10);
 
   const load = async () => {
     setLoading(true);
+    resetPage();
     try {
       const res = await axiosInstance.get("/payouts/admin/associates", {
         params: { search, payoutStatus },
@@ -121,7 +124,7 @@ const AdminIncome = () => {
                   <tr><td colSpan={7} className="py-12 text-center text-gray-400">Loading…</td></tr>
                 ) : associates.length === 0 ? (
                   <tr><td colSpan={7} className="py-12 text-center text-gray-400">No income records found.</td></tr>
-                ) : associates.map((a) => (
+                ) : pagedAssociates.map((a) => (
                   <tr key={String(a.associateId)} className="border-t hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <p className="font-semibold text-gray-900">{a.associateName}</p>
@@ -148,6 +151,7 @@ const AdminIncome = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={associates.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

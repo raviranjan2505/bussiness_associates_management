@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import StatusBadge from "../../components/StatusBadge";
 
@@ -35,6 +36,9 @@ const KycRequests = () => {
     const matchesStatus = !statusFilter || r.kycStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const { page, totalPages, paged: pagedRequests, resetPage, onPrev, onNext } = usePagination(filtered, 10);
+  useEffect(() => { resetPage(); }, [search, statusFilter]);
 
   const approve = async (id) => {
     setActingId(id);
@@ -127,7 +131,7 @@ const KycRequests = () => {
                     <td colSpan={6} className="p-4 text-center text-gray-400">Loading…</td>
                   </tr>
                 ) : (
-                  filtered.map((r) => (
+                  pagedRequests.map((r) => (
                     <tr key={r._id} className="border-t hover:bg-gray-50">
                       <td className="p-3 font-medium text-gray-900">{r.name}</td>
                       <td className="p-3 text-gray-600">{r.mobile}</td>
@@ -182,6 +186,7 @@ const KycRequests = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={filtered.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

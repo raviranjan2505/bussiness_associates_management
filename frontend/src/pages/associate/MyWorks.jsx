@@ -6,6 +6,7 @@ import { Briefcase, Clock, CheckCircle2, XCircle } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import { StatCard } from "../../components/StatCard";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { STATUS_DATA } from "../../utils/data";
 
@@ -103,6 +104,11 @@ const MyWorks = () => {
       return matchSearch && matchStatus;
     });
   }, [works, search, status]);
+
+  const { page, totalPages, paged: pagedWorks, resetPage, onPrev, onNext } = usePagination(filtered, 10);
+
+  // A new search term or status filter should always land back on page 1.
+  useEffect(() => { resetPage(); }, [search, status]);
 
   return (
     <DashboardLayout activeMenu="My Works">
@@ -225,7 +231,7 @@ const MyWorks = () => {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((work) => (
+                  pagedWorks.map((work) => (
                     <tr
                       key={work._id}
                       onClick={() => navigate(`/associate/work/${work._id}`)}
@@ -263,6 +269,7 @@ const MyWorks = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={filtered.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

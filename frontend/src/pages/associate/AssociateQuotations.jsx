@@ -5,6 +5,8 @@ import toast from "react-hot-toast";
 import { FileText, PenLine, CheckCircle2, XCircle } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import { StatCardLink } from "../../components/StatCard";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { QUOTATION_STATUSES } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
@@ -16,9 +18,11 @@ const AssociateQuotations = () => {
   const [loading, setLoading] = useState(false);
   const [actingId, setActingId] = useState(null);
   const [summary, setSummary] = useState({ total: 0, draft: 0, accepted: 0, rejected: 0 });
+  const { page, totalPages, paged: pagedQuotations, resetPage, onPrev, onNext } = usePagination(quotations, 10);
 
   const load = async () => {
     setLoading(true);
+    resetPage();
     try {
       const p = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
       const res = await axiosInstance.get("/quotations", { params: p });
@@ -93,10 +97,10 @@ const AssociateQuotations = () => {
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatLink icon={FileText}     title="Total Quotations" value={summary.total}    to="/associate/quotations"            color="purple" />
-          <StatLink icon={PenLine}      title="Draft"            value={summary.draft}    to="/associate/quotations?status=Draft"    color="gray" />
-          <StatLink icon={CheckCircle2} title="Accepted"         value={summary.accepted} to="/associate/quotations?status=Accepted" color="green" />
-          <StatLink icon={XCircle}      title="Rejected"         value={summary.rejected} to="/associate/quotations?status=Rejected" color="red" />
+          <StatCardLink icon={FileText}     title="Total Quotations" value={summary.total}    to="/associate/quotations"            color="purple" />
+          <StatCardLink icon={PenLine}      title="Draft"            value={summary.draft}    to="/associate/quotations?status=Draft"    color="gray" />
+          <StatCardLink icon={CheckCircle2} title="Accepted"         value={summary.accepted} to="/associate/quotations?status=Accepted" color="green" />
+          <StatCardLink icon={XCircle}      title="Rejected"         value={summary.rejected} to="/associate/quotations?status=Rejected" color="red" />
         </div>
 
         {/* Filters */}
@@ -129,7 +133,7 @@ const AssociateQuotations = () => {
               <tbody>
                 {loading ? (
                   <tr><td colSpan={7} className="p-4 text-center text-gray-400">Loading…</td></tr>
-                ) : quotations.map((q) => (
+                ) : pagedQuotations.map((q) => (
                   <tr key={q._id} className="border-t hover:bg-gray-50">
                     <td className="p-3 font-medium">
                       <Link to={`/associate/quotations/${q._id}`} className="text-blue-700 hover:underline">
@@ -190,45 +194,11 @@ const AssociateQuotations = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={quotations.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>
   );
 };
-
-const STAT_COLORS = {
-  purple: { bg: "from-purple-50 to-white", icon: "bg-purple-600/10 text-purple-600", value: "text-purple-950", ring: "hover:ring-purple-100" },
-  gray:   { bg: "from-gray-50 to-white",   icon: "bg-gray-600/10 text-gray-600",     value: "text-gray-900",   ring: "hover:ring-gray-100" },
-  green:  { bg: "from-green-50 to-white",  icon: "bg-green-600/10 text-green-600",   value: "text-green-950",  ring: "hover:ring-green-100" },
-  red:    { bg: "from-red-50 to-white",    icon: "bg-red-600/10 text-red-600",       value: "text-red-950",    ring: "hover:ring-red-100" },
-};
-
-const Stat = ({ title, value, color = "purple", icon: Icon, clickable = false }) => {
-  const c = STAT_COLORS[color] || STAT_COLORS.purple;
-  return (
-    <div
-      className={`group relative overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br ${c.bg} p-5 shadow-sm ring-1 ring-transparent transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${c.ring} ${clickable ? "cursor-pointer" : ""}`}
-    >
-      {Icon && (
-        <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg ${c.icon}`}>
-          <Icon className="h-5 w-5" strokeWidth={2.25} />
-        </div>
-      )}
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</p>
-      <p className={`mt-1 text-3xl font-bold tracking-tight ${c.value}`}>{value}</p>
-      {clickable && (
-        <span className="pointer-events-none absolute right-4 top-4 text-gray-300 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          →
-        </span>
-      )}
-    </div>
-  );
-};
-
-const StatLink = ({ title, value, to, color, icon }) => (
-  <Link to={to} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-300 rounded-xl">
-    <Stat title={title} value={value} color={color} icon={icon} clickable />
-  </Link>
-);
 
 export default AssociateQuotations;

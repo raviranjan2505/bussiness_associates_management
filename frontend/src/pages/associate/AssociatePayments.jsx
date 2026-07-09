@@ -5,6 +5,7 @@ import { Wallet, AlertCircle, CalendarCheck, CalendarClock } from "lucide-react"
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import { StatCard } from "../../components/StatCard";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { formatMoney } from "../../utils/helper";
 
@@ -39,6 +40,9 @@ const AssociatePayments = () => {
     return `${p.invoice?.invoiceNumber} ${p.invoice?.customerName} ${p.transactionId} ${p.paymentMethod}`
       .toLowerCase().includes(q);
   });
+
+  const { page, totalPages, paged: pagedPayments, resetPage, onPrev, onNext } = usePagination(filtered, 10);
+  useEffect(() => { resetPage(); }, [search]);
 
   return (
     <DashboardLayout activeMenu="Payments">
@@ -83,7 +87,7 @@ const AssociatePayments = () => {
               <tbody>
                 {loading ? (
                   <tr><td colSpan={9} className="p-4 text-center text-gray-400">Loading…</td></tr>
-                ) : filtered.map((p) => (
+                ) : pagedPayments.map((p) => (
                   <tr key={p._id} className="border-t hover:bg-gray-50">
                     <td className="p-3 font-medium">
                       {p.invoice?._id ? (
@@ -127,6 +131,7 @@ const AssociatePayments = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={filtered.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

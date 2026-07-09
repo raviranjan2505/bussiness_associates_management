@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { TrendingUp, Receipt, CheckCircle2, Wallet } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import { StatCard } from "../../components/StatCard";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const fmt = (v) => `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -53,6 +54,8 @@ const AssociateIncome = () => {
   }, [data.clients, search, payoutFilter]);
 
   const { summary } = data;
+  const { page, totalPages, paged: pagedClients, resetPage, onPrev, onNext } = usePagination(filtered, 10);
+  useEffect(() => { resetPage(); }, [search, payoutFilter]);
 
   return (
     <DashboardLayout activeMenu="Income">
@@ -118,7 +121,7 @@ const AssociateIncome = () => {
                   <tr><td colSpan={6} className="py-12 text-center text-gray-400">Loading…</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={6} className="py-12 text-center text-gray-400">No income records found.</td></tr>
-                ) : filtered.map((c) => (
+                ) : pagedClients.map((c) => (
                   <tr key={c.clientName} className="border-t hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <p className="font-semibold text-gray-900">{c.clientName}</p>
@@ -144,6 +147,7 @@ const AssociateIncome = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={filtered.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

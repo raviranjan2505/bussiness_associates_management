@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const STATUS_COLORS = {
@@ -52,6 +53,9 @@ const MyLeads = () => {
   }, [leads, search, statusFilter]);
 
   const statuses = useMemo(() => [...new Set(leads.map((l) => l.leadStatus).filter(Boolean))], [leads]);
+
+  const { page, totalPages, paged: pagedLeads, resetPage, onPrev, onNext } = usePagination(filteredLeads, 10);
+  useEffect(() => { resetPage(); }, [search, statusFilter]);
 
   return (
     <DashboardLayout activeMenu="My Leads">
@@ -113,7 +117,7 @@ const MyLeads = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredLeads.map((lead) => {
+                  pagedLeads.map((lead) => {
                     const isMulti = Array.isArray(lead.services) && lead.services.length > 0;
                     const serviceName = isMulti
                       ? `${lead.services.length} Services`
@@ -156,6 +160,7 @@ const MyLeads = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={filteredLeads.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

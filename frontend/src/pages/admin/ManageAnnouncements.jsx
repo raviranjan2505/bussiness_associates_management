@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { formatMoney } from "../../utils/helper";
 import { MdEdit, MdDelete, MdAdd } from "react-icons/md";
@@ -18,10 +19,13 @@ const ManageAnnouncements = () => {
     expiryDate: "",
   });
 
+  const { page, totalPages, paged: pagedAnnouncements, resetPage, onPrev, onNext } = usePagination(announcements, 10);
+
   const load = async () => {
     try {
       const res = await axiosInstance.get("/announcements", { params: { isActive: "true" } });
       setAnnouncements(res.data.announcements || []);
+      resetPage();
     } catch (err) {
       console.error(err);
     }
@@ -205,7 +209,7 @@ const ManageAnnouncements = () => {
               <p className="text-gray-500">No announcements yet.</p>
             </div>
           ) : (
-            announcements.map((announcement) => (
+            pagedAnnouncements.map((announcement) => (
               <div
                 key={announcement._id}
                 className={`bg-white border rounded-lg p-5 space-y-3 ${
@@ -274,6 +278,11 @@ const ManageAnnouncements = () => {
             ))
           )}
         </section>
+        {announcements.length > 0 && (
+          <div className="rounded-lg border border-gray-100 bg-white">
+            <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={announcements.length} pageSize={10} />
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

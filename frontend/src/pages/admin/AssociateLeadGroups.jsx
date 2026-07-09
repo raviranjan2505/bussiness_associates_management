@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 // Build a URL-safe client key from name+mobile (consistent with the rest of the app)
@@ -44,6 +45,9 @@ const AssociateLeadGroups = () => {
       `${c.clientName} ${c.mobileNumber} ${c.email}`.toLowerCase().includes(q)
     );
   }, [clients, search]);
+
+  const { page, totalPages, paged: pagedClients, resetPage, onPrev, onNext } = usePagination(filtered, 10);
+  useEffect(() => { resetPage(); }, [search]);
 
   return (
     <DashboardLayout activeMenu="Associates">
@@ -103,7 +107,7 @@ const AssociateLeadGroups = () => {
                   <tr><td colSpan={5} className="py-12 text-center text-gray-400">
                     {search ? "No clients match your search." : "No leads found for this associate."}
                   </td></tr>
-                ) : filtered.map((client) => (
+                ) : pagedClients.map((client) => (
                   <tr
                     key={`${client.clientName}-${client.mobileNumber}`}
                     className="border-t cursor-pointer hover:bg-blue-50 transition-colors"
@@ -141,6 +145,7 @@ const AssociateLeadGroups = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={filtered.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

@@ -6,6 +6,7 @@ import { Briefcase, Clock, CheckCircle2, XCircle } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
 import { StatCard } from "../../components/StatCard";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { STATUS_DATA } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
@@ -28,8 +29,11 @@ const AdminProjects = () => {
   const [summary, setSummary] = useState({ total: 0, pending: 0, completed: 0, rejected: 0 });
   const [summaryLoading, setSummaryLoading] = useState(false);
 
+  const { page, totalPages, paged: pagedWorks, resetPage, onPrev, onNext } = usePagination(works, 10);
+
   const load = async (range = appliedRange) => {
     setLoading(true);
+    resetPage();
     try {
       const p = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
       if (range.from) p.from = range.from;
@@ -186,7 +190,7 @@ const AdminProjects = () => {
                     </td>
                   </tr>
                 ) : (
-                  works.map((work) => (
+                  pagedWorks.map((work) => (
                     <tr key={work._id} className="border-t hover:bg-gray-50">
                       <td className="p-3 font-medium">
                         <Link to={`/admin/work/${work._id}`} className="text-blue-700 hover:underline">
@@ -223,6 +227,7 @@ const AdminProjects = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={works.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

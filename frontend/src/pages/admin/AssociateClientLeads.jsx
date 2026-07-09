@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const StatusPill = ({ status }) => {
@@ -61,6 +62,9 @@ const AssociateClientLeads = () => {
     })();
   }, [id, clientKey]);
 
+  const { page, totalPages, paged: pagedLeads, resetPage, onPrev, onNext } = usePagination(leads, 10);
+  useEffect(() => { resetPage(); }, [clientKey]);
+
   return (
     <DashboardLayout activeMenu="Associates">
       <div className="p-6 space-y-5">
@@ -108,7 +112,7 @@ const AssociateClientLeads = () => {
                   <tr><td colSpan={8} className="py-12 text-center text-gray-400">Loading leads…</td></tr>
                 ) : leads.length === 0 ? (
                   <tr><td colSpan={8} className="py-12 text-center text-gray-400">No leads found for this client.</td></tr>
-                ) : leads.map((lead) => {
+                ) : pagedLeads.map((lead) => {
                   const isMulti = Array.isArray(lead.services) && lead.services.length > 0;
                   const svcName = isMulti ? `${lead.services.length} Services` : lead.service?.name || lead.title || "—";
                   const qId = lead.quotationId?._id || lead.quotationId;
@@ -154,6 +158,7 @@ const AssociateClientLeads = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={leads.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

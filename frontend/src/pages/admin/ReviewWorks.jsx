@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import moment from "moment";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 import { STATUS_DATA } from "../../utils/data";
 import { buildClientRoute } from "../../utils/clientWork";
@@ -36,6 +37,9 @@ const ReviewWorks = ({
       return matchesSearch && matchesStatus;
     });
   }, [clients, search, status]);
+
+  const { page, totalPages, paged: pagedClients, resetPage, onPrev, onNext } = usePagination(filteredClients, 10);
+  useEffect(() => { resetPage(); }, [search, status]);
 
   return (
     <DashboardLayout activeMenu={activeMenu}>
@@ -86,7 +90,7 @@ const ReviewWorks = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredClients.map((client) => (
+                {pagedClients.map((client) => (
                   <tr key={client.clientKey} className="border-t hover:bg-gray-50">
                     <td className="p-3">
                       <p className="font-medium text-gray-900">{client.clientName}</p>
@@ -128,6 +132,7 @@ const ReviewWorks = ({
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={filteredClients.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

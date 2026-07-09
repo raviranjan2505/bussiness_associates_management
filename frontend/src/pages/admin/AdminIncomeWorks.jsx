@@ -4,6 +4,7 @@ import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const fmt = (v) => `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -30,6 +31,7 @@ const AdminIncomeWorks = () => {
         { params: { clientName: decoded, payoutStatus } }
       );
       setWorks(res.data.works || []);
+      resetPage();
     } catch (e) {
       toast.error(e.response?.data?.message || "Unable to load work income");
     } finally {
@@ -38,6 +40,8 @@ const AdminIncomeWorks = () => {
   };
 
   useEffect(() => { load(); }, [associateId, clientName]);
+
+  const { page, totalPages, paged: pagedWorks, resetPage, onPrev, onNext } = usePagination(works, 10);
 
   const totals = {
     income:  works.reduce((s, w) => s + w.amountReceived, 0),
@@ -107,7 +111,7 @@ const AdminIncomeWorks = () => {
                   <tr><td colSpan={9} className="py-12 text-center text-gray-400">Loading…</td></tr>
                 ) : works.length === 0 ? (
                   <tr><td colSpan={9} className="py-12 text-center text-gray-400">No work income records found.</td></tr>
-                ) : works.map((w) => (
+                ) : pagedWorks.map((w) => (
                   <tr key={String(w.invoiceId)} className="border-t hover:bg-gray-50">
                     <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700">{w.workId || "—"}</td>
                     <td className="px-4 py-3 text-gray-800">{w.serviceName}</td>
@@ -131,6 +135,7 @@ const AdminIncomeWorks = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={works.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

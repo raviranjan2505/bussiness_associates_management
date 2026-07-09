@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const isObjectId = (s) => /^[a-f\d]{24}$/i.test(s);
@@ -65,6 +66,9 @@ const ClientLeads = () => {
     })();
   }, [clientId]);
 
+  const { page, totalPages, paged: pagedLeads, resetPage, onPrev, onNext } = usePagination(leads, 10);
+  useEffect(() => { resetPage(); }, [clientId]);
+
   return (
     <DashboardLayout activeMenu={isAdmin ? "All Clients" : "My Clients"}>
       <div className="p-6 space-y-5">
@@ -113,7 +117,7 @@ const ClientLeads = () => {
                   <tr><td colSpan={8} className="py-12 text-center text-gray-400">Loading leads…</td></tr>
                 ) : leads.length === 0 ? (
                   <tr><td colSpan={8} className="py-12 text-center text-gray-400">No leads found for this client.</td></tr>
-                ) : leads.map((lead) => {
+                ) : pagedLeads.map((lead) => {
                   const isMulti = Array.isArray(lead.services) && lead.services.length > 0;
                   const svcName = isMulti ? `${lead.services.length} Services` : lead.service?.name || lead.title || "—";
                   const qId = lead.quotationId?._id || lead.quotationId;
@@ -159,6 +163,7 @@ const ClientLeads = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={leads.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>

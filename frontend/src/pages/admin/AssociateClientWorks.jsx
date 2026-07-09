@@ -4,6 +4,7 @@ import moment from "moment";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
 const decodeClientParam = (raw) => {
@@ -48,6 +49,9 @@ const AssociateClientWorks = () => {
       }
     })();
   }, [id, clientKey]);
+
+  const { page, totalPages, paged: pagedWorks, resetPage, onPrev, onNext } = usePagination(works, 10);
+  useEffect(() => { resetPage(); }, [clientKey]);
 
   return (
     <DashboardLayout activeMenu="Associates">
@@ -96,7 +100,7 @@ const AssociateClientWorks = () => {
                   <tr><td colSpan={8} className="py-12 text-center text-gray-400">Loading work…</td></tr>
                 ) : works.length === 0 ? (
                   <tr><td colSpan={8} className="py-12 text-center text-gray-400">No work found for this client.</td></tr>
-                ) : works.map((work) => (
+                ) : pagedWorks.map((work) => (
                   <tr
                     key={work._id}
                     onClick={() => navigate(`/admin/work/${work._id}`)}
@@ -118,6 +122,7 @@ const AssociateClientWorks = () => {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} onPrev={onPrev} onNext={onNext} totalItems={works.length} pageSize={10} />
         </section>
       </div>
     </DashboardLayout>
