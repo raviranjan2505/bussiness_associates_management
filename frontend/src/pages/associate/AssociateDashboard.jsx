@@ -60,38 +60,40 @@ const AssociateDashboard = () => {
               </span>
             )}
           </div>
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-gray-500">
-              <tr>
-                <th className="p-3">Work ID</th>
-                <th className="p-3">Client</th>
-                <th className="p-3">Service</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Updated</th>
-                <th className="p-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagedWorks.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-left text-gray-500">
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-gray-400">No recent activity.</td>
+                  <th className="p-3">Work ID</th>
+                  <th className="p-3">Client</th>
+                  <th className="p-3">Service</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Updated</th>
+                  <th className="p-3"></th>
                 </tr>
-              ) : (
-                pagedWorks.map((work) => (
-                  <tr key={work._id} className="border-t hover:bg-gray-50">
-                    <td className="p-3 font-medium">{work.workId}</td>
-                    <td className="p-3">{work.clientDetails?.clientName}</td>
-                    <td className="p-3">{work.service?.name}</td>
-                    <td className="p-3"><StatusBadge status={work.status} /></td>
-                    <td className="p-3">{moment(work.updatedAt).format("DD MMM YYYY hh:mm A")}</td>
-                    <td className="p-3">
-                      <Link className="text-blue-700 font-medium" to={`/associate/work/${work._id}`}>Track</Link>
-                    </td>
+              </thead>
+              <tbody>
+                {pagedWorks.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-6 text-center text-gray-400">No recent activity.</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  pagedWorks.map((work) => (
+                    <tr key={work._id} className="border-t hover:bg-gray-50">
+                      <td className="p-3 font-medium">{work.workId}</td>
+                      <td className="p-3">{work.clientDetails?.clientName}</td>
+                      <td className="p-3">{work.service?.name}</td>
+                      <td className="p-3"><StatusBadge status={work.status} /></td>
+                      <td className="p-3">{moment(work.updatedAt).format("DD MMM YYYY hh:mm A")}</td>
+                      <td className="p-3">
+                        <Link className="text-blue-700 font-medium" to={`/associate/work/${work._id}`}>Track</Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t p-3">
               <button

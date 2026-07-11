@@ -8,8 +8,8 @@ const Navbar = ({ activeMenu }) => {
 
   return (
     <>
-      <div className="sticky top-0 z-40 h-16 bg-white shadow-sm flex items-center justify-between px-4">
-        <div className="flex items-center">
+      <div className="sticky top-0 z-40 h-16 bg-white shadow-sm flex items-center justify-between gap-2 px-3 sm:px-4">
+        <div className="flex items-center shrink-0">
           <button
             className="lg:hidden p-2 rounded-md hover:bg-gray-100"
             onClick={() => setOpenSideMenu(true)}
@@ -18,11 +18,13 @@ const Navbar = ({ activeMenu }) => {
           </button>
         </div>
 
-        <h2 className="text-xl font-semibold text-gray-800">
+        <h2 className="text-base sm:text-xl font-semibold text-gray-800 truncate text-center">
           Indian Money Master
         </h2>
 
-        <NotificationBell />
+        <div className="shrink-0">
+          <NotificationBell />
+        </div>
       </div>
 
       {openSideMenu && (

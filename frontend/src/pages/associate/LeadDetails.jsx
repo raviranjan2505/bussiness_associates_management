@@ -28,7 +28,7 @@ const StatusBadge = ({ status }) => {
 const InfoRow = ({ label, value }) => (
   <div className="flex gap-2 text-sm">
     <span className="w-28 shrink-0 text-gray-500">{label}:</span>
-    <span className="font-medium text-gray-900">{value || "—"}</span>
+    <span className="min-w-0 flex-1 break-words font-medium text-gray-900">{value || "—"}</span>
   </div>
 );
 

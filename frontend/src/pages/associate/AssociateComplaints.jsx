@@ -94,12 +94,12 @@ const AssociateComplaints = () => {
         <div className="space-y-3">
           {pagedComplaints.map((c) => (
             <Link key={c._id} to={`/associate/complaints/${c._id}`}
-              className="flex items-center justify-between bg-white border border-gray-100 rounded-lg p-4 hover:shadow-sm hover:border-gray-300 transition-all">
-              <div>
-                <p className="font-semibold text-gray-900">{c.complaintNumber}: {c.subject}</p>
+              className="flex items-center justify-between gap-3 bg-white border border-gray-100 rounded-lg p-4 hover:shadow-sm hover:border-gray-300 transition-all">
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-900 truncate">{c.complaintNumber}: {c.subject}</p>
                 <p className="text-xs text-gray-500 mt-1">{moment(c.createdAt).format("DD MMM YYYY hh:mm A")}</p>
               </div>
-              <StatusBadge status={c.status} />
+              <div className="shrink-0"><StatusBadge status={c.status} /></div>
             </Link>
           ))}
           {!complaints.length && (
