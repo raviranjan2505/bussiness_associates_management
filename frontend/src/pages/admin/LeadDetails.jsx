@@ -78,7 +78,7 @@ const LeadDetails = ({ activeMenu = "New Leads" }) => {
         {/* Header */}
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Lead Details</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Lead Details</h1>
             <p className="text-sm text-gray-500">Review the submitted lead and status history.</p>
           </div>
           <div className="flex items-center gap-3">
@@ -148,7 +148,7 @@ const LeadDetails = ({ activeMenu = "New Leads" }) => {
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-left text-gray-500">
+                <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                   <tr>
                     <th className="p-3">#</th>
                     <th className="p-3">Service</th>

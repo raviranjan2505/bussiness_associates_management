@@ -1386,3 +1386,19 @@ export const markNotificationRead = async (req, res, next) => {
     next(error);
   }
 };
+
+// Lets a user (admin or associate) remove a notification once they've read
+// it. Scoped to the requesting user so no one can delete another user's
+// notifications, and restricted to already-read ones so nothing unseen is
+// ever lost by accident.
+export const deleteNotification = async (req, res, next) => {
+  try {
+    const notification = await Notification.findOne({ _id: req.params.id, user: req.user.id });
+    if (!notification) return next(errorHandler(404, "Notification not found"));
+    if (!notification.read) return next(errorHandler(400, "Only read notifications can be deleted"));
+    await Notification.deleteOne({ _id: notification._id });
+    res.status(200).json({ message: "Notification deleted" });
+  } catch (error) {
+    next(error);
+  }
+};

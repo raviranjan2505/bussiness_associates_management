@@ -23,18 +23,18 @@ export const StatCard = ({ title, value, color = "blue", icon: Icon, clickable =
   const c = STAT_COLORS[color] || STAT_COLORS.blue;
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br ${c.bg} p-5 shadow-sm ring-1 ring-transparent transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${c.ring} ${clickable ? "cursor-pointer" : ""}`}
+      className={`group relative overflow-hidden rounded-xl border border-gray-100 border-t-4 border-t-[#ff0101] bg-gradient-to-br ${c.bg} p-4 sm:p-5 shadow-sm ring-1 ring-transparent transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${c.ring} ${clickable ? "cursor-pointer" : ""}`}
     >
       {Icon && (
-        <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg ${c.icon}`}>
-          <Icon className="h-5 w-5" strokeWidth={2.25} />
+        <div className={`mb-2 sm:mb-3 inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg ${c.icon}`}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.25} />
         </div>
       )}
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</p>
-      <p className={`mt-1 text-3xl font-bold tracking-tight ${c.value}`}>{value}</p>
-      {subtitle && <p className="mt-1 text-xs text-gray-400">{subtitle}</p>}
+      <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</p>
+      <p className={`mt-1 text-xl sm:text-3xl font-bold tracking-tight ${c.value}`}>{value}</p>
+      {subtitle && <p className="mt-1 text-[11px] sm:text-xs text-gray-400">{subtitle}</p>}
       {clickable && (
-        <span className="pointer-events-none absolute right-4 top-4 text-gray-300 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+        <span className="pointer-events-none absolute right-3 top-3 sm:right-4 sm:top-4 text-gray-300 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           →
         </span>
       )}

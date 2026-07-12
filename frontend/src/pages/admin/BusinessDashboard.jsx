@@ -36,7 +36,7 @@ const BusinessDashboard = () => {
     <DashboardLayout activeMenu="Dashboard">
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Business Dashboard</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Business Dashboard</h1>
           <p className="text-sm text-gray-500">{moment().format("dddd, DD MMMM YYYY")}</p>
         </div>
 
@@ -46,7 +46,7 @@ const BusinessDashboard = () => {
         {/* ── Work counters ─────────────────────────────── */}
         <section>
           <h2 className="text-sm font-semibold text-gray-500 uppercase mb-3">Work Overview</h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <StatCardLink icon={Users}        title="Total Associates"    value={s.totalAssociates || 0} to="/admin/users" color="blue" />
             <StatCardLink icon={Briefcase}    title="Total Work Requests" value={s.totalWorkRequests || 0} to="/admin/projects" color="indigo" />
             <StatCardLink icon={Clock}        title="Pending Works"       value={s.Pending || 0} to="/admin/projects?status=Pending" color="amber" />
@@ -91,7 +91,7 @@ const BusinessDashboard = () => {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                 <tr>
                   <th className="p-3">Work ID</th>
                   <th className="p-3">Client</th>

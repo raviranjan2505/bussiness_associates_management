@@ -59,7 +59,7 @@ const AssociateLeadGroups = () => {
             <Link className="text-sm text-blue-700 font-medium" to="/admin/users">
               ← Back to Associates
             </Link>
-            <h1 className="mt-2 text-2xl font-bold text-gray-900">
+            <h1 className="mt-2 text-xl sm:text-2xl font-bold text-gray-900">
               {associate?.name ? `${associate.name} — Leads by Client` : "Leads by Client"}
             </h1>
             <p className="text-sm text-gray-500">
@@ -91,7 +91,7 @@ const AssociateLeadGroups = () => {
         <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-xs uppercase tracking-wide text-white">
                 <tr>
                   <th className="px-4 py-3">Client Name</th>
                   <th className="px-4 py-3">Contact</th>

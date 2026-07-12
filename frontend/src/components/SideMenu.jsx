@@ -52,19 +52,19 @@ const SideMenu = ({ activeMenu }) => {
     }
   },[currentUser])
   return (
-    <div className="w-64 p-6 h-full flex flex-col lg:border-r lg:border-gray-200 bg-white">
+    <div className="w-64 p-3 h-full flex flex-col lg:border-r lg:border-gray-200 bg-white">
       <div className="flex flex-col items-center mb-8 relative">
         <ProfileDropdown />
 
         {currentUser?.role === "admin" && (
-          <div className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mt-2">
+          <div className="bg-red-100 text-[#ff0101] text-xs font-semibold px-2.5 py-0.5 rounded-full mt-2">
             admin
           </div>
         )}
 
         {currentUser?.role === "associate" && (
           <>
-            <div className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mt-2">
+            <div className="bg-red-100 text-[#ff0101] text-xs font-semibold px-2.5 py-0.5 rounded-full mt-2">
               Associate
             </div>
             {currentUser?.kycStatus && currentUser.kycStatus !== "Approved" && (
@@ -93,9 +93,9 @@ const SideMenu = ({ activeMenu }) => {
             key={`menu_${index}`}
             className={`w-full flex items-center gap-4 text-[15px] ${
               activeMenu === item.label
-                ? "text-blue-500 bg-blue-50"
-                : "text-gray-700 hover:bg-gray-100"
-            } py-3 px-6 mb-3 rounded-lg transition-all`}
+                ? "text-[#ff0101] bg-red-50"
+                : "text-gray-700 hover:bg-red-50 hover:text-[#ff0101]"
+            } py-3 px-4 mb-3 rounded-lg transition-all`}
             onClick={() => handleClick(item.path)}
           >
             <item.icon className="text-2xl" />

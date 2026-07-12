@@ -49,7 +49,7 @@ const AssociateComplaints = () => {
       <div className="p-6 space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Complaints</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Complaints</h1>
             <p className="text-sm text-gray-500">Raise and track complaints with admin support.</p>
           </div>
           <button onClick={() => setShowForm(!showForm)} className="bg-gray-900 text-white rounded-lg px-4 py-2 text-sm">

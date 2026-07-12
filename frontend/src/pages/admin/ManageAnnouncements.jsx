@@ -92,7 +92,7 @@ const ManageAnnouncements = () => {
       <div className="p-6 space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Announcements</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Announcements</h1>
             <p className="text-sm text-gray-500">Create and manage announcements for all associates.</p>
           </div>
           <button

@@ -105,7 +105,7 @@ const AssociateLeadDetails = () => {
               <span className="text-gray-300">/</span>
               <span className="text-sm font-medium text-gray-700">{lead.leadId}</span>
             </div>
-            <h1 className="mt-2 text-2xl font-bold text-gray-900">
+            <h1 className="mt-2 text-xl sm:text-2xl font-bold text-gray-900">
               {isMultiService ? `${totalServices} Services` : (lead.service?.name || lead.title || "Lead")}
             </h1>
             <p className="text-sm text-gray-500">
@@ -179,7 +179,7 @@ const AssociateLeadDetails = () => {
           <Card title={`Services (${totalServices})`}>
             <div className="overflow-x-auto -mx-5">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-left text-gray-500">
+                <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                   <tr>
                     <th className="px-5 py-3">#</th>
                     <th className="px-5 py-3">Service</th>

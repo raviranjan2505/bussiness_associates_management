@@ -66,7 +66,7 @@ const CreateQuotation = () => {
       <form onSubmit={handleSubmit} className="p-6 space-y-6 max-w-4xl">
         <div>
           <button type="button" onClick={() => navigate(-1)} className="text-sm text-blue-700 mb-1">← Back</button>
-          <h1 className="text-2xl font-bold text-gray-900">Create New Quotation</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Create New Quotation</h1>
           <p className="text-sm text-gray-500">Select services and add customer details.</p>
         </div>
 

@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import AuthLayout from "../../components/AuthLayout"
-import { FaEyeSlash, FaPeopleGroup } from "react-icons/fa6"
+import { FaEyeSlash } from "react-icons/fa6"
 import { FaEye } from "react-icons/fa"
 import { Link, useNavigate } from "react-router-dom"
 import { validateEmail } from "../../utils/helper"
@@ -79,15 +79,17 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
           {/* Gradient top border */}
-          <div className="h-2 bg-gradient-to-r from-blue-600 to-blue-400"></div>
+          <div className="h-2 bg-gradient-to-r from-[#ff0101] to-[#ff4d4d]"></div>
 
           <div className="p-8">
             {/* Logo and title */}
             <div className="text-center mb-8">
               <div className="flex justify-center">
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <FaPeopleGroup className="text-4xl text-blue-600" />
-                </div>
+                <img
+                  src="/logo.png"
+                  alt="Indian Money Master logo"
+                  className="h-16 w-auto object-contain"
+                />
               </div>
 
               <h1 className="text-2xl font-bold text-gray-800 mt-4 uppercase">
@@ -114,7 +116,7 @@ const Login = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#ff0101] focus:border-transparent"
                   placeholder="your@email.com"
                   required
                 />
@@ -134,7 +136,7 @@ const Login = () => {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#ff0101] focus:border-transparent pr-12"
                     placeholder="•••••••"
                     required
                   />
@@ -152,14 +154,14 @@ const Login = () => {
               {error && <p className="text-red-500 text-sm">{error}</p>}
 
               {loading ? (
-                <span className="animate-pulse w-full text-center bg-blue-600 text-white">
+                <span className="animate-pulse w-full text-center bg-[#ff0101] text-white">
                   Loading...
                 </span>
               ) : (
                 <div>
                   <button
                     type="submit"
-                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#ff0101] hover:bg-[#d60000] focus:outline-none focus:ring-0 focus:ring-offset-0 cursor-pointer"
                   >
                     LOGIN
                   </button>
@@ -172,7 +174,7 @@ const Login = () => {
                 Don't have an accout?{" "}
                 <Link
                   to={"/signup"}
-                  className="font-medium text-blue-600 hover:text-blue-500"
+                  className="font-medium text-[#ff0101] hover:text-[#d60000]"
                 >
                   Sign up
                 </Link>

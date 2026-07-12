@@ -19,7 +19,7 @@ const StatusPill = ({ status }) => {
     Rejected: "bg-red-50 text-red-700",
   };
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${map[status] || "bg-gray-50 text-gray-500"}`}>
+    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${map[status] || "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"}`}>
       {status || "—"}
     </span>
   );
@@ -82,7 +82,7 @@ const ClientLeads = () => {
             >
               ← {isAdmin ? "All Clients" : "My Clients"}
             </button>
-            <h1 className="mt-1 text-2xl font-bold text-gray-900">
+            <h1 className="mt-1 text-xl sm:text-2xl font-bold text-gray-900">
               {clientName ? `${clientName} — Leads` : "Client Leads"}
             </h1>
             <p className="text-sm text-gray-500">{leads.length} lead{leads.length !== 1 ? "s" : ""} found</p>
@@ -100,7 +100,7 @@ const ClientLeads = () => {
         <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-xs uppercase tracking-wide text-white">
                 <tr>
                   <th className="px-4 py-3">Lead ID</th>
                   <th className="px-4 py-3">Client</th>

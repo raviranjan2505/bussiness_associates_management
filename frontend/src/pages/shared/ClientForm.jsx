@@ -116,7 +116,7 @@ const ClientForm = () => {
           <Link to={`${base}/clients`} className="text-sm text-blue-700 font-medium hover:underline">
             ← Back to Client List
           </Link>
-          <h1 className="mt-2 text-2xl font-bold text-gray-900">
+          <h1 className="mt-2 text-xl sm:text-2xl font-bold text-gray-900">
             {isEdit ? "Edit Client" : "Add New Client"}
           </h1>
           <p className="text-sm text-gray-500">

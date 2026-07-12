@@ -333,7 +333,7 @@ const SubmitWork = () => {
         {/* Page header */}
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Submit Work</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Submit Work</h1>
             <p className="text-sm text-gray-500">
               Pick a client, then add one or more services for a single submission.
             </p>

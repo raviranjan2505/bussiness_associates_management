@@ -63,7 +63,7 @@ const AssociateIncome = () => {
         {/* Header */}
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Income</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Income</h1>
             <p className="text-sm text-gray-500">Income and payout summary for your clients.</p>
           </div>
           <button onClick={load} disabled={loading}
@@ -106,7 +106,7 @@ const AssociateIncome = () => {
         <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-xs uppercase tracking-wide text-white">
                 <tr>
                   <th className="px-4 py-3">Client Name</th>
                   <th className="px-4 py-3 text-right">Total Service Charge</th>

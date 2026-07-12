@@ -117,7 +117,7 @@ const MyWorks = () => {
         {/* Header */}
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Works</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Works</h1>
             <p className="text-sm text-gray-500">
               All work submissions. Click a row to view full details and track status.
             </p>
@@ -136,7 +136,7 @@ const MyWorks = () => {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard icon={Briefcase}    title="Total Work"     value={summaryLoading ? "…" : summary.total}     color="blue" />
           <StatCard icon={Clock}        title="Pending Work"   value={summaryLoading ? "…" : summary.pending}   color="amber" />
           <StatCard icon={CheckCircle2} title="Completed Work" value={summaryLoading ? "…" : summary.completed} color="emerald" />
@@ -203,7 +203,7 @@ const MyWorks = () => {
         <section className="overflow-hidden rounded-lg border border-gray-100 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                 <tr>
                   <th className="p-3">Work ID</th>
                   <th className="p-3">Client</th>

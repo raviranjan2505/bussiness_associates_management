@@ -90,7 +90,7 @@ const ClientWorks = () => {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                 <tr>
                   <th className="p-3">Work ID</th>
                   <th className="p-3">Service</th>

@@ -121,7 +121,7 @@ const KycDetails = () => {
       <div className="p-6 space-y-5 max-w-4xl">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{associate.name}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{associate.name}</h1>
             <p className="text-sm text-gray-500">{associate.email}</p>
             <p className="text-xs text-gray-400 mt-1">
               Registered on {moment(associate.createdAt).format("DD MMM YYYY")}

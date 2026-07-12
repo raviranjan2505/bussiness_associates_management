@@ -190,7 +190,7 @@ const WorkDetails = () => {
             >
               ← Back to Works
             </Link>
-            <h1 className="mt-2 text-2xl font-bold text-gray-900">{work.workId}</h1>
+            <h1 className="mt-2 text-xl sm:text-2xl font-bold text-gray-900">{work.workId}</h1>
             <p className="text-sm text-gray-500">
               {work.clientDetails?.clientName} · {work.division?.name} · {work.service?.name}
             </p>
@@ -237,7 +237,7 @@ const WorkDetails = () => {
                   {/* Individual service rows */}
                   <div className="overflow-x-auto -mx-5 -mt-2">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-left text-xs text-gray-400 uppercase tracking-wide">
+                      <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-xs text-white uppercase tracking-wide">
                         <tr>
                           <th className="px-5 py-3">#</th>
                           <th className="px-5 py-3">Service Name</th>

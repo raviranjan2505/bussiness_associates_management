@@ -73,7 +73,7 @@ const ComplaintDetail = () => {
         {/* Header */}
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{complaint.complaintNumber}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{complaint.complaintNumber}</h1>
             <p className="text-sm text-gray-700 mt-1 font-medium">{complaint.subject}</p>
             <p className="text-xs text-gray-500">{complaint.associate?.name} · {moment(complaint.createdAt).format("DD MMM YYYY hh:mm A")}</p>
           </div>

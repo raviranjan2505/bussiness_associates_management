@@ -75,7 +75,7 @@ const ManagePayout = () => {
           <button onClick={() => navigate(-1)} className="text-sm text-blue-700 hover:underline font-medium">
             ← Back
           </button>
-          <h1 className="mt-1 text-2xl font-bold text-gray-900">Manage Payout</h1>
+          <h1 className="mt-1 text-xl sm:text-2xl font-bold text-gray-900">Manage Payout</h1>
           <p className="text-sm text-gray-500">Invoice {invoice.invoiceNumber} · {invoice.customerName}</p>
         </div>
 

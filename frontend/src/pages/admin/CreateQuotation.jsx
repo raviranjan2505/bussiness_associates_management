@@ -157,7 +157,7 @@ const CreateQuotation = () => {
     <DashboardLayout activeMenu="Quotations">
       <form onSubmit={submit} className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Create Quotation</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Create Quotation</h1>
           <p className="text-sm text-gray-500">Select an associate and client, then pick the leads to include.</p>
         </div>
 
@@ -262,7 +262,7 @@ const CreateQuotation = () => {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-left text-gray-500">
+                <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                   <tr>
                     <th className="p-3">Lead</th>
                     <th className="p-3">Service</th>

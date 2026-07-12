@@ -23,6 +23,7 @@ import {
   listWorks,
   groupWorksByClientForAssociate,
   markNotificationRead,
+  deleteNotification,
   submitWork,
   submitMultiWork,
   updateDivision,
@@ -65,5 +66,6 @@ router.get("/dashboard/associate", verifyToken, associateDashboard);
 router.get("/notifications", verifyToken, listNotifications);
 router.get("/notifications/unread-count", verifyToken, getUnreadNotificationCount);
 router.patch("/notifications/:id/read", verifyToken, markNotificationRead);
+router.delete("/notifications/:id", verifyToken, deleteNotification);
 
 export default router;

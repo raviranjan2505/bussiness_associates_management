@@ -52,7 +52,7 @@ const AdminIncomeClients = () => {
             <button onClick={() => navigate("/admin/income")} className="text-sm text-blue-700 hover:underline font-medium">
               ← Back to Associates
             </button>
-            <h1 className="mt-1 text-2xl font-bold text-gray-900">
+            <h1 className="mt-1 text-xl sm:text-2xl font-bold text-gray-900">
               {associate?.name ? `${associate.name} — Clients` : "Client Income"}
             </h1>
             <p className="text-sm text-gray-500">{associate?.email}</p>
@@ -102,7 +102,7 @@ const AdminIncomeClients = () => {
         <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-xs uppercase tracking-wide text-white">
                 <tr>
                   <th className="px-4 py-3">Client Name</th>
                   <th className="px-4 py-3 text-right">Total Service Charge</th>

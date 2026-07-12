@@ -97,6 +97,9 @@ const ManageDivisionsServices = () => {
       description: division.description || "",
       isActive: division.isActive !== false,
     });
+    setTimeout(() => {
+      document.getElementById("division-form-builder")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
   };
 
   const cancelEditDivision = () => {
@@ -176,7 +179,9 @@ const ManageDivisionsServices = () => {
       requiredDocuments: (service.requiredDocuments || []).map((d) => ({ name: d.name, required: d.required !== false })),
       isActive: service.isActive !== false,
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(() => {
+      document.getElementById("service-form-builder")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
   };
 
   const cancelEditService = () => {
@@ -226,7 +231,7 @@ const ManageDivisionsServices = () => {
   return (
     <DashboardLayout activeMenu="Services">
       <div className="p-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <section className="bg-white border border-gray-100 rounded-lg p-5">
+        <section id="division-form-builder" className="bg-white border border-gray-100 rounded-lg p-5">
           <h1 className="text-xl font-bold text-gray-900">
             {editingDivisionId ? "Edit Division" : "Division Management"}
           </h1>
@@ -267,7 +272,7 @@ const ManageDivisionsServices = () => {
           {/* All divisions — editable/deletable table */}
           <div className="mt-6 overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-xs uppercase tracking-wide text-white">
                 <tr>
                   <th className="px-3 py-2">Name</th>
                   <th className="px-3 py-2">Description</th>
@@ -314,7 +319,7 @@ const ManageDivisionsServices = () => {
           />
         </section>
 
-        <section className="bg-white border border-gray-100 rounded-lg p-5">
+        <section id="service-form-builder" className="bg-white border border-gray-100 rounded-lg p-5">
           <h1 className="text-xl font-bold text-gray-900">
             {editingServiceId ? "Edit Service" : "Service Form Builder"}
           </h1>
@@ -513,7 +518,7 @@ const ManageDivisionsServices = () => {
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="text-left text-xs uppercase tracking-wide text-gray-500">
+                        <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-xs uppercase tracking-wide text-white">
                           <tr>
                             <th className="px-4 py-2">Service</th>
                             <th className="px-4 py-2">Commission Type</th>

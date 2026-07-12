@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import AuthLayout from "../../components/AuthLayout"
-import { FaEyeSlash, FaPeopleGroup } from "react-icons/fa6"
+import { FaEyeSlash } from "react-icons/fa6"
 import { FaEye } from "react-icons/fa"
 import { Link, useNavigate } from "react-router-dom"
 import { validateEmail } from "../../utils/helper"
@@ -13,11 +13,11 @@ const SignUp = () => {
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState(null)
   const [profileImageUrl, setProfileImageUrl] = useState(null)
-  const [adminInviteToken, setAdminInviteToken] = useState("")
-  const [showAdminInviteToken, setShowAdminInviteToken] = useState(false)
 
   // const handleSubmit = async (e) => {
   //   e.preventDefault()
@@ -74,8 +74,13 @@ const SignUp = () => {
   const handleSubmit = async (e) => {
   e.preventDefault();
 
-  if (!fullName || !validateEmail(email) || !password) {
+  if (!fullName || !validateEmail(email) || !password || !confirmPassword) {
     setError("Please fill all fields correctly");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    setError("Passwords do not match");
     return;
   }
 
@@ -84,7 +89,6 @@ const SignUp = () => {
     formData.append("name", fullName);
     formData.append("email", email);
     formData.append("password", password);
-    formData.append("adminJoinCode", adminInviteToken);
     if (profileImageUrl) formData.append("image", profileImageUrl);
 
     const response = await axiosInstance.post("/auth/sign-up", formData, {
@@ -103,19 +107,21 @@ const SignUp = () => {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
           {/* Gradient top border */}
-          <div className="h-2 bg-gradient-to-r from-blue-600 to-blue-400"></div>
+          <div className="h-2 bg-gradient-to-r from-[#ff0101] to-[#ff4d4d]"></div>
 
           <div className="p-4">
             {/* Logo and title */}
             <div className="text-center mb-2">
               <div className="flex justify-center">
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <FaPeopleGroup className="text-4xl text-blue-600" />
-                </div>
+                <img
+                  src="/logo.png"
+                  alt="Indian Money Master logo"
+                  className="h-16 w-auto object-contain"
+                />
               </div>
 
               <h1 className="text-2xl font-bold text-gray-800 mt-4 uppercase">
-                Join Work Flow
+                Create Account
               </h1>
 
               <p className="text-gray-600 mt-1">
@@ -143,7 +149,7 @@ const SignUp = () => {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#ff0101] focus:border-transparent"
                   placeholder="Your Full Name"
                   required
                 />
@@ -162,7 +168,7 @@ const SignUp = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#ff0101] focus:border-transparent"
                   placeholder="your@email.com"
                   required
                 />
@@ -198,29 +204,30 @@ const SignUp = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Admin Invite Token
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Confirm Password
                 </label>
 
                 <div className="relative">
                   <input
-                    id="adminInviteTokem"
-                    type={showAdminInviteToken ? "text" : "password"}
-                    value={adminInviteToken}
-                    onChange={(e) => setAdminInviteToken(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#ff0101] focus:border-transparent pr-12"
                     placeholder="•••••••"
-                    
+                    required
                   />
 
                   <button
                     type="button"
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
-                    onClick={() =>
-                      setShowAdminInviteToken(!showAdminInviteToken)
-                    }
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
-                    {showAdminInviteToken ? <FaEyeSlash /> : <FaEye />}
+                    {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
               </div>
@@ -230,7 +237,7 @@ const SignUp = () => {
               <div>
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-0 focus:ring-offset-0 cursor-pointer uppercase"
+                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#ff0101] hover:bg-[#d60000] focus:outline-none focus:ring-0 focus:ring-offset-0 cursor-pointer uppercase"
                 >
                   Sign Up
                 </button>
@@ -242,7 +249,7 @@ const SignUp = () => {
                 Already have an accout?{" "}
                 <Link
                   to={"/login"}
-                  className="font-medium text-blue-600 hover:text-blue-500"
+                  className="font-medium text-[#ff0101] hover:text-[#d60000]"
                 >
                   Login
                 </Link>

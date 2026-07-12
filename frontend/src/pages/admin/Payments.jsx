@@ -113,7 +113,7 @@ const AdminPayments = () => {
         {/* Header */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Payments</h1>
             <p className="text-sm text-gray-500">Record, verify and track all payments.</p>
           </div>
           <button
@@ -125,7 +125,7 @@ const AdminPayments = () => {
         </div>
 
         {/* ── Summary Cards ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard icon={Wallet}         title="Total Paid Amount" value={formatMoney(summary.totalPaid)} color="green" />
           <StatCard icon={AlertCircle}    title="Total Due Amount" value={formatMoney(summary.totalDue)} color="red" />
           <StatCard icon={CalendarCheck}  title="Today's Paid Amount" value={formatMoney(summary.todayPaid)} color="blue" />
@@ -268,7 +268,7 @@ const AdminPayments = () => {
         <section className="bg-white border border-gray-100 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                 <tr>
                   <th className="p-3">Invoice</th>
                   <th className="p-3">Customer</th>

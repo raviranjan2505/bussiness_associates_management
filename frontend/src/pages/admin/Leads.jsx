@@ -51,7 +51,7 @@ const Leads = () => {
       <div className="p-6 space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{selectedAssociateId ? `Leads for ${selectedAssociateName || "Associate"}` : "New Leads"}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{selectedAssociateId ? `Leads for ${selectedAssociateName || "Associate"}` : "New Leads"}</h1>
             <p className="text-sm text-gray-500">
               {selectedAssociateId
                 ? `Showing leads submitted by ${selectedAssociateName || "the selected associate"}.`
@@ -73,7 +73,7 @@ const Leads = () => {
         <section className="overflow-hidden rounded-lg border border-gray-100 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                 <tr>
                   <th className="p-3">Lead ID</th>
                   <th className="p-3">Client</th>

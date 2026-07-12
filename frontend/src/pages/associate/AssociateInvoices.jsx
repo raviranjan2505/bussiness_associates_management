@@ -52,7 +52,7 @@ const AssociateInvoices = () => {
     <DashboardLayout activeMenu="Invoices">
       <div className="p-6 space-y-5">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Invoices</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Invoices</h1>
           <p className="text-sm text-gray-500">Track your invoices, payments and project progress.</p>
         </div>
 
@@ -80,7 +80,7 @@ const AssociateInvoices = () => {
         <section className="bg-white border border-gray-100 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                 <tr>
                   <th className="p-3">Invoice #</th>
                   <th className="p-3">Customer</th>

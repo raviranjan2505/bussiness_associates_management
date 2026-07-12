@@ -163,7 +163,7 @@ const SubmitKyc = () => {
     <DashboardLayout activeMenu="Submit KYC">
       <div className="p-6 space-y-5 max-w-4xl">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Submit KYC</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Submit KYC</h1>
           <p className="text-sm text-gray-500">
             Complete your KYC to unlock full access to the Associate panel.
           </p>

@@ -21,7 +21,7 @@ import {
 // ── Admin side menu ────────────────────────────────────────────────────────
 export const SIDE_MENU_DATA = [
   { id: 1,  label: "Dashboard",           icon: MdDashboardCustomize, path: "/admin/dashboard" },
-  { id: 2,  label: "Divisions & Services",icon: MdDomain,             path: "/admin/divisions-services" },
+  { id: 2,  label: "Services",            icon: MdDomain,             path: "/admin/divisions-services" },
   { id: 3,  label: "Associates",          icon: MdPeopleAlt,          path: "/admin/users" },
   { id: 4,  label: "KYC Requests",        icon: MdVerifiedUser,       path: "/admin/kyc-requests" },
   { id: 5,  label: "Client List",         icon: MdManageHistory,      path: "/admin/clients" },
@@ -31,7 +31,7 @@ export const SIDE_MENU_DATA = [
   { id: 9,  label: "Payments",            icon: MdPayments,           path: "/admin/payments" },
   { id: 10, label: "Income",              icon: MdCurrencyRupee,      path: "/admin/income" },
   { id: 11, label: "Work",                icon: MdFolderOpen,         path: "/admin/projects" },
-  { id: 12, label: "Commission Calculator", icon: MdCalculate,        path: "/admin/commission-calculator" },
+  { id: 12, label: "Calculator", icon: MdCalculate,        path: "/admin/commission-calculator" },
   { id: 13, label: "Announcements",       icon: MdCampaign,           path: "/admin/announcements" },
   { id: 14, label: "Notifications",       icon: MdNotifications,      path: "/admin/notifications" },
   { id: 15, label: "Complaints",          icon: MdBugReport,          path: "/admin/complaints" },
@@ -50,7 +50,7 @@ export const ASSOCIATE_SIDE_MENU_DATA = [
   { id: 8,  label: "Income",        icon: MdCurrencyRupee,      path: "/associate/income" },
   { id: 9,  label: "Works",         icon: MdFolderOpen,         path: "/associate/works" },
   { id: 10, label: "Submit Work",   icon: MdOutlineTaskAlt,     path: "/associate/submit-work" },
-  { id: 11, label: "Commission Calculator", icon: MdCalculate,  path: "/associate/commission-calculator" },
+  { id: 11, label: "Calculator",    icon: MdCalculate,  path: "/associate/commission-calculator" },
   { id: 12, label: "Announcements", icon: MdCampaign,           path: "/associate/announcements" },
   { id: 13, label: "Notifications", icon: MdNotifications,      path: "/associate/notifications" },
   { id: 14, label: "Complaints",    icon: MdBugReport,          path: "/associate/complaints" },

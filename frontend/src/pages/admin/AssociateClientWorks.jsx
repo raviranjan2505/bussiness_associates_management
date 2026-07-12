@@ -66,7 +66,7 @@ const AssociateClientWorks = () => {
             >
               ← Back to Client Groups
             </button>
-            <h1 className="mt-1 text-2xl font-bold text-gray-900">
+            <h1 className="mt-1 text-xl sm:text-2xl font-bold text-gray-900">
               {clientName ? `${clientName} — Work` : "Client Work"}
             </h1>
             <p className="text-sm text-gray-500">{works.length} work item{works.length !== 1 ? "s" : ""} found</p>
@@ -83,7 +83,7 @@ const AssociateClientWorks = () => {
         <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-xs uppercase tracking-wide text-white">
                 <tr>
                   <th className="px-4 py-3">Work ID</th>
                   <th className="px-4 py-3">Client</th>

@@ -80,7 +80,7 @@ const ProfileDropdown = () => {
     <div className="relative flex flex-col items-center">
       {/* Profile Avatar */}
       <div
-        className="w-20 h-20 rounded-full overflow-hidden border-2 border-blue-200 cursor-pointer hover:border-blue-400 transition-all"
+        className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-blue-200 cursor-pointer hover:border-blue-400 transition-all"
         onClick={toggleDropdown}
       >
        <img
@@ -96,13 +96,21 @@ const ProfileDropdown = () => {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-24 w-80 bg-white shadow-xl rounded-xl p-4 z-50 border border-gray-200">
+        <>
+          {/* Backdrop: closes the panel on outside tap/click. */}
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+
+          {/* Anchored directly under the sidebar avatar, matching the
+              sidebar's own width (w-64) on both mobile and desktop — so it
+              always sits under the sidebar rather than floating over the
+              main content or spilling past its edges. */}
+          <div className="absolute left-1/2 top-full z-50 mt-2 max-h-[70vh] w-64 -translate-x-1/2 overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
           {/* Profile Image */}
           <ProfilePhotoSelector image={selectedImage} setImage={setSelectedImage} />
           <button
             onClick={handleImageUpload}
             disabled={loading}
-            className="bg-blue-500 text-white py-2 rounded mt-2 w-full hover:bg-blue-600 disabled:opacity-50"
+            className="bg-blue-500 text-white py-2 rounded mt-2 w-full text-sm hover:bg-blue-600 disabled:opacity-50"
           >
             {loading ? "Uploading..." : "Upload Image"}
           </button>
@@ -114,26 +122,26 @@ const ProfileDropdown = () => {
               placeholder={currentUser?.name || "Your name"}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="border rounded px-3 py-2 text-sm"
+              className="border rounded px-3 py-2 text-sm w-full"
             />
             <input
               type="email"
               placeholder={currentUser?.email || "Your email"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="border rounded px-3 py-2 text-sm"
+              className="border rounded px-3 py-2 text-sm w-full"
             />
             <input
               type="password"
               placeholder="New password (optional)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border rounded px-3 py-2 text-sm"
+              className="border rounded px-3 py-2 text-sm w-full"
             />
             <button
               onClick={handleProfileUpdate}
               disabled={loading}
-              className="bg-green-500 text-white py-2 rounded hover:bg-green-600 disabled:opacity-50"
+              className="bg-green-500 text-white py-2 rounded text-sm hover:bg-green-600 disabled:opacity-50"
             >
               {loading ? "Saving..." : "Save Changes"}
             </button>
@@ -142,11 +150,12 @@ const ProfileDropdown = () => {
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center gap-2 text-red-500 hover:text-red-600 w-full mt-3"
+            className="flex items-center justify-center gap-2 text-red-500 hover:text-red-600 w-full mt-3 text-sm"
           >
             <FaSignOutAlt /> Logout
           </button>
-        </div>
+          </div>
+        </>
       )}
     </div>
   )

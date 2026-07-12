@@ -91,12 +91,12 @@ const AssociateQuotations = () => {
     <DashboardLayout activeMenu="Quotations">
       <div className="p-6 space-y-5">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Quotations</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Quotations</h1>
           <p className="text-sm text-gray-500">View, accept or reject quotations sent by admin.</p>
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCardLink icon={FileText}     title="Total Quotations" value={summary.total}    to="/associate/quotations"            color="purple" />
           <StatCardLink icon={PenLine}      title="Draft"            value={summary.draft}    to="/associate/quotations?status=Draft"    color="gray" />
           <StatCardLink icon={CheckCircle2} title="Accepted"         value={summary.accepted} to="/associate/quotations?status=Accepted" color="green" />
@@ -119,7 +119,7 @@ const AssociateQuotations = () => {
         <section className="bg-white border border-gray-100 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                 <tr>
                   <th className="p-3">Quotation #</th>
                   <th className="p-3">Customer</th>

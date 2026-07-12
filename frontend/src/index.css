@@ -4,8 +4,8 @@
 @theme {
   --font-display: "Poppins", "sans-serif";
   --breakpoint-3xl: 1920px;
-  --color-primary: #2172f0;
-  --color-auth-bg: #ff0000;
+  --color-primary: #ff0101;
+  --color-auth-bg: #ff0101;
   --background-image-auth: url("/images/auth-bg.jpg");
 }
 
@@ -14,7 +14,30 @@
     font-family: var(--font-display);
   }
   body {
-    background-color: #fce8e8;
+    background-color: #fff5f5;
     overflow-x: hidden;
+  }
+
+  /* ── Premium table styling, applied app-wide (admin + associate) ──────
+     Every data table gets a soft zebra stripe and a gentle red hover tint
+     automatically — no per-page markup changes needed, so every table in
+     the app (current and future) gets the same premium look for free. */
+  table thead th {
+    background-color: #ff0101;
+    color: white;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  table tbody tr:nth-child(even) {
+    background-color: #fff7f7;
+  }
+  table tbody tr:hover {
+    background-color: #ffe5e5;
+  }
+
+  button:not([class*="bg-"]):not([class*="text-"]):not([class*="border-"]):not([class*="hover:bg-"]) {
+    background-color: #ff0101;
+    color: white;
+    border-color: #ff0101;
   }
 }

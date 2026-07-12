@@ -107,7 +107,7 @@ const CommissionCalculator = () => {
     <DashboardLayout activeMenu="Commission Calculator">
       <div className="p-6 space-y-5">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Commission Calculator</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Commission Calculator</h1>
           <p className="text-sm text-gray-500">
             Select services to estimate commission earnings. This is a calculator only —
             {isAdmin
@@ -136,7 +136,7 @@ const CommissionCalculator = () => {
         <section className="bg-white border border-gray-100 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                 <tr>
                   <th className="p-3 w-10">
                     <span className="sr-only">Select</span>
@@ -223,13 +223,13 @@ const CommissionCalculator = () => {
             <p className="text-xs uppercase tracking-wide text-gray-400">
               Total Selected Services
             </p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{totalSelected}</p>
+            <p className="mt-1 text-xl sm:text-2xl font-bold text-gray-900">{totalSelected}</p>
           </div>
           <div className="bg-white border border-gray-100 rounded-lg p-5">
             <p className="text-xs uppercase tracking-wide text-gray-400">
               Total Service Charge <span className="text-gray-400">(for reference only)</span>
             </p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{formatMoney(totalServiceCharge)}</p>
+            <p className="mt-1 text-xl sm:text-2xl font-bold text-gray-900">{formatMoney(totalServiceCharge)}</p>
           </div>
           <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-5">
             <p className="text-xs uppercase tracking-wide text-emerald-600">

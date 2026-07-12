@@ -13,11 +13,11 @@ const STATUS_COLORS = {
   "Waiting For Payment": "bg-orange-50 text-orange-700",
   Completed: "bg-green-50 text-green-700",
   Rejected: "bg-red-50 text-red-700",
-  Cancelled: "bg-gray-50 text-gray-500",
+  Cancelled: "bg-gradient-to-r from-blue-600 to-indigo-600 text-white",
 };
 
 const StatusBadge = ({ status }) => (
-  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_COLORS[status] || "bg-gray-50 text-gray-500"}`}>
+  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_COLORS[status] || "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"}`}>
     {status || "—"}
   </span>
 );
@@ -64,7 +64,7 @@ const MyLeads = () => {
         {/* Header */}
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Leads</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Leads</h1>
             <p className="text-sm text-gray-500">Click any lead to view full details and track its status.</p>
           </div>
           <div className="text-sm font-medium text-gray-500">
@@ -94,7 +94,7 @@ const MyLeads = () => {
         <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-500 text-xs uppercase tracking-wide">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white text-xs uppercase tracking-wide">
                 <tr>
                   <th className="px-4 py-3">Lead ID</th>
                   <th className="px-4 py-3">Client</th>

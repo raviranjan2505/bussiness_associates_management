@@ -28,7 +28,7 @@ const AssociateDashboard = () => {
       <div className="p-6 space-y-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Associate Dashboard</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Associate Dashboard</h1>
             <p className="text-sm text-gray-500">Track your work submissions and progress.</p>
           </div>
           <Link to="/associate/submit-work" className="bg-gray-900 text-white rounded-lg px-4 py-2 text-center text-sm">
@@ -42,7 +42,7 @@ const AssociateDashboard = () => {
         {/* ── Work counters ─────────────────────────────── */}
         <section>
           <h2 className="text-sm font-semibold text-gray-500 uppercase mb-3">My Work</h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCardLink icon={FileText}     title="Submitted Work" value={s.mySubmittedWork || 0}   to="/associate/works" color="indigo" />
             <StatCardLink icon={Clock}        title="Pending"        value={s.Pending || 0}           to="/associate/works?status=Pending" color="amber" />
             <StatCardLink icon={CheckCircle2} title="Completed"      value={s.Completed || 0}         to="/associate/works?status=Completed" color="emerald" />
@@ -62,7 +62,7 @@ const AssociateDashboard = () => {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-500">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-left text-white">
                 <tr>
                   <th className="p-3">Work ID</th>
                   <th className="p-3">Client</th>
