@@ -73,18 +73,16 @@ const AdminIncome = () => {
           </button>
         </div>
 
-        {/* Total Commission — headline card, sourced from completed work only,
-            identical to the figure shown on the Admin Dashboard. */}
-        <StatCard
-          icon={TrendingUp}
-          title="Total Commission"
-          value={fmt(summary.totalCommission)}
-          color="emerald"
-          subtitle="Sum of commission earned from all completed work."
-        />
-
-        {/* Summary cards */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {/* Summary cards — Total Commission is sourced from completed work
+            only, identical to the figure shown on the Admin Dashboard. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            icon={TrendingUp}
+            title="Total Commission"
+            value={fmt(summary.totalCommission)}
+            color="emerald"
+            subtitle="From completed work"
+          />
           <StatCard icon={Receipt}      title="Total Service Charge" value={fmt(totals.income)}  color="blue" />
           <StatCard icon={CheckCircle2} title="Total Payout Paid"    value={fmt(totals.paid)}    color="green" />
           <StatCard icon={Wallet}       title="Withdrawal Amount"    value={fmt(totals.pending)} color="orange" />

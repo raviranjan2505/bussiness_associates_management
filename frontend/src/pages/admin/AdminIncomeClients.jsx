@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { TrendingUp, Receipt, CheckCircle2, Wallet } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
+import { StatCard } from "../../components/StatCard";
 import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
@@ -63,25 +65,18 @@ const AdminIncomeClients = () => {
           </button>
         </div>
 
-        {/* Total Commission — headline card, sourced from completed work only. */}
-        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Total Commission</p>
-          <p className="mt-2 text-3xl font-bold text-emerald-700">{fmt(totals.commission)}</p>
-          <p className="mt-1 text-xs text-gray-400">Sum of commission earned from this associate's completed work.</p>
-        </div>
-
-        {/* Summary cards */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {[
-            { label: "Total Service Charge",      value: totals.income,  color: "text-blue-700",   bg: "bg-blue-50" },
-            { label: "Total Payout Paid", value: totals.paid,    color: "text-green-700",  bg: "bg-green-50" },
-            { label: "Withdrawal Amount",    value: totals.pending, color: "text-orange-600", bg: "bg-orange-50" },
-          ].map((c) => (
-            <div key={c.label} className={`rounded-xl border border-gray-100 p-5 shadow-sm ${c.bg}`}>
-              <p className="text-xs uppercase tracking-wide text-gray-500">{c.label}</p>
-              <p className={`mt-1 text-2xl font-bold ${c.color}`}>{fmt(c.value)}</p>
-            </div>
-          ))}
+        {/* Summary cards — Total Commission is sourced from completed work only. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            icon={TrendingUp}
+            title="Total Commission"
+            value={fmt(totals.commission)}
+            color="emerald"
+            subtitle="From this associate's completed work"
+          />
+          <StatCard icon={Receipt}      title="Total Service Charge" value={fmt(totals.income)}  color="blue" />
+          <StatCard icon={CheckCircle2} title="Total Payout Paid"    value={fmt(totals.paid)}    color="green" />
+          <StatCard icon={Wallet}       title="Withdrawal Amount"    value={fmt(totals.pending)} color="orange" />
         </div>
 
         {/* Filters */}

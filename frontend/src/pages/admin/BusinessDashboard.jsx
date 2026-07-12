@@ -95,6 +95,7 @@ const BusinessDashboard = () => {
                 <tr>
                   <th className="p-3">Work ID</th>
                   <th className="p-3">Client</th>
+                  <th className="p-3">Associate</th>
                   <th className="p-3">Service</th>
                   <th className="p-3">Status</th>
                   <th className="p-3">Updated</th>
@@ -103,7 +104,7 @@ const BusinessDashboard = () => {
               <tbody>
                 {pagedWorks.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-gray-400">No recent activity.</td>
+                    <td colSpan={6} className="p-6 text-center text-gray-400">No recent activity.</td>
                   </tr>
                 ) : (
                   pagedWorks.map((work) => (
@@ -114,6 +115,7 @@ const BusinessDashboard = () => {
                         </Link>
                       </td>
                       <td className="p-3">{work.clientDetails?.clientName}</td>
+                      <td className="p-3">{work.associate?.name || "—"}</td>
                       <td className="p-3">{work.service?.name}</td>
                       <td className="p-3"><StatusBadge status={work.status} /></td>
                       <td className="p-3">{moment(work.updatedAt).format("DD MMM YYYY hh:mm A")}</td>

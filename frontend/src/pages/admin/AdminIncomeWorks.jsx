@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
+import { Receipt, CheckCircle2, Wallet } from "lucide-react";
 import DashboardLayout from "../../components/DashboardLayout";
 import StatusBadge from "../../components/StatusBadge";
+import { StatCard } from "../../components/StatCard";
 import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
 
@@ -76,17 +78,10 @@ const AdminIncomeWorks = () => {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {[
-            { label: "Total Service Charge",    value: totals.income,  color: "text-blue-700",   bg: "bg-blue-50" },
-            { label: "Total Payout Paid",     value: totals.payout,  color: "text-green-700",  bg: "bg-green-50" },
-            { label: "Withdrawal Amount",  value: totals.pending, color: "text-orange-600", bg: "bg-orange-50" },
-          ].map((c) => (
-            <div key={c.label} className={`rounded-xl border border-gray-100 p-5 shadow-sm ${c.bg}`}>
-              <p className="text-xs uppercase tracking-wide text-gray-500">{c.label}</p>
-              <p className={`mt-1 text-2xl font-bold ${c.color}`}>{fmt(c.value)}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard icon={Receipt}      title="Total Service Charge" value={fmt(totals.income)}  color="blue" />
+          <StatCard icon={CheckCircle2} title="Total Payout Paid"    value={fmt(totals.payout)}  color="green" />
+          <StatCard icon={Wallet}       title="Withdrawal Amount"    value={fmt(totals.pending)} color="orange" />
         </div>
 
         {/* Table */}

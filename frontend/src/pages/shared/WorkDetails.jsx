@@ -211,6 +211,9 @@ const WorkDetails = () => {
                 <InfoBox label="Mobile"       value={work.clientDetails?.mobileNumber} />
                 <InfoBox label="Email"        value={work.clientDetails?.email} />
                 <InfoBox label="Address"      value={work.clientDetails?.address} />
+                {isAdmin && (
+                  <InfoBox label="Associate" value={work.associate?.name} />
+                )}
                 <InfoBox label="Submitted"    value={moment(work.createdAt).format("DD MMM YYYY hh:mm A")} />
                 <InfoBox label="Last Updated" value={moment(work.updatedAt).format("DD MMM YYYY hh:mm A")} />
               </div>
