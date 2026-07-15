@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import moment from "moment";
 import toast from "react-hot-toast";
 import { Wallet, AlertCircle, CalendarCheck, CalendarClock } from "lucide-react";
@@ -12,6 +12,14 @@ import { PAYMENT_METHODS } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
 
 const EMPTY_SUMMARY = { totalPaid: 0, totalDue: 0, todayPaid: 0, todayDue: 0 };
+const EMPTY_ADD_FORM = {
+  invoiceId:     "",
+  amount:        "",
+  paymentDate:   "",
+  paymentMethod: "Bank Transfer",
+  transactionId: "",
+  remarks:       "",
+};
 
 const AdminPayments = () => {
   const [params] = useSearchParams();
@@ -37,6 +45,11 @@ const AdminPayments = () => {
     transactionId: "",
     remarks:       "",
   });
+  // Set only when the form is opened via the new "Pay Due Amount" button —
+  // gives the form the invoice details/summary to display and caps the
+  // amount at the remaining balance. Stays null for the regular "+ Add
+  // Payment" flow, which keeps that path exactly as it was.
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   // ── Load ──────────────────────────────────────────────────────────────────
   const load = async (filters = {}) => {
@@ -100,9 +113,43 @@ const AdminPayments = () => {
       await axiosInstance.post("/payments", addForm);
       toast.success("Payment recorded");
       setShowAdd(false);
-      setAddForm({ invoiceId: "", amount: "", paymentDate: "", paymentMethod: "Bank Transfer", transactionId: "", remarks: "" });
+      setSelectedInvoice(null);
+      setAddForm(EMPTY_ADD_FORM);
       load();
     } catch (e) { toast.error(e.response?.data?.message || "Error"); }
+  };
+
+  // Regular "+ Add Payment" button — unchanged behavior, just also clears
+  // any invoice selected via "Pay Due Amount" so the plain form shows.
+  const toggleAdd = () => {
+    if (showAdd) {
+      setShowAdd(false);
+      return;
+    }
+    setSelectedInvoice(null);
+    setAddForm(EMPTY_ADD_FORM);
+    setShowAdd(true);
+  };
+
+  // "Pay Due Amount" button on a payment row — opens the same Add Payment
+  // form, pre-filled with this invoice and its remaining balance.
+  const openPayDue = (invoice) => {
+    if (!invoice?._id) return;
+    setSelectedInvoice(invoice);
+    setAddForm({
+      invoiceId:     invoice._id,
+      amount:        String(invoice.balanceDue ?? ""),
+      paymentDate:   "",
+      paymentMethod: "Bank Transfer",
+      transactionId: "",
+      remarks:       "",
+    });
+    setShowAdd(true);
+  };
+
+  const cancelAdd = () => {
+    setShowAdd(false);
+    setSelectedInvoice(null);
   };
 
   // ── UI ────────────────────────────────────────────────────────────────────
@@ -117,7 +164,7 @@ const AdminPayments = () => {
             <p className="text-sm text-gray-500">Record, verify and track all payments.</p>
           </div>
           <button
-            onClick={() => setShowAdd(!showAdd)}
+            onClick={toggleAdd}
             className="bg-gray-900 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-800"
           >
             + Add Payment
@@ -132,23 +179,68 @@ const AdminPayments = () => {
           <StatCard icon={CalendarClock}  title="Today's Due Amount" value={formatMoney(summary.todayDue)} color="orange" />
         </div>
 
-        {/* ── Add Payment Form (unchanged) ──────────────────────────────── */}
+        {/* ── Add Payment Form ────────────────────────────────────────────
+            Same form/endpoint as before. When opened via "Pay Due Amount"
+            it additionally shows the invoice's details up top and caps the
+            amount at the remaining balance; the plain "+ Add Payment" flow
+            (selectedInvoice === null) renders exactly as it did before. ─ */}
         {showAdd && (
           <form
             onSubmit={addPayment}
             className="bg-white border border-gray-100 rounded-lg p-5 grid grid-cols-1 gap-4 md:grid-cols-3"
           >
+            {selectedInvoice && (
+              <div className="md:col-span-3 rounded-lg border border-blue-100 bg-blue-50/60 p-4">
+                <p className="text-sm font-semibold text-gray-900">
+                  Invoice {selectedInvoice.invoiceNumber} — {selectedInvoice.customerName || "—"}
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Total Invoice Amount</p>
+                    <p className="font-semibold text-gray-900">{formatMoney(selectedInvoice.totalAmount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Total Paid Amount</p>
+                    <p className="font-semibold text-green-700">{formatMoney(selectedInvoice.amountPaid)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Remaining Due Amount</p>
+                    <p className="font-semibold text-red-600">{formatMoney(selectedInvoice.balanceDue)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Invoice ID *</label>
-              <input className="w-full border rounded-lg p-2" placeholder="Paste invoice id…"
-                value={addForm.invoiceId}
-                onChange={(e) => setAddForm({ ...addForm, invoiceId: e.target.value })} required />
+              {selectedInvoice ? (
+                <input
+                  className="w-full border rounded-lg p-2 bg-gray-50 text-gray-500"
+                  value={`${selectedInvoice.invoiceNumber} (${selectedInvoice._id})`}
+                  readOnly
+                />
+              ) : (
+                <input className="w-full border rounded-lg p-2" placeholder="Paste invoice id…"
+                  value={addForm.invoiceId}
+                  onChange={(e) => setAddForm({ ...addForm, invoiceId: e.target.value })} required />
+              )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Amount (Rs.) *</label>
-              <input type="number" min="1" className="w-full border rounded-lg p-2"
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Amount (Rs.) *
+                {selectedInvoice && (
+                  <span className="ml-1 font-normal text-gray-400">
+                    (max {formatMoney(selectedInvoice.balanceDue)} — partial payment allowed)
+                  </span>
+                )}
+              </label>
+              <input
+                type="number" min="1"
+                max={selectedInvoice ? selectedInvoice.balanceDue : undefined}
+                className="w-full border rounded-lg p-2"
                 value={addForm.amount}
-                onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })} required />
+                onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })} required
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Payment Date</label>
@@ -178,7 +270,7 @@ const AdminPayments = () => {
             </div>
             <div className="md:col-span-3 flex gap-3">
               <button type="submit" className="bg-gray-900 text-white rounded-lg px-5 py-2 text-sm">Save Payment</button>
-              <button type="button" onClick={() => setShowAdd(false)} className="border rounded-lg px-5 py-2 text-sm">Cancel</button>
+              <button type="button" onClick={cancelAdd} className="border rounded-lg px-5 py-2 text-sm">Cancel</button>
             </div>
           </form>
         )}
@@ -278,15 +370,27 @@ const AdminPayments = () => {
                   <th className="p-3 text-right">Balance Due</th>
                   <th className="p-3">Txn ID</th>
                   <th className="p-3">Status</th>
+                  <th className="p-3">Pay Due Amount</th>
                   <th className="p-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={9} className="py-12 text-center text-gray-400">Loading…</td></tr>
+                  <tr><td colSpan={10} className="py-12 text-center text-gray-400">Loading…</td></tr>
                 ) : pagedPayments.map((p) => (
                   <tr key={p._id} className="border-t hover:bg-gray-50">
-                    <td className="p-3 font-medium">{p.invoice?.invoiceNumber}</td>
+                    <td className="p-3 font-medium">
+                      {p.invoice?._id ? (
+                        <Link
+                          to={`/admin/invoices/${p.invoice._id}`}
+                          className="text-blue-700 hover:underline"
+                        >
+                          {p.invoice?.invoiceNumber}
+                        </Link>
+                      ) : (
+                        p.invoice?.invoiceNumber || "—"
+                      )}
+                    </td>
                     <td className="p-3 text-gray-700">{p.invoice?.customerName || "—"}</td>
                     <td className="p-3">{moment(p.paymentDate).format("DD MMM YYYY")}</td>
                     <td className="p-3">{p.paymentMethod}</td>
@@ -296,6 +400,16 @@ const AdminPayments = () => {
                     </td>
                     <td className="p-3 text-xs text-gray-500">{p.transactionId || "—"}</td>
                     <td className="p-3"><StatusBadge status={p.status} /></td>
+                    <td className="p-3">
+                      {p.invoice?.balanceDue > 0 && (
+                        <button
+                          onClick={() => openPayDue(p.invoice)}
+                          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+                        >
+                          Pay Due Amount
+                        </button>
+                      )}
+                    </td>
                     <td className="p-3">
                       <div className="flex gap-2 flex-wrap">
                         {p.status === "Pending" && (
@@ -319,7 +433,7 @@ const AdminPayments = () => {
                   </tr>
                 ))}
                 {!loading && !payments.length && (
-                  <tr><td colSpan={9} className="p-4 text-center text-gray-500">No payments found.</td></tr>
+                  <tr><td colSpan={10} className="p-4 text-center text-gray-500">No payments found.</td></tr>
                 )}
               </tbody>
             </table>
