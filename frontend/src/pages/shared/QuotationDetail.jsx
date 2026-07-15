@@ -8,6 +8,16 @@ import StatusBadge from "../../components/StatusBadge";
 import axiosInstance from "../../utils/axioInstance";
 import { formatMoney } from "../../utils/helper";
 
+// The backend populates `invoiceId` with the invoice document (see
+// listQuotations/getQuotation: `.populate("invoiceId", ...)`), so it can be
+// either the raw ObjectId/string (not yet populated) or a full invoice
+// object. This safely extracts just the id string either way — fixes the
+// "View Invoice" link resolving to /invoices/[object Object].
+const extractId = (value) => {
+  if (!value) return null;
+  return typeof value === "object" ? value._id : value;
+};
+
 const QuotationDetail = () => {
   const { id } = useParams();
   const { currentUser } = useSelector((s) => s.user);
@@ -32,7 +42,7 @@ const QuotationDetail = () => {
     setQ(res.data);
     // If already accepted, try loading the linked invoice
     if (res.data.status === "Accepted") {
-      const invId = res.data.invoiceId || res.data.invoice;
+      const invId = extractId(res.data.invoiceId) || extractId(res.data.invoice);
       if (invId) {
         axiosInstance.get(`/invoices/${invId}`).then((r) => setInvoice(r.data)).catch(() => {});
       }
@@ -111,7 +121,7 @@ const QuotationDetail = () => {
   const isAccepted = q.status === "Accepted";
   const isSent     = q.status === "Sent";
   const isDraft    = q.status === "Draft";
-  const invoiceId  = invoice?._id || q.invoiceId || q.invoice;
+  const invoiceId  = invoice?._id || extractId(q.invoiceId) || extractId(q.invoice);
 
   return (
     <DashboardLayout activeMenu="Quotations">

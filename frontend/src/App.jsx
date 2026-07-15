@@ -55,7 +55,6 @@ import SubmitKyc from "./pages/associate/SubmitKyc";
 
 // Shared pages
 import WorkDetails from "./pages/shared/WorkDetails";
-import ClientWorks from "./pages/shared/ClientWorks";
 import Notifications from "./pages/shared/Notifications";
 import QuotationDetail from "./pages/shared/QuotationDetail";
 import InvoiceDetail from "./pages/shared/InvoiceDetail";

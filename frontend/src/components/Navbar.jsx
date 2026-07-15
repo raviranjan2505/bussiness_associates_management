@@ -42,7 +42,7 @@ const Navbar = ({ activeMenu }) => {
 
           {/* Sidebar */}
           <div className="relative w-64 h-full bg-white shadow-xl flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-red-100 gap-2">
+            <div className="flex items-center justify-between p-4 border-b border-red-100">
               <div className="flex items-center gap-2">
                 <img
                   src="/logo.png"

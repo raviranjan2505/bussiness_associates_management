@@ -33,6 +33,13 @@ const notificationSchema = new mongoose.Schema(
         // Already emitted by invoice.controller.js but was missing from this
         // enum, which caused Notification.create() to fail validation.
         "Invoice Cancelled",
+        // Emitted by quotation.controller.js's sendQuotationToClient() when an
+        // associate emails a quotation straight to the client — was missing
+        // from this enum too, causing the same validation failure.
+        "Quotation Sent To Client",
+        // Emitted by invoice.controller.js's equivalent client-email flow —
+        // same missing-enum bug.
+        "Invoice Sent To Client",
       ],
       required: true,
     },
