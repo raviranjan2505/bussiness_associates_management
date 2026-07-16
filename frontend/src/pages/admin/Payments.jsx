@@ -8,7 +8,7 @@ import StatusBadge from "../../components/StatusBadge";
 import { StatCard } from "../../components/StatCard";
 import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
-import { PAYMENT_METHODS } from "../../utils/data";
+import { PAYMENT_METHODS, PAYMENT_STATUSES } from "../../utils/data";
 import { formatMoney } from "../../utils/helper";
 
 const EMPTY_SUMMARY = { totalPaid: 0, totalDue: 0, todayPaid: 0, todayDue: 0 };
@@ -32,6 +32,7 @@ const AdminPayments = () => {
 
   // Filters
   const [invoiceId, setInvoiceId] = useState(params.get("invoiceId") || "");
+  const [status, setStatus] = useState("");
   const [from, setFrom] = useState("");
   const [to,   setTo]   = useState("");
 
@@ -57,9 +58,19 @@ const AdminPayments = () => {
     resetPage();
     try {
       const p = {};
-      if (filters.invoiceId ?? invoiceId) p.invoiceId = filters.invoiceId ?? invoiceId;
-      if (filters.from ?? from)           p.from      = filters.from ?? from;
-      if (filters.to   ?? to)             p.to        = filters.to   ?? to;
+      const q = filters.invoiceId ?? invoiceId;
+      if (q) {
+        // A raw Mongo id (e.g. the "Manage Payments" deep link from the
+        // Invoice Detail page, or an exact id pasted in) filters to that
+        // one invoice exactly, same as before. Anything else is treated as
+        // a free-text search across invoice number, client name, and
+        // associate name.
+        if (/^[0-9a-fA-F]{24}$/.test(q)) p.invoiceId = q;
+        else p.search = q;
+      }
+      if (filters.status ?? status) p.status = filters.status ?? status;
+      if (filters.from ?? from)     p.from   = filters.from ?? from;
+      if (filters.to   ?? to)       p.to     = filters.to   ?? to;
 
       const res = await axiosInstance.get("/payments", { params: p });
       setPayments(res.data.payments || []);
@@ -76,9 +87,10 @@ const AdminPayments = () => {
   // ── Reset all filters ─────────────────────────────────────────────────────
   const handleReset = () => {
     setInvoiceId("");
+    setStatus("");
     setFrom("");
     setTo("");
-    load({ invoiceId: "", from: "", to: "" });
+    load({ invoiceId: "", status: "", from: "", to: "" });
   };
 
   // ── Existing actions (unchanged) ──────────────────────────────────────────
@@ -119,15 +131,20 @@ const AdminPayments = () => {
     } catch (e) { toast.error(e.response?.data?.message || "Error"); }
   };
 
-  // Regular "+ Add Payment" button — unchanged behavior, just also clears
-  // any invoice selected via "Pay Due Amount" so the plain form shows.
+  // Regular "+ Add Payment" button. Only resets the form when leaving a
+  // "Pay Due Amount" context (selectedInvoice set) — otherwise it leaves
+  // addForm untouched, exactly like before, so the invoiceId pre-filled
+  // from a "?invoiceId=" deep link (see the addForm useState above) isn't
+  // wiped out the moment the form is opened.
   const toggleAdd = () => {
     if (showAdd) {
       setShowAdd(false);
       return;
     }
-    setSelectedInvoice(null);
-    setAddForm(EMPTY_ADD_FORM);
+    if (selectedInvoice) {
+      setSelectedInvoice(null);
+      setAddForm(EMPTY_ADD_FORM);
+    }
     setShowAdd(true);
   };
 
@@ -212,7 +229,7 @@ const AdminPayments = () => {
             )}
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Invoice ID *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Invoice ID or Number *</label>
               {selectedInvoice ? (
                 <input
                   className="w-full border rounded-lg p-2 bg-gray-50 text-gray-500"
@@ -220,7 +237,7 @@ const AdminPayments = () => {
                   readOnly
                 />
               ) : (
-                <input className="w-full border rounded-lg p-2" placeholder="Paste invoice id…"
+                <input className="w-full border rounded-lg p-2" placeholder="Invoice ID or number (e.g. INV-2026-00008)…"
                   value={addForm.invoiceId}
                   onChange={(e) => setAddForm({ ...addForm, invoiceId: e.target.value })} required />
               )}
@@ -277,17 +294,29 @@ const AdminPayments = () => {
 
         {/* ── Filters ───────────────────────────────────────────────────── */}
         <div className="rounded-lg border border-gray-100 bg-white p-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_160px_160px_auto_auto]">
-            {/* Invoice filter */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_160px_160px_160px_auto_auto]">
+            {/* Search: invoice number, client name, or associate name */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Invoice</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Search</label>
               <input
                 className="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:border-gray-400"
-                placeholder="Invoice ID or number…"
+                placeholder="Invoice #, client, or associate…"
                 value={invoiceId}
                 onChange={(e) => setInvoiceId(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && load()}
               />
+            </div>
+            {/* Status filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+              <select
+                className="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:border-gray-400"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                {PAYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
             {/* From date */}
             <div>
@@ -332,12 +361,18 @@ const AdminPayments = () => {
           </div>
 
           {/* Active filter chips */}
-          {(invoiceId || from || to) && (
+          {(invoiceId || status || from || to) && (
             <div className="mt-3 flex flex-wrap gap-2">
               {invoiceId && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
-                  Invoice: {invoiceId}
+                  Search: {invoiceId}
                   <button onClick={() => { setInvoiceId(""); load({ invoiceId: "" }); }} className="text-gray-400 hover:text-gray-700">×</button>
+                </span>
+              )}
+              {status && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                  Status: {status}
+                  <button onClick={() => { setStatus(""); load({ status: "" }); }} className="text-gray-400 hover:text-gray-700">×</button>
                 </span>
               )}
               {from && (
@@ -364,6 +399,7 @@ const AdminPayments = () => {
                 <tr>
                   <th className="p-3">Invoice</th>
                   <th className="p-3">Customer</th>
+                  <th className="p-3">Associate</th>
                   <th className="p-3">Date</th>
                   <th className="p-3">Method</th>
                   <th className="p-3 text-right">Amount</th>
@@ -376,7 +412,7 @@ const AdminPayments = () => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={10} className="py-12 text-center text-gray-400">Loading…</td></tr>
+                  <tr><td colSpan={11} className="py-12 text-center text-gray-400">Loading…</td></tr>
                 ) : pagedPayments.map((p) => (
                   <tr key={p._id} className="border-t hover:bg-gray-50">
                     <td className="p-3 font-medium">
@@ -392,6 +428,7 @@ const AdminPayments = () => {
                       )}
                     </td>
                     <td className="p-3 text-gray-700">{p.invoice?.customerName || "—"}</td>
+                    <td className="p-3 text-gray-700">{p.invoice?.associate?.name || "—"}</td>
                     <td className="p-3">{moment(p.paymentDate).format("DD MMM YYYY")}</td>
                     <td className="p-3">{p.paymentMethod}</td>
                     <td className="p-3 text-right font-medium">{formatMoney(p.amount)}</td>
@@ -433,7 +470,7 @@ const AdminPayments = () => {
                   </tr>
                 ))}
                 {!loading && !payments.length && (
-                  <tr><td colSpan={10} className="p-4 text-center text-gray-500">No payments found.</td></tr>
+                  <tr><td colSpan={11} className="p-4 text-center text-gray-500">No payments found.</td></tr>
                 )}
               </tbody>
             </table>

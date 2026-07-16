@@ -98,3 +98,4 @@ export const COMPLAINT_STATUSES = ["Pending", "In Review", "Resolved", "Closed"]
 
 // ── Payment methods ───────────────────────────────────────────────────────
 export const PAYMENT_METHODS = ["Cash", "Bank Transfer", "UPI", "Cheque", "Card", "Other"];
+export const PAYMENT_STATUSES = ["Pending", "Verified", "Failed"];
