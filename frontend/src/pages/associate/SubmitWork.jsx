@@ -365,11 +365,13 @@ const SubmitWork = () => {
           </select>
 
           {selectedClient && (
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
               <Info label="Client Name" value={selectedClient.clientName} />
               <Info label="Mobile" value={selectedClient.mobileNumber} />
               <Info label="Email" value={selectedClient.email} />
               <Info label="Address" value={selectedClient.address} />
+              <Info label="Aadhaar Number" value={selectedClient.aadhaarNumber} />
+              <Info label="PAN" value={selectedClient.pan} />
             </div>
           )}
         </section>

@@ -684,7 +684,7 @@ export const listClients = async (req, res, next) => {
     const groupKey = (clientName, mobileNumber) =>
       `${normalizeClientPart(clientName)}|${normalizeClientPart(mobileNumber)}`;
 
-    const ensureGroup = ({ clientName, mobileNumber, email, address, clientId, associateName, associateEmail }) => {
+    const ensureGroup = ({ clientName, mobileNumber, email, address, clientId, associateName, associateEmail, aadhaarNumber, pan }) => {
       const key = groupKey(clientName, mobileNumber);
       if (!groups.has(key)) {
         groups.set(key, {
@@ -694,6 +694,8 @@ export const listClients = async (req, res, next) => {
           mobileNumber: mobileNumber || "",
           email: email || "",
           address: address || "",
+          aadhaarNumber: aadhaarNumber || "",
+          pan: pan || "",
           associateId: selectedAssociate,
           associateName: associateName || "",
           associateEmail: associateEmail || "",
@@ -712,6 +714,11 @@ export const listClients = async (req, res, next) => {
       if (clientId && !g.clientId) g.clientId = clientId;
       if (associateName && !g.associateName) g.associateName = associateName;
       if (associateEmail && !g.associateEmail) g.associateEmail = associateEmail;
+      // Leads/works only carry a denormalized clientDetails snapshot (no
+      // Aadhaar/PAN); the Client document itself (step 3 below) is the
+      // authoritative source for these, so fill them in whenever available.
+      if (aadhaarNumber && !g.aadhaarNumber) g.aadhaarNumber = aadhaarNumber;
+      if (pan && !g.pan) g.pan = pan;
       return g;
     };
 
@@ -769,6 +776,8 @@ export const listClients = async (req, res, next) => {
         clientId: String(c._id),
         associateName: c.associate?.name || "",
         associateEmail: c.associate?.email || "",
+        aadhaarNumber: c.aadhaarNumber || "",
+        pan: c.pan || "",
       });
     });
 
