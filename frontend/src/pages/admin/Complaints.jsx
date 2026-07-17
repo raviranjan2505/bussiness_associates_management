@@ -60,7 +60,10 @@ const AdminComplaints = () => {
                     <td className="p-3 max-w-[250px] truncate">{c.subject}</td>
                     <td className="p-3">{c.associate?.name}</td>
                     <td className="p-3"><StatusBadge status={c.status} /></td>
-                    <td className="p-3">{moment(c.createdAt).format("DD MMM YYYY")}</td>
+                    <td className="p-3">
+                      <div>{moment(c.createdAt).format("DD MMM YYYY")}</div>
+                      <div className="text-xs text-gray-400">{moment(c.createdAt).format("hh:mm A")}</div>
+                    </td>
                     <td className="p-3">
                       <Link to={`/admin/complaints/${c._id}`} className="text-blue-700 text-xs font-medium hover:underline">
                         Open

@@ -111,7 +111,10 @@ const Leads = () => {
                         <div className="text-xs text-gray-500">{lead.service?.name || "-"}</div>
                       </td>
                       <td className="p-3 text-gray-600">{lead.leadStatus || "-"}</td>
-                      <td className="p-3 text-gray-600">{moment(lead.createdAt).format("DD MMM YYYY")}</td>
+                      <td className="p-3 text-gray-600">
+                        <div>{moment(lead.createdAt).format("DD MMM YYYY")}</div>
+                        <div className="text-xs text-gray-400">{moment(lead.createdAt).format("hh:mm A")}</div>
+                      </td>
                     </tr>
                   ))
                 ) : (

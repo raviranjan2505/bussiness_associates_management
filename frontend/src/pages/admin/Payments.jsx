@@ -429,7 +429,14 @@ const AdminPayments = () => {
                     </td>
                     <td className="p-3 text-gray-700">{p.invoice?.customerName || "—"}</td>
                     <td className="p-3 text-gray-700">{p.invoice?.associate?.name || "—"}</td>
-                    <td className="p-3">{moment(p.paymentDate).format("DD MMM YYYY")}</td>
+                    <td className="p-3">
+                      {p.paymentDate ? (
+                        <>
+                          <div>{moment(p.paymentDate).format("DD MMM YYYY")}</div>
+                          <div className="text-xs text-gray-400">{moment(p.paymentDate).format("hh:mm A")}</div>
+                        </>
+                      ) : "—"}
+                    </td>
                     <td className="p-3">{p.paymentMethod}</td>
                     <td className="p-3 text-right font-medium">{formatMoney(p.amount)}</td>
                     <td className={`p-3 text-right font-medium ${p.invoice?.balanceDue > 0 ? "text-red-600" : "text-green-700"}`}>

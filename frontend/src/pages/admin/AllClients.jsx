@@ -132,7 +132,8 @@ const AllClients = () => {
                       <p className="text-xs text-gray-400">{client.associate?.email || ""}</p>
                     </td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                      {moment(client.createdAt).format("DD MMM YYYY")}
+                      <div>{moment(client.createdAt).format("DD MMM YYYY")}</div>
+                      <div className="text-xs text-gray-400">{moment(client.createdAt).format("hh:mm A")}</div>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button

@@ -112,7 +112,12 @@ const AdminIncomeWorks = () => {
                     <td className="px-4 py-3 text-gray-800">{w.serviceName}</td>
                     <td className="px-4 py-3 font-mono text-xs text-blue-700">{w.invoiceNumber || "—"}</td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                      {w.paymentDate ? moment(w.paymentDate).format("DD MMM YYYY") : "—"}
+                      {w.paymentDate ? (
+                        <>
+                          <div>{moment(w.paymentDate).format("DD MMM YYYY")}</div>
+                          <div className="text-xs text-gray-400">{moment(w.paymentDate).format("hh:mm A")}</div>
+                        </>
+                      ) : "—"}
                     </td>
                     <td className="px-4 py-3 text-right font-medium text-gray-900">{fmt(w.amountReceived)}</td>
                     <td className="px-4 py-3"><StatusBadge status={w.paymentStatus} /></td>

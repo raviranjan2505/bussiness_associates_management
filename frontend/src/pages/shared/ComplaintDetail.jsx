@@ -172,8 +172,26 @@ const ComplaintDetail = () => {
               <Info label="Complaint #" value={complaint.complaintNumber} />
               <Info label="Associate"   value={complaint.associate?.name} />
               <Info label="Status"      value={<StatusBadge status={complaint.status} />} />
-              <Info label="Raised"      value={moment(complaint.createdAt).format("DD MMM YYYY")} />
-              {complaint.resolvedAt && <Info label="Resolved" value={moment(complaint.resolvedAt).format("DD MMM YYYY")} />}
+              <Info
+                label="Raised"
+                value={
+                  <>
+                    {moment(complaint.createdAt).format("DD MMM YYYY")}{" "}
+                    <span className="text-xs text-gray-400">{moment(complaint.createdAt).format("hh:mm A")}</span>
+                  </>
+                }
+              />
+              {complaint.resolvedAt && (
+                <Info
+                  label="Resolved"
+                  value={
+                    <>
+                      {moment(complaint.resolvedAt).format("DD MMM YYYY")}{" "}
+                      <span className="text-xs text-gray-400">{moment(complaint.resolvedAt).format("hh:mm A")}</span>
+                    </>
+                  }
+                />
+              )}
             </section>
 
             {/* Admin controls */}

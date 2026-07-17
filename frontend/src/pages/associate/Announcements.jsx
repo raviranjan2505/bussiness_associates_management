@@ -54,7 +54,7 @@ const Announcements = () => {
                       {a.priority}
                     </span>
                     <span className="text-xs text-gray-400 whitespace-nowrap">
-                      {moment(a.createdAt).format("DD MMM YYYY")}
+                      {moment(a.createdAt).format("DD MMM YYYY, hh:mm A")}
                     </span>
                   </div>
                 </div>

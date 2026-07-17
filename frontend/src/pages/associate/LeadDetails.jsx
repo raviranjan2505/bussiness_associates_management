@@ -109,7 +109,8 @@ const AssociateLeadDetails = () => {
               {isMultiService ? `${totalServices} Services` : (lead.service?.name || lead.title || "Lead")}
             </h1>
             <p className="text-sm text-gray-500">
-              {lead.clientDetails?.clientName} · Submitted {moment(lead.createdAt).format("DD MMM YYYY")}
+              {lead.clientDetails?.clientName} · Submitted {moment(lead.createdAt).format("DD MMM YYYY")}{" "}
+              <span className="text-xs text-gray-400">{moment(lead.createdAt).format("hh:mm A")}</span>
             </p>
           </div>
           <StatusBadge status={lead.leadStatus} />

@@ -423,7 +423,7 @@ const WorkDetails = () => {
                         <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
                           {doc.category} · v{doc.version}
-                          {doc.uploadedAt ? ` · ${moment(doc.uploadedAt).format("DD MMM YYYY")}` : ""}
+                          {doc.uploadedAt ? ` · ${moment(doc.uploadedAt).format("DD MMM YYYY, hh:mm A")}` : ""}
                         </p>
                       </div>
                     </a>

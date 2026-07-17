@@ -132,7 +132,15 @@ const LeadDetails = ({ activeMenu = "New Leads" }) => {
                 </>
               )}
               <Row label="Status" value={lead.leadStatus} />
-              <Row label="Submitted" value={moment(lead.createdAt).format("DD MMM YYYY")} />
+              <Row
+                label="Submitted"
+                value={
+                  <>
+                    {moment(lead.createdAt).format("DD MMM YYYY")}{" "}
+                    <span className="text-xs text-gray-400">{moment(lead.createdAt).format("hh:mm A")}</span>
+                  </>
+                }
+              />
               {isMultiService && (
                 <Row label="Services" value={`${lead.services.length} services`} />
               )}

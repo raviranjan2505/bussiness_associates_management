@@ -86,7 +86,8 @@ const ManagePayout = () => {
             <div>
               <p className="font-semibold text-green-800">Payout Completed</p>
               <p className="text-sm text-green-700">
-                Paid {fmt(payout.payoutAmount)} on {moment(payout.paidAt).format("DD MMM YYYY")}
+                Paid {fmt(payout.payoutAmount)} on {moment(payout.paidAt).format("DD MMM YYYY")}{" "}
+                <span className="text-xs text-green-600/80">{moment(payout.paidAt).format("hh:mm A")}</span>
                 {payout.transactionRef && ` · Ref: ${payout.transactionRef}`}
               </p>
             </div>
@@ -138,11 +139,27 @@ const ManagePayout = () => {
           <Row label="Invoice Number"  value={invoice.invoiceNumber} />
           <Row label="Total Amount"    value={fmt(invoice.totalAmount)} />
           <Row label="Amount Received" value={fmt(invoice.amountReceived)} green />
-          <Row label="Payment Date"    value={invoice.paymentDate ? moment(invoice.paymentDate).format("DD MMM YYYY") : null} />
+          <Row
+            label="Payment Date"
+            value={invoice.paymentDate ? (
+              <>
+                {moment(invoice.paymentDate).format("DD MMM YYYY")}{" "}
+                <span className="text-xs text-gray-400">{moment(invoice.paymentDate).format("hh:mm A")}</span>
+              </>
+            ) : null}
+          />
           <Row label="Payout Amount"   value={fmt(payout.payoutAmount)} green />
           <Row label="Payout Status"   value={payout.status} />
           {isPaid && <>
-            <Row label="Payout Date"      value={payout.paidAt ? moment(payout.paidAt).format("DD MMM YYYY") : null} />
+            <Row
+              label="Payout Date"
+              value={payout.paidAt ? (
+                <>
+                  {moment(payout.paidAt).format("DD MMM YYYY")}{" "}
+                  <span className="text-xs text-gray-400">{moment(payout.paidAt).format("hh:mm A")}</span>
+                </>
+              ) : null}
+            />
             <Row label="Transaction Ref." value={payout.transactionRef} />
             {payout.remarks && <Row label="Remarks" value={payout.remarks} />}
           </>}

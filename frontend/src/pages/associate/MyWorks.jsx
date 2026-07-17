@@ -257,10 +257,12 @@ const MyWorks = () => {
                         <StatusBadge status={work.status || "Pending"} />
                       </td>
                       <td className="p-3 text-gray-500 whitespace-nowrap">
-                        {moment(work.createdAt).format("DD MMM YYYY")}
+                        <div>{moment(work.createdAt).format("DD MMM YYYY")}</div>
+                        <div className="text-xs text-gray-400">{moment(work.createdAt).format("hh:mm A")}</div>
                       </td>
                       <td className="p-3 text-gray-500 whitespace-nowrap">
-                        {moment(work.updatedAt).format("DD MMM YYYY")}
+                        <div>{moment(work.updatedAt).format("DD MMM YYYY")}</div>
+                        <div className="text-xs text-gray-400">{moment(work.updatedAt).format("hh:mm A")}</div>
                       </td>
                       <td className="p-3 text-gray-400 text-right">›</td>
                     </tr>

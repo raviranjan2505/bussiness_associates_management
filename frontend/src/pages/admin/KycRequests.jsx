@@ -137,7 +137,8 @@ const KycRequests = () => {
                       <td className="p-3 text-gray-600">{r.mobile}</td>
                       <td className="p-3 text-gray-600">{r.email}</td>
                       <td className="p-3 text-gray-500 whitespace-nowrap">
-                        {moment(r.registrationDate).format("DD MMM YYYY")}
+                        <div>{moment(r.registrationDate).format("DD MMM YYYY")}</div>
+                        <div className="text-xs text-gray-400">{moment(r.registrationDate).format("hh:mm A")}</div>
                       </td>
                       <td className="p-3"><StatusBadge status={r.kycStatus} /></td>
                       <td className="p-3">

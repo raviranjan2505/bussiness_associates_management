@@ -249,7 +249,7 @@ const ManageAnnouncements = () => {
                         By: <strong>{announcement.createdBy?.name}</strong>
                       </span>
                       <span>
-                        Posted: <strong>{moment(announcement.createdAt).format("DD MMM YYYY")}</strong>
+                        Posted: <strong>{moment(announcement.createdAt).format("DD MMM YYYY, hh:mm A")}</strong>
                       </span>
                       {announcement.expiryDate && (
                         <span>

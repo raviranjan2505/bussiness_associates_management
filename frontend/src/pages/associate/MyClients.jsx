@@ -142,7 +142,12 @@ const MyClients = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                        {client.latestUpdatedAt ? moment(client.latestUpdatedAt).format("DD MMM YYYY") : "—"}
+                        {client.latestUpdatedAt ? (
+                          <>
+                            <div>{moment(client.latestUpdatedAt).format("DD MMM YYYY")}</div>
+                            <div className="text-xs text-gray-400">{moment(client.latestUpdatedAt).format("hh:mm A")}</div>
+                          </>
+                        ) : "—"}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button

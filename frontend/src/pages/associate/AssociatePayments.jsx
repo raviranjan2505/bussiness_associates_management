@@ -101,7 +101,12 @@ const AssociatePayments = () => {
                     </td>
                     <td className="p-3 text-gray-700">{p.invoice?.customerName || "—"}</td>
                     <td className="p-3 text-gray-500 whitespace-nowrap">
-                      {moment(p.paymentDate).format("DD MMM YYYY")}
+                      {p.paymentDate ? (
+                        <>
+                          <div>{moment(p.paymentDate).format("DD MMM YYYY")}</div>
+                          <div className="text-xs text-gray-400">{moment(p.paymentDate).format("hh:mm A")}</div>
+                        </>
+                      ) : "—"}
                     </td>
                     <td className="p-3 text-gray-600">{p.paymentMethod}</td>
                     <td className="p-3 text-right font-medium text-gray-900">{formatMoney(p.amount)}</td>

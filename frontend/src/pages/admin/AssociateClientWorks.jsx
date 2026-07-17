@@ -114,8 +114,14 @@ const AssociateClientWorks = () => {
                     <td className="px-4 py-3 text-gray-700">{work.service?.name || "—"}</td>
                     <td className="px-4 py-3 text-gray-600">{work.division?.name || "—"}</td>
                     <td className="px-4 py-3"><StatusBadge status={work.status} /></td>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{moment(work.createdAt).format("DD MMM YYYY")}</td>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{moment(work.updatedAt).format("DD MMM YYYY")}</td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      <div>{moment(work.createdAt).format("DD MMM YYYY")}</div>
+                      <div className="text-xs text-gray-400">{moment(work.createdAt).format("hh:mm A")}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      <div>{moment(work.updatedAt).format("DD MMM YYYY")}</div>
+                      <div className="text-xs text-gray-400">{moment(work.updatedAt).format("hh:mm A")}</div>
+                    </td>
                     <td className="px-4 py-3 text-gray-400 text-right">›</td>
                   </tr>
                 ))}

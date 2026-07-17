@@ -120,7 +120,10 @@ const AdminQuotations = () => {
                     <td className="p-3">{q.associate?.name}</td>
                     <td className="p-3 font-medium">{formatMoney(q.totalAmount)}</td>
                     <td className="p-3"><StatusBadge status={q.status} /></td>
-                    <td className="p-3">{moment(q.createdAt).format("DD MMM YYYY")}</td>
+                    <td className="p-3">
+                      <div>{moment(q.createdAt).format("DD MMM YYYY")}</div>
+                      <div className="text-xs text-gray-400">{moment(q.createdAt).format("hh:mm A")}</div>
+                    </td>
                     <td className="p-3 flex gap-2 flex-wrap">
                       <Link to={`/admin/quotations/${q._id}`} className="text-blue-700 text-xs font-medium hover:underline">View</Link>
                       {q.status === "Draft" && (

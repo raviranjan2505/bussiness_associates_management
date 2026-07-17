@@ -155,7 +155,8 @@ const AssociateQuotations = () => {
                       )}
                     </td>
                     <td className="p-3 text-gray-500 whitespace-nowrap">
-                      {moment(q.createdAt).format("DD MMM YYYY")}
+                      <div>{moment(q.createdAt).format("DD MMM YYYY")}</div>
+                      <div className="text-xs text-gray-400">{moment(q.createdAt).format("hh:mm A")}</div>
                     </td>
                     <td className="p-3">
                       <div className="flex gap-2 flex-wrap">

@@ -124,7 +124,7 @@ const KycDetails = () => {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{associate.name}</h1>
             <p className="text-sm text-gray-500">{associate.email}</p>
             <p className="text-xs text-gray-400 mt-1">
-              Registered on {moment(associate.createdAt).format("DD MMM YYYY")}
+              Registered on {moment(associate.createdAt).format("DD MMM YYYY, hh:mm A")}
             </p>
           </div>
           <StatusBadge status={associate.kycStatus} />

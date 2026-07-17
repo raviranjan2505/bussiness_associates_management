@@ -150,7 +150,8 @@ const MyLeads = () => {
                           )}
                         </td>
                         <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                          {moment(lead.createdAt).format("DD MMM YYYY")}
+                          <div>{moment(lead.createdAt).format("DD MMM YYYY")}</div>
+                          <div className="text-xs text-gray-400">{moment(lead.createdAt).format("hh:mm A")}</div>
                         </td>
                         <td className="px-4 py-3 text-gray-400 text-right">›</td>
                       </tr>

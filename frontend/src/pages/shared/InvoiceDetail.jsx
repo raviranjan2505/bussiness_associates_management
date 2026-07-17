@@ -114,7 +114,8 @@ const InvoiceDetail = () => {
                 ` · Quotation: ${invoice.quotation.quotationNumber}`}
               {invoice.clientEmailSentAt && (
                 <span className="ml-2 text-green-600">
-                  · Emailed {moment(invoice.clientEmailSentAt).format("DD MMM YYYY")}
+                  · Emailed {moment(invoice.clientEmailSentAt).format("DD MMM YYYY")}{" "}
+                  <span className="text-xs text-green-600/70">{moment(invoice.clientEmailSentAt).format("hh:mm A")}</span>
                 </span>
               )}
             </p>
@@ -313,7 +314,8 @@ const InvoiceDetail = () => {
                             <StatusBadge status={work.status || "Pending"} />
                           </td>
                           <td className="p-3 text-gray-500 whitespace-nowrap">
-                            {moment(work.createdAt).format("DD MMM YYYY")}
+                            <div>{moment(work.createdAt).format("DD MMM YYYY")}</div>
+                            <div className="text-xs text-gray-400">{moment(work.createdAt).format("hh:mm A")}</div>
                           </td>
                         </tr>
                       ))}
@@ -357,7 +359,8 @@ const InvoiceDetail = () => {
                     {payments.map((p) => (
                       <tr key={p._id} className="border-t">
                         <td className="p-3">
-                          {moment(p.paymentDate).format("DD MMM YYYY")}
+                          <div>{moment(p.paymentDate).format("DD MMM YYYY")}</div>
+                          <div className="text-xs text-gray-400">{moment(p.paymentDate).format("hh:mm A")}</div>
                         </td>
                         <td className="p-3">{p.paymentMethod}</td>
                         <td className="p-3 text-right font-medium">

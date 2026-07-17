@@ -132,10 +132,12 @@ const QuotationDetail = () => {
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{q.quotationNumber}</h1>
             <p className="text-sm text-gray-500">
-              {q.customerName} · {moment(q.createdAt).format("DD MMM YYYY")}
+              {q.customerName} · {moment(q.createdAt).format("DD MMM YYYY")}{" "}
+              <span className="text-xs text-gray-400">{moment(q.createdAt).format("hh:mm A")}</span>
               {q.clientEmailSentAt && (
                 <span className="ml-2 text-emerald-600 font-medium">
-                  · Emailed to client {moment(q.clientEmailSentAt).format("DD MMM YYYY")}
+                  · Emailed to client {moment(q.clientEmailSentAt).format("DD MMM YYYY")}{" "}
+                  <span className="text-xs text-emerald-600/70">{moment(q.clientEmailSentAt).format("hh:mm A")}</span>
                 </span>
               )}
             </p>

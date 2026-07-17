@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import moment from "moment";
 import DashboardLayout from "../../components/DashboardLayout";
 import Pagination, { usePagination } from "../../components/Pagination";
 import axiosInstance from "../../utils/axioInstance";
@@ -74,7 +75,14 @@ const ManageUsers = () => {
                     <tr key={user._id} className="border-t hover:bg-gray-50">
                       <td className="p-3 font-medium text-gray-900">{user.name}</td>
                       <td className="p-3 text-gray-600">{user.email}</td>
-                      <td className="p-3 text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
+                      <td className="p-3 text-gray-600">
+                        {user.createdAt ? (
+                          <>
+                            <div>{moment(user.createdAt).format("DD MMM YYYY")}</div>
+                            <div className="text-xs text-gray-400">{moment(user.createdAt).format("hh:mm A")}</div>
+                          </>
+                        ) : "—"}
+                      </td>
                       <td className="p-3 text-right font-semibold text-green-600">
                         ₹{(user.totalIncome || 0).toLocaleString("en-IN")}
                       </td>
