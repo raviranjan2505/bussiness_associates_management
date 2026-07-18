@@ -6,14 +6,20 @@ import { errorHandler } from "../utils/error.js";
 // Get all associates (admin only)
 export const getUsers = async (req, res, next) => {
   try {
-    const associates = await User.find({ role: "associate" }).select("-password").sort({ createdAt: -1 });
+    const associates = await User.find({ role: "associate" })
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .lean();
     const associateIds = associates.map((a) => a._id);
 
-    // Single aggregation each — avoids N+1 queries (one per associate)
+    // Single aggregation each — avoids N+1 queries (one per associate).
+    // $match on associate: { $in: associateIds } only counts leads/work
+    // whose `associate` field is a real, still-existing associate id, so
+    // each document is attributed to exactly one associate here.
     const [incomeAgg, leadsAgg, worksAgg] = await Promise.all([
       WorkSubmission.aggregate([
         { $match: { status: "Completed", associate: { $in: associateIds } } },
-        { $group: { _id: "$associate", totalIncome: { $sum: "$associateEarningAmount" } } },
+        { $group: { _id: "$associate", totalIncome: { $sum: { $ifNull: ["$associateEarningAmount", 0] } } } },
       ]),
       Lead.aggregate([
         { $match: { associate: { $in: associateIds } } },
@@ -30,7 +36,7 @@ export const getUsers = async (req, res, next) => {
     const worksMap = new Map(worksAgg.map((r) => [String(r._id), r.count]));
 
     const associatesWithCounts = associates.map((associate) => ({
-      ...associate._doc,
+      ...associate,
       totalIncome: incomeMap.get(String(associate._id)) || 0,
       leadsCount: leadsMap.get(String(associate._id)) || 0,
       worksCount: worksMap.get(String(associate._id)) || 0,

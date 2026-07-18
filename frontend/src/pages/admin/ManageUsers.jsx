@@ -91,7 +91,7 @@ const ManageUsers = () => {
                           to={`/admin/users/${user._id}/leads`}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
                         >
-                          📋 {user.leadsCount ?? 0} Leads
+                          📋 View Leads
                         </Link>
                       </td>
                       <td className="p-3 text-center">
@@ -99,7 +99,7 @@ const ManageUsers = () => {
                           to={`/admin/users/${user._id}/works`}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
                         >
-                          🗂️ {user.worksCount ?? 0} Work
+                          🗂️ View Work
                         </Link>
                       </td>
                     </tr>
