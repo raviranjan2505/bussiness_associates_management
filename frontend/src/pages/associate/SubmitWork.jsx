@@ -225,6 +225,53 @@ const SubmitWork = () => {
   const [serviceCards, setServiceCards] = useState([newServiceCard()]);
   const [submitting, setSubmitting] = useState(false);
 
+  // Client search/dropdown (combobox) state — purely a UI layer on top of
+  // the existing clientRef/selectedClient state below, which everything
+  // else on this page (submit, validation, the Client Information panel)
+  // already reads from and continues to work exactly as before.
+  const [clientSearch, setClientSearch] = useState("");
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const clientBoxRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (clientBoxRef.current && !clientBoxRef.current.contains(e.target)) {
+        setShowClientDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredClients = useMemo(() => {
+    // Once a client is selected, the search box displays "<name> (<mobile>)"
+    // for reference. If the dropdown is reopened without typing anything new
+    // (clientRef still set), don't filter against that formatted string — it
+    // would never match a plain "name mobile email" record and incorrectly
+    // show "No clients found" even though a valid client is selected.
+    // Filtering only kicks back in once the associate actually types
+    // (onChange below clears clientRef on every keystroke).
+    const q = clientRef ? "" : clientSearch.trim().toLowerCase();
+    if (!q) return clients;
+    return clients.filter((c) =>
+      `${c.clientName || ""} ${c.mobileNumber || ""} ${c.email || ""}`
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [clients, clientSearch, clientRef]);
+
+  const handleSelectClient = (client) => {
+    setClientRef(client.clientId || client.clientKey);
+    setClientSearch(`${client.clientName}${client.mobileNumber ? ` (${client.mobileNumber})` : ""}`);
+    setShowClientDropdown(false);
+  };
+
+  const handleClearClient = () => {
+    setClientRef("");
+    setClientSearch("");
+    setShowClientDropdown(false);
+  };
+
   useEffect(() => {
     axiosInstance
       .get("/business/divisions")
@@ -349,20 +396,60 @@ const SubmitWork = () => {
         {/* ── Client selection ── */}
         <section className="rounded-lg border border-gray-100 bg-white p-5">
           <h2 className="mb-4 font-semibold text-gray-900">Client Information</h2>
-          <select
-            className="w-full rounded-lg border p-3 md:max-w-sm"
-            value={clientRef}
-            onChange={(e) => setClientRef(e.target.value)}
-            required
-          >
-            <option value="">Select client</option>
-            {clients.map((client) => (
-              <option key={client.clientKey} value={client.clientId || client.clientKey}>
-                {client.clientName}
-                {client.mobileNumber ? ` (${client.mobileNumber})` : ""}
-              </option>
-            ))}
-          </select>
+
+          <div ref={clientBoxRef} className="relative w-full md:max-w-sm">
+            <div className="relative">
+              <input
+                type="text"
+                className="w-full rounded-lg border p-3 pr-9"
+                placeholder="Search client by name or mobile number…"
+                value={clientSearch}
+                onChange={(e) => {
+                  setClientSearch(e.target.value);
+                  setClientRef("");
+                  setShowClientDropdown(true);
+                }}
+                onFocus={() => setShowClientDropdown(true)}
+                required={!clientRef}
+              />
+              {(clientSearch || clientRef) && (
+                <button
+                  type="button"
+                  onClick={handleClearClient}
+                  aria-label="Clear selected client"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            {showClientDropdown && (
+              <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                {filteredClients.length === 0 ? (
+                  <p className="p-3 text-sm text-gray-500">No clients found.</p>
+                ) : (
+                  filteredClients.map((client) => (
+                    <button
+                      type="button"
+                      key={client.clientKey}
+                      onClick={() => handleSelectClient(client)}
+                      className={`block w-full px-3 py-2 text-left text-sm hover:bg-blue-50 ${
+                        String(client.clientId || client.clientKey) === clientRef
+                          ? "bg-blue-50 text-blue-700 font-medium"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {client.clientName}
+                      {client.mobileNumber ? (
+                        <span className="text-gray-400"> ({client.mobileNumber})</span>
+                      ) : null}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
 
           {selectedClient && (
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
