@@ -6,6 +6,7 @@ import {
   associateDashboard,
   createDivision,
   createClient,
+  exportClients,
   getClient,
   updateClient,
   deleteClient,
@@ -56,6 +57,7 @@ router.post("/works/:id/documents", verifyToken, upload.array("documents", 20), 
 
 router.get("/clients", verifyToken, listClients);
 router.post("/clients", verifyToken, createClient);
+router.get("/clients/export", verifyToken, exportClients);
 router.get("/clients/:id", verifyToken, getClient);
 router.put("/clients/:id", verifyToken, updateClient);
 router.delete("/clients/:id", verifyToken, deleteClient);

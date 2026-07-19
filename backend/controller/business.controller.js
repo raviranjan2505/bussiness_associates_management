@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import ExcelJS from "exceljs";
 import Division from "../models/division.model.js";
 import Service from "../models/service.model.js";
 import Client from "../models/client.model.js";
@@ -826,6 +827,58 @@ export const createClient = async (req, res, next) => {
     res.status(201).json({ message: "Client saved successfully", client });
   } catch (error) {
     if (error.code === 11000) return next(errorHandler(409, "A client with this mobile number already exists"));
+    next(error);
+  }
+};
+
+export const exportClients = async (req, res, next) => {
+  try {
+    const isAdmin = req.user.role === "admin";
+    const filter = isAdmin ? {} : { associate: req.user.id };
+
+    const clients = await Client.find(filter)
+      .populate("associate", "name email")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Clients");
+
+    worksheet.columns = [
+      { header: "Client Name", key: "clientName", width: 25 },
+      { header: "Mobile Number", key: "mobileNumber", width: 18 },
+      { header: "Email", key: "email", width: 28 },
+      { header: "Address", key: "address", width: 35 },
+      { header: "Client Type", key: "clientType", width: 15 },
+      { header: "Aadhaar Number", key: "aadhaarNumber", width: 18 },
+      { header: "PAN", key: "pan", width: 15 },
+      { header: "Associate", key: "associateName", width: 25 },
+      { header: "Created At", key: "createdAt", width: 20 },
+    ];
+
+    clients.forEach((client) => {
+      worksheet.addRow({
+        clientName: client.clientName || "",
+        mobileNumber: client.mobileNumber || "",
+        email: client.email || "",
+        address: client.address || "",
+        clientType: client.clientType || "",
+        aadhaarNumber: client.aadhaarNumber || "",
+        pan: client.pan || "",
+        associateName: client.associate?.name || "",
+        createdAt: client.createdAt ? new Date(client.createdAt).toLocaleString() : "",
+      });
+    });
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=${isAdmin ? "clients" : "my-clients"}.xlsx`
+    );
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.status(200).send(buffer);
+  } catch (error) {
     next(error);
   }
 };

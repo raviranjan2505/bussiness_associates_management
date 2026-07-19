@@ -1,3 +1,4 @@
+import ExcelJS from "exceljs";
 import User from "../models/user.model.js";
 import WorkSubmission from "../models/workSubmission.model.js";
 import Lead from "../models/lead.model.js";
@@ -44,6 +45,46 @@ export const getUsers = async (req, res, next) => {
 
     res.status(200).json(associatesWithCounts);
   } catch (err) { next(err); }
+};
+
+export const exportUsers = async (req, res, next) => {
+  try {
+    const users = await User.find({ role: "associate" })
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Associates");
+
+    worksheet.columns = [
+      { header: "Name", key: "name", width: 25 },
+      { header: "Email", key: "email", width: 30 },
+      { header: "Phone", key: "phone", width: 18 },
+      { header: "Role", key: "role", width: 15 },
+      { header: "Status", key: "status", width: 15 },
+      { header: "Created At", key: "createdAt", width: 20 },
+    ];
+
+    users.forEach((user) => {
+      worksheet.addRow({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        role: user.role || "",
+        status: user.status || "",
+        createdAt: user.createdAt ? new Date(user.createdAt).toLocaleString() : "",
+      });
+    });
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=associates.xlsx");
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.status(200).send(buffer);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Get single user by ID

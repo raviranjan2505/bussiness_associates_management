@@ -42,12 +42,20 @@ const ManageUsers = () => {
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Associates</h2>
             <p className="text-sm text-gray-500">Click Leads or Work to view that associate's clients, grouped.</p>
           </div>
-          <input
-            className="w-full md:w-80 border rounded-lg p-3"
-            placeholder="Search by name or email"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              className="w-full sm:w-80 border rounded-lg p-3"
+              placeholder="Search by name or email"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button
+              onClick={() => window.open(`${axiosInstance.defaults.baseURL}/users/export`, "_blank")}
+              className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-100 whitespace-nowrap"
+            >
+              ⬇ Export Excel
+            </button>
+          </div>
         </div>
 
         <section className="bg-white border border-gray-100 rounded-lg overflow-hidden">
