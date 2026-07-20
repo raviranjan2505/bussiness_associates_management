@@ -83,6 +83,12 @@ const MyClients = () => {
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
               {loading ? "Loading…" : "Refresh"}
             </button>
+            <button
+              onClick={() => window.open(`${axiosInstance.defaults.baseURL}/business/clients/export`, "_blank")}
+              className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+            >
+              ⬇ Export Excel
+            </button>
             <Link to="/associate/clients/add"
               className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
               + Add Client
