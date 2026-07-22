@@ -2,6 +2,7 @@ import User from "../models/user.model.js"
 import bcryptjs from "bcryptjs"
 import { errorHandler } from "../utils/error.js"
 import jwt from "jsonwebtoken"
+import fs from "fs"
 
 export const signup = async (req, res, next) => {
   const { name, email, password, adminJoinCode } = req.body
@@ -133,6 +134,15 @@ export const updateUserProfile = async (req, res, next) => {
 export const uploadImage = async (req, res, next) => {
   try {
     if (!req.file) return next(errorHandler(400, "No file uploaded"));
+
+    // The shared upload middleware also allows PDFs (needed for KYC/work
+    // documents on other routes), but a profile photo must be an actual
+    // image. Re-check here and clean up the file multer already wrote to
+    // disk before rejecting it.
+    if (!req.file.mimetype.startsWith("image/")) {
+      fs.unlink(req.file.path, () => {});
+      return next(errorHandler(400, "Profile photo must be an image (JPG or PNG)."));
+    }
 
     const imageUrl = `${req.protocol}://${req.get("host")}/uploads/images/${req.file.filename}`;
 

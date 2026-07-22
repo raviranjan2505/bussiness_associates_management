@@ -8,11 +8,11 @@ import {
   userProfile,
 } from "../controller/auth.controller.js"
 import { verifyToken } from "../utils/verifyUser.js"
-import upload from "../utils/multer.js"
+import { uploadProfileImage } from "../utils/multer.js"
 
 const router = express.Router()
 
-router.post("/sign-up",upload.single("image"), signup)
+router.post("/sign-up", uploadProfileImage.single("image"), signup)
 
 router.post("/sign-in", signin)
 
@@ -23,7 +23,7 @@ router.put("/update-profile", verifyToken, updateUserProfile)
 router.post(
   "/upload-image",
   verifyToken,
-  upload.single("image"),
+  uploadProfileImage.single("image"),
   uploadImage
 );
 
