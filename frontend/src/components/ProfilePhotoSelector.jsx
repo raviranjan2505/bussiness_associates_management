@@ -2,22 +2,44 @@ import React, { useRef, useState } from "react"
 import { FaCamera } from "react-icons/fa"
 import { MdDelete } from "react-icons/md"
 
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/jpg"]
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB — profile photos should stay small
+
 const ProfilePhotoSelector = ({ image, setImage }) => {
   const inputRef = useRef(null)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [error, setError] = useState("")
 
   const handleImageChange = (event) => {
     const file = event.target.files[0]
-    if (file) {
-      setImage(file)
-      const preview = URL.createObjectURL(file)
-      setPreviewUrl(preview)
+    if (!file) return
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError("Only JPG and PNG images are allowed.")
+      setImage(null)
+      setPreviewUrl(null)
+      event.target.value = ""
+      return
     }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setError("Image is too large. Maximum allowed size is 5MB.")
+      setImage(null)
+      setPreviewUrl(null)
+      event.target.value = ""
+      return
+    }
+
+    setError("")
+    setImage(file)
+    const preview = URL.createObjectURL(file)
+    setPreviewUrl(preview)
   }
 
   const handleRemoveImage = () => {
     setImage(null)
     setPreviewUrl(null)
+    setError("")
   }
 
   return (
@@ -45,11 +67,18 @@ const ProfilePhotoSelector = ({ image, setImage }) => {
         )}
       </div>
 
+      {error && (
+        <p className="text-xs text-red-600 text-center mb-2 max-w-[200px]">{error}</p>
+      )}
+      {!error && (
+        <p className="text-[11px] text-gray-400 text-center mb-2">JPG or PNG, up to 5MB</p>
+      )}
+
       <input
         type="file"
         ref={inputRef}
         onChange={handleImageChange}
-        accept="image/*"
+        accept="image/png, image/jpeg"
         className="hidden"
       />
     </div>

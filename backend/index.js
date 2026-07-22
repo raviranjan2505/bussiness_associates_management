@@ -47,6 +47,18 @@ app.use("/api/kyc", kycRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
+  // Multer's own errors (e.g. file too large) come through as a
+  // MulterError rather than one of our errorHandler() errors, so they
+  // wouldn't otherwise carry a statusCode — give them a clean 400 instead
+  // of falling through to a generic 500.
+  if (err.name === "MulterError") {
+    const message =
+      err.code === "LIMIT_FILE_SIZE"
+        ? "File is too large. Please choose a smaller file."
+        : err.message;
+    return res.status(400).json({ success: false, statusCode: 400, message });
+  }
+
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
     success: false,

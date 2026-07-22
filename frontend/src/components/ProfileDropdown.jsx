@@ -37,7 +37,9 @@ const ProfileDropdown = () => {
       setIsOpen(false)
     } catch (err) {
       console.error("Image upload failed:", err)
-      alert("Failed to upload image")
+      // Show the server's actual reason (wrong file type, too large, etc.)
+      // instead of a generic message, so the person knows what to fix.
+      alert(err.response?.data?.message || "Failed to upload image")
     } finally {
       setLoading(false)
     }
