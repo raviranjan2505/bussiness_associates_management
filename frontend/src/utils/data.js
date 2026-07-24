@@ -16,6 +16,7 @@ import {
   MdCalculate,
   MdAssignmentInd,
   MdVerifiedUser,
+  MdSettings,
 } from "react-icons/md";
 
 // ── Admin side menu ────────────────────────────────────────────────────────
@@ -29,6 +30,7 @@ export const SIDE_MENU_DATA = [
   { id: 7,  label: "Quotations",          icon: MdRequestQuote,       path: "/admin/quotations" },
   { id: 8,  label: "Invoices",            icon: MdReceiptLong,        path: "/admin/invoices" },
   { id: 9,  label: "Payments",            icon: MdPayments,           path: "/admin/payments" },
+  { id: 17, label: "Payment Settings",    icon: MdSettings,           path: "/admin/payment-settings" },
   { id: 10, label: "Income",              icon: MdCurrencyRupee,      path: "/admin/income" },
   { id: 11, label: "Work",                icon: MdFolderOpen,         path: "/admin/projects" },
   { id: 12, label: "Calculator", icon: MdCalculate,        path: "/admin/commission-calculator" },

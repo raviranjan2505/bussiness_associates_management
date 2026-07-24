@@ -72,6 +72,17 @@ const WorkDetails = () => {
   const [files, setFiles]       = useState([]);
   const [docSaving, setDocSaving] = useState(false);
 
+  // Associate: payment submission (Full/Partial payment against the work's invoice)
+  const [paymentSettings, setPaymentSettings] = useState(null);
+  const [payForm, setPayForm] = useState({
+    amount: "",
+    paymentMethod: "Bank Transfer",
+    transactionId: "",
+    remarks: "",
+  });
+  const [proofFile, setProofFile] = useState(null);
+  const [paySaving, setPaySaving] = useState(false);
+
   // ── Loaders ────────────────────────────────────────────────────────────────
   const loadWork = async () => {
     const res = await axiosInstance.get(`/business/works/${id}`);
@@ -103,6 +114,61 @@ const WorkDetails = () => {
   };
 
   useEffect(() => { reload(); }, [id]);
+
+  // Admin's payment collection details — always shown to associates on this
+  // page. Harmless to fetch for admins too (read-only, same endpoint they
+  // manage from Payment Settings), we just don't render it for them.
+  useEffect(() => {
+    if (isAdmin) return;
+    axiosInstance
+      .get("/payment-settings")
+      .then((res) => setPaymentSettings(res.data.settings))
+      .catch(() => {});
+  }, [isAdmin]);
+
+  // ── Payment submission (associate only) ───────────────────────────────────
+  const submitPayment = async (e) => {
+    e.preventDefault();
+    const amountNum = Number(payForm.amount);
+    if (!amountNum || amountNum <= 0) return toast.error("Enter a valid payment amount");
+    if (balanceDue != null && amountNum > balanceDue) {
+      return toast.error(`Amount cannot exceed the remaining due amount of ${fmt(balanceDue)}`);
+    }
+
+    setPaySaving(true);
+    try {
+      let proofUrl = "";
+      // Payment proof is uploaded through the same Additional Documents
+      // mechanism already used elsewhere on this page — no new upload
+      // endpoint, just tagged so it's easy to spot in the documents list.
+      if (proofFile) {
+        const docForm = new FormData();
+        docForm.append("documents", proofFile);
+        docForm.append("requestLabel", "Payment Proof");
+        const docRes = await axiosInstance.post(`/business/works/${id}/documents`, docForm);
+        const uploadedDocs = docRes.data?.work?.documents || [];
+        proofUrl = uploadedDocs[uploadedDocs.length - 1]?.url || "";
+      }
+
+      await axiosInstance.post("/payments/submit", {
+        workId: id,
+        amount: amountNum,
+        paymentMethod: payForm.paymentMethod,
+        transactionId: payForm.transactionId,
+        remarks: payForm.remarks,
+        proofUrl,
+      });
+
+      toast.success("Payment submitted for verification");
+      setPayForm({ amount: "", paymentMethod: "Bank Transfer", transactionId: "", remarks: "" });
+      setProofFile(null);
+      reload();
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Failed to submit payment");
+    } finally {
+      setPaySaving(false);
+    }
+  };
 
   // ── Status update (admin only) ────────────────────────────────────────────
   const updateStatus = async (e) => {
@@ -218,6 +284,126 @@ const WorkDetails = () => {
                 <InfoBox label="Last Updated" value={moment(work.updatedAt).format("DD MMM YYYY hh:mm A")} />
               </div>
             </Card>
+
+            {/* ── ASSOCIATE ONLY: Payment ──────────────────────── */}
+            {!isAdmin && (
+              <Card title="Payment">
+                {/* Totals — always shown once an invoice exists for this work */}
+                {invoice ? (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 mb-5">
+                    <InfoBox label="Total Amount" value={fmt(totalAmount)} />
+                    <InfoBox label="Total Paid Amount" value={fmt(amountPaid)} />
+                    <InfoBox label="Remaining Due Amount" value={fmt(balanceDue)} />
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 mb-5">
+                    No invoice has been generated for this work yet — payment options will appear once it has.
+                  </p>
+                )}
+
+                {/* Admin's payment collection details — visible at all times */}
+                <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-4 mb-5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-3">
+                    Send Payment To
+                  </p>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <InfoBox label="Bank Name" value={paymentSettings?.bankName} />
+                      <InfoBox label="Account Holder" value={paymentSettings?.accountHolderName} />
+                      <InfoBox label="Account Number" value={paymentSettings?.accountNumber} mono />
+                      <InfoBox label="IFSC Code" value={paymentSettings?.ifscCode} mono />
+                      <InfoBox label="UPI ID" value={paymentSettings?.upiId} mono />
+                    </div>
+                    {paymentSettings?.qrCodeUrl && (
+                      <div className="flex flex-col items-center justify-center gap-1">
+                        <img
+                          src={paymentSettings.qrCodeUrl}
+                          alt="Payment QR code"
+                          className="h-24 w-24 rounded-lg border border-gray-200 bg-white object-contain"
+                        />
+                        <span className="text-[11px] text-gray-400">Scan to pay</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Submit a payment — only while something is still due */}
+                {invoice && balanceDue > 0 ? (
+                  <form onSubmit={submitPayment} className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Submit Payment
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Amount (Rs.) * <span className="text-gray-400 font-normal">(max {fmt(balanceDue)})</span>
+                        </label>
+                        <input
+                          type="number" min="1" max={balanceDue}
+                          className="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:border-gray-500"
+                          value={payForm.amount}
+                          onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Payment Method</label>
+                        <select
+                          className="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:border-gray-500"
+                          value={payForm.paymentMethod}
+                          onChange={(e) => setPayForm({ ...payForm, paymentMethod: e.target.value })}
+                        >
+                          <option>Bank Transfer</option>
+                          <option>UPI</option>
+                          <option>Cash</option>
+                          <option>Cheque</option>
+                          <option>Card</option>
+                          <option>Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Transaction ID</label>
+                        <input
+                          className="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:border-gray-500"
+                          placeholder="Optional"
+                          value={payForm.transactionId}
+                          onChange={(e) => setPayForm({ ...payForm, transactionId: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Payment Proof</label>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="w-full text-sm"
+                          onChange={(e) => setProofFile(e.target.files[0] || null)}
+                        />
+                        <p className="text-[11px] text-gray-400 mt-1">Uploaded to Additional Documents.</p>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Remarks</label>
+                      <textarea
+                        rows={2}
+                        className="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:border-gray-500 resize-none"
+                        placeholder="Any note for the admin"
+                        value={payForm.remarks}
+                        onChange={(e) => setPayForm({ ...payForm, remarks: e.target.value })}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={paySaving}
+                      className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                    >
+                      {paySaving ? "Submitting…" : "Submit Payment"}
+                    </button>
+                  </form>
+                ) : invoice ? (
+                  <p className="text-sm font-medium text-green-700">✓ This invoice is fully paid. No further payment needed.</p>
+                ) : null}
+              </Card>
+            )}
 
             {/* ── Invoice & Services ───────────────────────────── */}
             <Card

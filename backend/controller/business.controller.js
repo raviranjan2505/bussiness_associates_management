@@ -1119,6 +1119,7 @@ export const getWork = async (req, res, next) => {
       .populate("assignedAdmin", "name email")
       .populate("division", "name")
       .populate("service", "name price associateEarningPercent associateEarningAmount fields requiredDocuments")
+      .populate("invoiceId", "invoiceNumber totalAmount amountPaid balanceDue invoiceStatus")
       .populate("statusHistory.updatedBy", "name role")
       .populate("auditLogs.user", "name role");
     if (!work) return next(errorHandler(404, "Work not found"));

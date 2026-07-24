@@ -405,6 +405,7 @@ const AdminPayments = () => {
                   <th className="p-3 text-right">Amount</th>
                   <th className="p-3 text-right">Balance Due</th>
                   <th className="p-3">Txn ID</th>
+                  <th className="p-3">Details</th>
                   <th className="p-3">Status</th>
                   <th className="p-3">Pay Due Amount</th>
                   <th className="p-3">Actions</th>
@@ -412,7 +413,7 @@ const AdminPayments = () => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={11} className="py-12 text-center text-gray-400">Loading…</td></tr>
+                  <tr><td colSpan={12} className="py-12 text-center text-gray-400">Loading…</td></tr>
                 ) : pagedPayments.map((p) => (
                   <tr key={p._id} className="border-t hover:bg-gray-50">
                     <td className="p-3 font-medium">
@@ -443,6 +444,20 @@ const AdminPayments = () => {
                       {formatMoney(p.invoice?.balanceDue || 0)}
                     </td>
                     <td className="p-3 text-xs text-gray-500">{p.transactionId || "—"}</td>
+                    <td className="p-3 text-xs text-gray-500 max-w-[180px]">
+                      {p.remarks && <p className="truncate" title={p.remarks}>{p.remarks}</p>}
+                      {p.proofUrl && (
+                        <a
+                          href={p.proofUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-block mt-0.5 font-medium text-blue-700 hover:underline"
+                        >
+                          View Proof
+                        </a>
+                      )}
+                      {!p.remarks && !p.proofUrl && "—"}
+                    </td>
                     <td className="p-3"><StatusBadge status={p.status} /></td>
                     <td className="p-3">
                       {p.invoice?.balanceDue > 0 && (
@@ -477,7 +492,7 @@ const AdminPayments = () => {
                   </tr>
                 ))}
                 {!loading && !payments.length && (
-                  <tr><td colSpan={11} className="p-4 text-center text-gray-500">No payments found.</td></tr>
+                  <tr><td colSpan={12} className="p-4 text-center text-gray-500">No payments found.</td></tr>
                 )}
               </tbody>
             </table>

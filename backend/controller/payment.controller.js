@@ -2,9 +2,11 @@ import mongoose from "mongoose";
 import Payment, { PAYMENT_STATUSES, PAYMENT_METHODS } from "../models/payment.model.js";
 import Invoice from "../models/invoice.model.js";
 import User from "../models/user.model.js";
+import WorkSubmission from "../models/workSubmission.model.js";
+import PaymentSettings from "../models/paymentSettings.model.js";
 import { errorHandler } from "../utils/error.js";
 import { toMoney } from "../utils/money.js";
-import { notify } from "../utils/notify.js";
+import { notify, notifyAdmins } from "../utils/notify.js";
 import { streamReceiptPdf } from "../utils/pdfGenerator.js";
 import { convertLeadIfPaid } from "../utils/leadConversion.js";
 
@@ -31,7 +33,7 @@ const toAggregateFilter = (filter) => {
   return out;
 };
 
-const syncInvoicePaymentStatus = async (invoice) => {
+const syncInvoicePaymentStatus = async (invoice, updatedBy) => {
   const payments = await Payment.find({ invoice: invoice._id, status: "Verified" });
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
   invoice.amountPaid = toMoney(totalPaid);
@@ -44,6 +46,33 @@ const syncInvoicePaymentStatus = async (invoice) => {
     invoice.invoiceStatus = "Partially Paid";
   }
   await invoice.save();
+  if (invoice.invoiceStatus === "Paid") await syncWorkStatusForPaidInvoice(invoice, updatedBy);
+};
+
+// When an invoice becomes fully paid, any Work Submission that was parked on
+// "Waiting For Payment" specifically because of this invoice can move
+// forward — other statuses (In Process, Completed, etc.) are left alone
+// since those reflect progress the admin has already made manually.
+const syncWorkStatusForPaidInvoice = async (invoice, updatedBy) => {
+  const works = await WorkSubmission.find({ invoiceId: invoice._id, status: "Waiting For Payment" });
+  for (const work of works) {
+    work.statusHistory.push({
+      previousStatus: work.status,
+      newStatus: "Pending",
+      remark: "Invoice fully paid — automatically moved out of Waiting For Payment.",
+      updatedBy: updatedBy || work.associate,
+    });
+    work.status = "Pending";
+    await work.save();
+    await notify({
+      user: work.associate,
+      title: "Payment complete — work resumed",
+      message: `Invoice ${invoice.invoiceNumber} is now fully paid. ${work.workId} has moved to Pending.`,
+      type: "Status Updated",
+      workSubmission: work._id,
+      invoice: invoice._id,
+    });
+  }
 };
 
 export const addPayment = async (req, res, next) => {
@@ -236,7 +265,7 @@ export const verifyPayment = async (req, res, next) => {
 
     const invoice = await Invoice.findById(payment.invoice);
     if (invoice) {
-      await syncInvoicePaymentStatus(invoice);
+      await syncInvoicePaymentStatus(invoice, req.user.id);
       await notify({
         user: invoice.associate,
         title: "Payment verified",
@@ -263,7 +292,7 @@ export const failPayment = async (req, res, next) => {
     await payment.save();
 
     const invoice = await Invoice.findById(payment.invoice);
-    if (invoice) await syncInvoicePaymentStatus(invoice);
+    if (invoice) await syncInvoicePaymentStatus(invoice, req.user.id);
 
     res.status(200).json({ message: "Payment marked as failed", payment });
   } catch (error) {
@@ -280,6 +309,7 @@ export const markInvoicePaid = async (req, res, next) => {
     invoice.amountPaid = invoice.totalAmount;
     invoice.balanceDue = 0;
     await invoice.save();
+    await syncWorkStatusForPaidInvoice(invoice, req.user.id);
 
     await notify({
       user: invoice.associate,
@@ -310,6 +340,104 @@ export const downloadReceipt = async (req, res, next) => {
     }
 
     streamReceiptPdf(res, payment, invoice);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ── Associate self-service payment (Work Details page) ─────────────────────
+// Lets an associate submit a full or partial payment against the invoice
+// linked to one of their own work items, with optional proof (already
+// uploaded via the existing Additional Documents endpoint — this just
+// records the resulting URL for quick reference during verification).
+// Reuses the same Payment collection and the same Pending → admin
+// Verify/Fail flow already built for admin-recorded payments — no new
+// payment record type, no duplicate invoice.
+export const submitAssociatePayment = async (req, res, next) => {
+  try {
+    const { workId, amount, paymentMethod, transactionId, remarks, proofUrl } = req.body;
+    if (!workId) return next(errorHandler(400, "Work ID is required"));
+    const numericAmount = Number(amount);
+    if (!numericAmount || numericAmount <= 0) return next(errorHandler(400, "A positive amount is required"));
+
+    const work = await WorkSubmission.findById(workId);
+    if (!work) return next(errorHandler(404, "Work not found"));
+    if (String(work.associate) !== req.user.id) {
+      return next(errorHandler(403, "You can only submit payments for your own work"));
+    }
+    if (!work.invoiceId) return next(errorHandler(400, "No invoice has been generated for this work yet"));
+
+    const invoice = await Invoice.findById(work.invoiceId);
+    if (!invoice) return next(errorHandler(404, "Invoice not found"));
+    if (invoice.invoiceStatus === "Paid") return next(errorHandler(400, "This invoice is already fully paid"));
+    if (invoice.invoiceStatus === "Cancelled") return next(errorHandler(400, "This invoice has been cancelled"));
+    if (numericAmount > invoice.balanceDue) {
+      return next(errorHandler(400, `Amount cannot exceed the remaining due amount of Rs. ${invoice.balanceDue}`));
+    }
+
+    const payment = await Payment.create({
+      invoice: invoice._id,
+      work: work._id,
+      leadId: invoice.leadId,
+      proofUrl: proofUrl || undefined,
+      amount: toMoney(numericAmount),
+      paymentMethod: paymentMethod || "Bank Transfer",
+      transactionId,
+      remarks,
+      status: "Pending",
+      recordedBy: req.user.id,
+    });
+
+    const associateUser = await User.findById(req.user.id).select("name");
+
+    await notifyAdmins({
+      title: "Payment submitted for verification",
+      message: `${associateUser?.name || "An associate"} submitted a payment of Rs. ${payment.amount} for invoice ${invoice.invoiceNumber} (${work.workId}). Verification pending.`,
+      type: "Payment Recorded",
+      invoice: invoice._id,
+      workSubmission: work._id,
+      payment: payment._id,
+    });
+
+    res.status(201).json({ message: "Payment submitted for verification", payment });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ── Admin Payment Settings (shown to every associate on Work Details) ──────
+export const getPaymentSettings = async (req, res, next) => {
+  try {
+    const settings = await PaymentSettings.findOne({ singletonKey: "payment_settings" });
+    res.status(200).json({
+      settings: settings || {
+        bankName: "", accountHolderName: "", accountNumber: "",
+        ifscCode: "", upiId: "", qrCodeUrl: "",
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updatePaymentSettings = async (req, res, next) => {
+  try {
+    const { bankName, accountHolderName, accountNumber, ifscCode, upiId } = req.body;
+    const update = {
+      bankName, accountHolderName, accountNumber, ifscCode, upiId,
+      updatedBy: req.user.id,
+    };
+    if (req.file) {
+      update.qrCodeUrl = `${req.protocol}://${req.get("host")}/uploads/images/${req.file.filename}`;
+    }
+
+    const settings = await PaymentSettings.findOneAndUpdate(
+      { singletonKey: "payment_settings" },
+      { $set: update, $setOnInsert: { singletonKey: "payment_settings" } },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({ message: "Payment settings updated", settings });
   } catch (error) {
     next(error);
   }

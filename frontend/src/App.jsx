@@ -10,6 +10,7 @@ import SignUp from "./pages/auth/SignUp";
 // Admin pages
 import BusinessDashboard from "./pages/admin/BusinessDashboard";
 import ManageDivisionsServices from "./pages/admin/ManageDivisionsServices";
+import AdminPaymentSettings from "./pages/admin/PaymentSettings";
 import ReviewWorks from "./pages/admin/ReviewWorks";
 import AllClients from "./pages/admin/AllClients";
 import MyClients from "./pages/associate/MyClients";
@@ -75,6 +76,7 @@ const App = () => {
           <Route element={<PrivateRoute allowedRoles={["admin"]} />}>
             <Route path="/admin/dashboard" element={<BusinessDashboard />} />
             <Route path="/admin/divisions-services" element={<ManageDivisionsServices />} />
+            <Route path="/admin/payment-settings" element={<AdminPaymentSettings />} />
             <Route path="/admin/works" element={<ReviewWorks />} />
             {/* Income & Payout */}
             <Route path="/admin/income" element={<AdminIncome />} />
